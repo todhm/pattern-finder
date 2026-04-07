@@ -1,0 +1,14 @@
+traderlion.docx
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+
+# Docker
+pgdata/
+
+# Environment
+.env

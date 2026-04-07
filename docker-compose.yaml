@@ -1,0 +1,35 @@
+services:
+  backtester:
+    build:
+      context: ./backtester
+      dockerfile: Dockerfile
+      args:
+        PYTHON_BASE_IMAGE: ${PYTHON_BASE_IMAGE:-python:3.14-slim}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backtester:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://backtester:backtester@db:5432/backtester
+
+  db:
+    image: ${POSTGRES_BASE_IMAGE:-postgres:16-alpine}
+    environment:
+      - POSTGRES_USER=backtester
+      - POSTGRES_PASSWORD=backtester
+      - POSTGRES_DB=backtester
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backtester"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
