@@ -32,4 +32,4 @@ build-backend = "setuptools.build_meta"
 testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
-include = ["data*", "pattern*", "backtest*", "visualization*"]
+include = ["data*", "pattern*", "backtest*", "visualization*", "strategy*", "pages*"]

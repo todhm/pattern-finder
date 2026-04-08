@@ -1,11 +1,11 @@
 import pandas as pd
 
-from backtest.models.result import BacktestResult
-from backtest.models.trade import Trade
-from pattern.models.signal import PatternSignal
+from backtest.domain.models import BacktestResult, Trade
+from backtest.domain.ports import BacktestEnginePort
+from pattern.domain.models import PatternSignal
 
 
-class BacktestEngine:
+class BacktestEngine(BacktestEnginePort):
     """Simulates trades based on pattern signals.
 
     Exit strategy:

@@ -2,10 +2,9 @@ from datetime import date
 
 import pandas as pd
 
-from backtest.services.engine import BacktestEngine
-from pattern.models.signal import PatternSignal
-from pattern.services.reversal_extension import ReversalExtensionDetector
-from pattern.services.wedge_pop import WedgePopDetector
+from backtest.adapters.engine import BacktestEngine
+from pattern.adapters.reversal_extension import ReversalExtensionDetector
+from pattern.adapters.wedge_pop import WedgePopDetector
 
 
 class TestBacktestEngine:
@@ -30,9 +29,7 @@ class TestBacktestEngine:
     def test_run_with_wedge_pop_signals(
         self, consolidation_with_breakout: pd.DataFrame
     ):
-        detector = WedgePopDetector(
-            consolidation_days=10, volume_multiplier=1.3, atr_compression=0.8
-        )
+        detector = WedgePopDetector()
         signals = detector.detect(consolidation_with_breakout)
         result = self.engine.run(consolidation_with_breakout, signals)
 

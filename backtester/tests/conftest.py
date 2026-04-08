@@ -58,41 +58,52 @@ def downtrend_with_reversal() -> pd.DataFrame:
 
 @pytest.fixture
 def consolidation_with_breakout() -> pd.DataFrame:
-    """Synthetic data: downtrend, consolidation below MAs, then breakout (wedge pop)."""
-    np.random.seed(123)
-    n = 60
+    """Synthetic data: downtrend, consolidation below MAs, then breakout (wedge pop).
 
-    # Phase 1 (0-19): decline from 100 to ~80
-    closes = [100 - i * 1.0 for i in range(20)]
+    Deterministic (no random) so the detector conditions are reliably met:
+    1. Downtrend wide ranges  → high ATR baseline → ATR_AVG stays elevated.
+    2. Consolidation tight ranges → ATR drops → ATR < 0.8 * ATR_AVG at breakout.
+    3. Slow drift keeps closes strictly below both EMAs.
+    4. First breakout bar just above EMAs with moderate true range.
+    """
+    # Phase 1 (0-19): steep decline 100 → 70, wide daily ranges
+    p1_closes = [100 - i * 1.5 for i in range(20)]
 
-    # Phase 2 (20-44): flat consolidation around 78-82, below EMAs
-    for _ in range(25):
-        closes.append(80 + np.random.uniform(-1.5, 1.0))
+    # Phase 2 (20-44): slow drift 70 → 66.4, tight daily ranges
+    p2_closes = [70 - i * 0.15 for i in range(25)]
 
-    # Phase 3 (45-59): breakout with momentum
-    base = closes[-1]
-    for i in range(15):
-        base += 2.5 + np.random.uniform(0, 1.0)
-        closes.append(base)
+    # Phase 3 (45-59): breakout from ~69 upward
+    p3_closes = [69.0 + i * 1.8 for i in range(15)]
 
-    closes = closes[:n]
-    opens = [c - np.random.uniform(0, 1.0) for c in closes]
+    closes = p1_closes + p2_closes + p3_closes
 
-    # Make breakout bars clearly bullish
-    for i in range(45, n):
-        opens[i] = closes[i] - 3.0
+    opens: list[float] = []
+    highs: list[float] = []
+    lows: list[float] = []
+    for i, c in enumerate(closes):
+        if i < 20:
+            # Downtrend: slightly bearish, wide range
+            o = c + 0.3
+            opens.append(o)
+            highs.append(max(o, c) + 2.5)
+            lows.append(min(o, c) - 2.5)
+        elif i < 45:
+            # Consolidation: slightly bearish, very tight range
+            o = c + 0.2
+            opens.append(o)
+            mid = (o + c) / 2
+            highs.append(mid + 0.2)
+            lows.append(mid - 0.2)
+        else:
+            # Breakout: bullish, moderate range
+            o = c - 2.5
+            opens.append(o)
+            highs.append(c + 0.8)
+            lows.append(o - 0.5)
 
-    highs = [max(o, c) + np.random.uniform(0.3, 1.5) for o, c in zip(opens, closes)]
-    lows = [min(o, c) - np.random.uniform(0.3, 1.0) for o, c in zip(opens, closes)]
+    volumes = [1_500_000] * 20 + [600_000] * 25 + [3_000_000] * 15
 
-    # Low volume during consolidation, spike on breakout
-    volumes = (
-        [1_500_000] * 20
-        + [600_000] * 25
-        + [3_000_000] * 15
-    )
-
-    return _make_df(opens, highs, lows, closes, volumes[:n])
+    return _make_df(opens, highs, lows, closes, volumes)
 
 
 @pytest.fixture

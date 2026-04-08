@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from pattern.models.signal import PatternSignal
+from pattern.domain.models import PatternSignal
 
 
 class PatternDetector(ABC):
-    """Base class for all pattern detectors.
+    """Port: pattern detection interface.
 
     Subclass this and implement `detect()` to add a new pattern.
     """
@@ -16,12 +16,19 @@ class PatternDetector(ABC):
     def name(self) -> str: ...
 
     @abstractmethod
-    def detect(self, df: pd.DataFrame) -> list[PatternSignal]:
+    def detect(
+        self,
+        df: pd.DataFrame,
+        weekly_df: pd.DataFrame | None = None,
+        monthly_df: pd.DataFrame | None = None,
+    ) -> list[PatternSignal]:
         """Detect pattern signals from OHLCV DataFrame.
 
         Args:
-            df: DataFrame with columns Open, High, Low, Close, Volume
+            df: Daily DataFrame with columns Open, High, Low, Close, Volume
                 indexed by DatetimeIndex.
+            weekly_df: Optional weekly OHLCV DataFrame (same column format).
+            monthly_df: Optional monthly OHLCV DataFrame (same column format).
 
         Returns:
             List of detected pattern signals.

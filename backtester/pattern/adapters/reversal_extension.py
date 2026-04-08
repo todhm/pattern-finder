@@ -1,7 +1,7 @@
 import pandas as pd
 
-from pattern.models.signal import PatternSignal
-from pattern.services.base import PatternDetector
+from pattern.domain.models import PatternSignal
+from pattern.domain.ports import PatternDetector
 
 
 class ReversalExtensionDetector(PatternDetector):
@@ -28,7 +28,12 @@ class ReversalExtensionDetector(PatternDetector):
         self.volume_multiplier = volume_multiplier
         self.lookback = lookback
 
-    def detect(self, df: pd.DataFrame) -> list[PatternSignal]:
+    def detect(
+        self,
+        df: pd.DataFrame,
+        weekly_df: pd.DataFrame | None = None,
+        monthly_df: pd.DataFrame | None = None,
+    ) -> list[PatternSignal]:
         df = df.copy()
         df["ema"] = self._add_ema(df, self.ema_period)
         df["vol_avg"] = self._avg_volume(df)

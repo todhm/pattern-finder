@@ -1,6 +1,6 @@
 import pandas as pd
 
-from pattern.services.reversal_extension import ReversalExtensionDetector
+from pattern.adapters.reversal_extension import ReversalExtensionDetector
 
 
 class TestReversalExtensionDetector:

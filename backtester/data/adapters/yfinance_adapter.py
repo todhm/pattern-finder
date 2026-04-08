@@ -3,19 +3,17 @@ from datetime import date
 import pandas as pd
 import yfinance as yf
 
+from data.domain.ports import MarketDataPort
 
-class MarketDataService:
+
+class YFinanceAdapter(MarketDataPort):
     def fetch_ohlcv(
         self,
         symbol: str,
         start: date,
         end: date,
     ) -> pd.DataFrame:
-        """Fetch OHLCV data from Yahoo Finance.
-
-        Returns DataFrame with columns: Open, High, Low, Close, Volume
-        indexed by DatetimeIndex.
-        """
+        """Fetch OHLCV data from Yahoo Finance."""
         ticker = yf.Ticker(symbol)
         df = ticker.history(start=start.isoformat(), end=end.isoformat())
         if df.empty:

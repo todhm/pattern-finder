@@ -2,10 +2,10 @@ from datetime import date
 
 from fastapi import FastAPI, Query
 
-from backtest.services.engine import BacktestEngine
-from data.services.market_data_service import MarketDataService
-from pattern.services.reversal_extension import ReversalExtensionDetector
-from pattern.services.wedge_pop import WedgePopDetector
+from backtest.adapters.engine import BacktestEngine
+from data.adapters.yfinance_adapter import YFinanceAdapter
+from pattern.adapters.reversal_extension import ReversalExtensionDetector
+from pattern.adapters.wedge_pop import WedgePopDetector
 
 app = FastAPI(title="Backtester", version="0.1.0")
 
@@ -36,7 +36,7 @@ def detect_pattern(
     if detector is None:
         return {"error": f"Unknown pattern: {pattern_name}"}
 
-    df = MarketDataService().fetch_ohlcv(symbol, start, end)
+    df = YFinanceAdapter().fetch_ohlcv(symbol, start, end)
     signals = detector.detect(df)
     return {"symbol": symbol, "pattern": pattern_name, "signals": signals}
 
@@ -53,7 +53,7 @@ def run_backtest(
     if detector is None:
         return {"error": f"Unknown pattern: {pattern_name}"}
 
-    data_svc = MarketDataService()
+    data_svc = YFinanceAdapter()
     df = data_svc.fetch_ohlcv(symbol, start, end)
     signals = detector.detect(df)
 
