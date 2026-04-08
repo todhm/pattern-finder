@@ -1,0 +1,10 @@
+{
+  "instructions": [
+    "모든 명령어는 docker compose를 통해 실행한다. 로컬에서 직접 pip, pytest 등을 실행하지 않는다.",
+    "서비스 시작: docker compose up -d --build <서비스명>",
+    "명령어 실행: docker compose exec <서비스명> <명령어>",
+    "예시: docker compose exec backtester pytest -v",
+    "예시: docker compose exec backtester python -c '...'",
+    "서비스 중지: docker compose down"
+  ]
+}

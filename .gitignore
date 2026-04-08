@@ -12,3 +12,7 @@ pgdata/
 
 # Environment
 .env
+venv
+
+# Claude Code - permissions는 개인 설정이므로 제외
+.claude/settings.local.json
