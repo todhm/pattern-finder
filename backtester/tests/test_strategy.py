@@ -44,7 +44,7 @@ class TestStrategyRunner:
         result = runner.run(config)
 
         assert result.config == config
-        assert result.backtest_result.initial_capital == 100_000
+        assert result.performance.initial_capital == 100_000
         assert len(result.equity_curve) >= 1
 
     def test_run_wedge_pop_strategy(self, consolidation_with_breakout: pd.DataFrame):
@@ -58,8 +58,8 @@ class TestStrategyRunner:
         result = runner.run(config)
 
         assert result.config == config
-        assert result.backtest_result.total_trades == len(
-            result.backtest_result.trades
+        assert result.performance.total_trades == len(
+            result.performance.trades
         )
 
     def test_equity_curve_starts_with_initial_capital(
@@ -84,6 +84,6 @@ class TestStrategyRunner:
             pattern_name="reversal_extension",
         )
         result = runner.run(config)
-        assert result.backtest_result.total_trades == 0
+        assert result.performance.total_trades == 0
         assert len(result.equity_curve) == 1
         assert result.equity_curve[0].equity == 100_000

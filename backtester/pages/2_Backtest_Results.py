@@ -68,21 +68,21 @@ if run_btn:
             st.error(f"Error: {e}")
             st.stop()
 
-    br = result.backtest_result
+    perf = result.performance
 
     # --- Metrics ---
     st.subheader(f"{ticker} — {pattern_name} Backtest")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Return", f"{br.total_return_pct:.2%}")
-    c2.metric("Win Rate", f"{br.win_rate:.2%}")
-    c3.metric("Max Drawdown", f"{br.max_drawdown_pct:.2%}")
-    c4.metric("Total Trades", br.total_trades)
+    c1.metric("Total Return", f"{perf.total_return_pct:.2%}")
+    c2.metric("Win Rate", f"{perf.win_rate:.2%}")
+    c3.metric("Max Drawdown", f"{perf.max_drawdown_pct:.2%}")
+    c4.metric("Total Trades", perf.total_trades)
 
     c5, c6, c7, c8 = st.columns(4)
-    c5.metric("Final Capital", f"${br.final_capital:,.0f}")
-    c6.metric("Avg Win", f"{br.avg_win_pct:.2%}")
-    c7.metric("Avg Loss", f"{br.avg_loss_pct:.2%}")
-    c8.metric("Initial Capital", f"${br.initial_capital:,.0f}")
+    c5.metric("Final Capital", f"${perf.final_capital:,.0f}")
+    c6.metric("Avg Win", f"{perf.avg_win_pct:.2%}")
+    c7.metric("Avg Loss", f"{perf.avg_loss_pct:.2%}")
+    c8.metric("Initial Capital", f"${perf.initial_capital:,.0f}")
 
     # --- Equity Curve ---
     if len(result.equity_curve) > 1:
@@ -93,7 +93,7 @@ if run_btn:
         st.plotly_chart(eq_fig, use_container_width=True)
 
     # --- Trade List ---
-    if br.trades:
+    if perf.trades:
         st.subheader("Trades")
         trade_data = [
             {
@@ -107,7 +107,7 @@ if run_btn:
                 "PnL": f"${t.pnl:,.2f}",
                 "PnL %": f"{t.pnl_pct:.2%}",
             }
-            for t in br.trades
+            for t in perf.trades
         ]
         st.dataframe(trade_data, use_container_width=True)
     else:

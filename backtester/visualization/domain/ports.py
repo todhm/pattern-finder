@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from pattern.domain.models import PatternSignal
-from strategy.domain.models import EquityPoint
+from strategy.domain.models import EquityPoint, Trade
 
 
 class ChartBuilderPort(ABC):
@@ -15,6 +15,14 @@ class ChartBuilderPort(ABC):
         self,
         df: pd.DataFrame,
         signals: list[PatternSignal],
+        title: str = "",
+    ) -> go.Figure: ...
+
+    @abstractmethod
+    def build_candlestick_with_trades(
+        self,
+        df: pd.DataFrame,
+        trades: list[Trade],
         title: str = "",
     ) -> go.Figure: ...
 
