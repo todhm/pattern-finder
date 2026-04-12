@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from data.adapters.yfinance_adapter import YFinanceAdapter
@@ -70,29 +72,30 @@ with st.sidebar:
         step=5.0,
         disabled=not enable_max_cp,
     )
-    breakout_pct = st.number_input(
-        "Min breakout strength %",
-        value=1.5,
+    breakout_atr_mult = st.number_input(
+        "Min breakout strength (× ATR)",
+        value=0.01,
         min_value=0.0,
-        max_value=20.0,
-        step=0.1,
-        format="%.2f",
-        help="Wedge pop이 인정되려면 `max(ema_strength, daily_move)`가 "
-        "이 값 이상이어야 함. 0%면 하한 off.",
+        max_value=10.0,
+        step=0.001,
+        format="%.3f",
+        help="breakout move가 ATR의 몇 배 이상이어야 wedge pop으로 인정. "
+        "ATR 기반이라 종목 변동성에 자동 적응. 0이면 하한 off.",
     )
     enable_max_bp = st.checkbox(
         "Cap max breakout strength",
         value=False,
-        help="상한 추가 — 이미 너무 큰 단일봉 gap(+15%+)은 overextended " "라 제외하고 싶을 때.",
+        help="상한 추가 — 이미 너무 큰 단일봉 gap(+4 ATR+)은 overextended " "라 제외하고 싶을 때.",
     )
-    max_breakout_pct_ui = st.number_input(
-        "Max breakout strength %",
-        value=10.0,
+    max_breakout_atr_mult_ui = st.number_input(
+        "Max breakout strength (× ATR)",
+        value=3.0,
         min_value=0.0,
-        max_value=50.0,
+        max_value=20.0,
         step=0.5,
         format="%.2f",
         disabled=not enable_max_bp,
+        help="breakout이 ATR의 이 배수를 넘으면 overextended로 제외.",
     )
     require_above_long_smas = st.checkbox(
         "Require close above 50 & 200 SMA",
@@ -176,17 +179,18 @@ with st.sidebar:
     enable_entry_ema_filter = st.checkbox(
         "Enable EMA-extension entry filter",
         value=False,
-        help="Entry open이 signal bar의 max(10EMA, 20EMA) 위로 N% " "이상 초과하면 진입 거부.",
+        help="Entry open이 signal bar의 max(10EMA, 20EMA) 위로 N × ATR "
+        "이상 초과하면 진입 거부. ATR 기반이라 변동성에 자동 적응.",
     )
-    max_entry_ema_extension_pct = st.number_input(
-        "Max entry extension above EMA %",
-        value=3.0,
+    max_entry_ema_extension_atr = st.number_input(
+        "Max entry extension above EMA (× ATR)",
+        value=1.5,
         min_value=0.0,
-        max_value=50.0,
+        max_value=20.0,
         step=0.1,
         format="%.2f",
         disabled=not enable_entry_ema_filter,
-        help="(entry_open - max(ema10, ema20)) / ema > 이 값 이면 거부.",
+        help="(entry_open - max(ema10, ema20)) / ATR > 이 값이면 거부.",
     )
     st.caption("**EMA slow slope 범위 필터** — 양수/음수 모두 가능.")
     enable_min_slope = st.checkbox(
@@ -223,31 +227,23 @@ with st.sidebar:
     )
 
     st.header("Exit Tuning")
-    extension_pct = st.number_input(
-        "Exhaustion % above EMA",
-        value=15.0,
-        min_value=0.0,
-        max_value=500.0,
-        step=0.5,
-        help="Exit 룰: bar의 **High**가 max(fast, slow) EMA × (1 + 이 "
-        "값) 선을 터치하면 그 라인에서 체결 (limit order 모델, gap-up "
-        "이면 open). 0%면 사실상 exit 끔.",
-    )
     extension_atr_mult = st.number_input(
-        "Exhaustion ATR multiplier",
-        value=2.5,
-        min_value=0.0,
+        "Exhaustion (× ATR above EMA)",
+        value=1.5,
+        min_value=0.1,
         max_value=50.0,
         step=0.1,
-        help="Exit 룰 대안: High가 EMA + ATR × 이 값 라인 터치 시 체결. "
-        "두 라인(% 와 ATR) 중 낮은 쪽이 먼저 발동.",
+        help="Exit 룰: bar의 **High**가 max(fast, slow) EMA + ATR × 이 "
+        "값 선을 터치하면 그 라인에서 체결 (limit order 모델). ATR "
+        "기반이라 변동성에 자동 적응 — 같은 2.5가 모든 종목에서 비슷한 "
+        "시각적 거리를 의미함.",
     )
     climax_atr_mult = st.number_input(
         "Climax bar ATR multiplier",
-        value=1.5,
+        value=0.8,
         min_value=0.0,
         max_value=10.0,
-        step=0.1,
+        step=0.001,
         help="단일봉 climax/blow-off 감지 임계. bar range 및 단일봉 "
         "move가 ATR × 이 값 이상이면서 close가 상단 20%에 위치 → "
         "익절 (예: AMD 2019-03-19 climax).",
@@ -313,8 +309,8 @@ detector = WedgePopDetector(
     ema_slow=int(ema_slow),
     consolidation_pct=consolidation_pct / 100.0,
     max_consolidation_pct=(max_consolidation_pct_ui / 100.0 if enable_max_cp else None),
-    breakout_pct=breakout_pct / 100.0,
-    max_breakout_pct=(max_breakout_pct_ui / 100.0 if enable_max_bp else None),
+    breakout_atr_mult=breakout_atr_mult,
+    max_breakout_atr_mult=(max_breakout_atr_mult_ui if enable_max_bp else None),
     slope_lookback=int(slope_lookback),
     cooldown_bars=int(cooldown_bars_ui),
     require_above_long_smas=require_above_long_smas,
@@ -325,11 +321,10 @@ strategy = WedgepopStrategy(
     ema_trail=int(ema_fast),
     ema_slow=int(ema_slow),
     atr_period=int(atr_period),
-    extension_pct=extension_pct / 100.0,
     extension_atr_mult=extension_atr_mult,
     climax_atr_mult=climax_atr_mult,
     max_entry_chase_ratio=(max_entry_chase_ratio if enable_chase_filter else float("inf")),
-    max_entry_ema_extension_pct=(max_entry_ema_extension_pct / 100.0 if enable_entry_ema_filter else None),
+    max_entry_ema_extension_atr=(max_entry_ema_extension_atr if enable_entry_ema_filter else None),
     max_ema_slope_decline=None,  # superseded by min/max_ema_slow_slope
     min_ema_slow_slope=(min_ema_slow_slope_ui if enable_min_slope else None),
     max_ema_slow_slope=(max_ema_slow_slope_ui if enable_max_slope else None),
@@ -364,13 +359,72 @@ m6.metric("Avg Win", f"{perf.avg_win_pct:.2%}" if perf.trades else "—")
 m7.metric("Avg Loss", f"{perf.avg_loss_pct:.2%}" if perf.trades else "—")
 m8.metric("Max Drawdown", f"{perf.max_drawdown_pct:.2%}")
 
-# --- Candlestick with trade markers ---
+# --- Candlestick with trade markers + trigger lines ---
 chart_builder = PlotlyChartBuilder()
 trade_fig = chart_builder.build_candlestick_with_trades(
     df,
     perf.trades,
     title=f"{ticker} — Buy / Sell / Stop",
 )
+
+# Overlay trigger lines during each trade's holding period so the user
+# can see exactly where the exhaustion / climax exits sit — makes
+# ATR-based multipliers visually intuitive.
+df_ind = strategy._with_indicators(df)
+if df_ind.index.tz is not None:
+    df_ind = df_ind.copy()
+    df_ind.index = df_ind.index.tz_localize(None)
+date_map = {idx.date(): idx for idx in df_ind.index}
+
+for t in perf.trades:
+    if t.entry_date not in date_map or t.exit_date not in date_map:
+        continue
+    entry_ts = date_map[t.entry_date]
+    exit_ts = date_map[t.exit_date]
+    entry_loc = df_ind.index.get_loc(entry_ts)
+    exit_loc = df_ind.index.get_loc(exit_ts)
+    trade_slice = df_ind.iloc[entry_loc : exit_loc + 1]
+
+    ema_f = trade_slice["ema_trail"]
+    ema_s = trade_slice["ema_slow"]
+    atr_s = trade_slice["atr"]
+    ref_ema = pd.concat([ema_f, ema_s], axis=1).max(axis=1)
+
+    # Exhaustion line: ref_ema + ATR × extension_atr_mult
+    exhaust_line = ref_ema + atr_s * extension_atr_mult
+    trade_fig.add_trace(
+        go.Scatter(
+            x=trade_slice.index,
+            y=exhaust_line,
+            mode="lines",
+            line=dict(color="#4CAF50", width=1.2, dash="dash"),
+            name="Exhaustion",
+            showlegend=(t == perf.trades[0]),
+            hoverinfo="skip",
+        ),
+        row=1,
+        col=1,
+    )
+
+    # Climax line: prev_close + climax_atr_mult × ATR
+    prev_close = trade_slice["Close"].shift(1)
+    climax_line = prev_close + climax_atr_mult * atr_s
+    climax_line = climax_line.iloc[1:]  # skip first bar (NaN shift)
+    if len(climax_line) > 0:
+        trade_fig.add_trace(
+            go.Scatter(
+                x=climax_line.index,
+                y=climax_line,
+                mode="lines",
+                line=dict(color="#FF9800", width=1.2, dash="dot"),
+                name="Climax",
+                showlegend=(t == perf.trades[0]),
+                hoverinfo="skip",
+            ),
+            row=1,
+            col=1,
+        )
+
 # Zoom the chart to the user's date range while keeping the warmup
 # bars accessible via scroll/pan (needed for converged 50/200 SMA).
 trade_fig.update_xaxes(range=[str(start_date), str(end_date)])

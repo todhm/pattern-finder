@@ -11,8 +11,11 @@ class WedgePopDetector(PatternDetector):
     1. Consolidation: >= `consolidation_pct` of last `lookback` bars
        closed below the fast EMA (allows real-market noise).
     2. Breakout: close > both fast & slow EMA.
-    3. Breakout strength: close exceeds the higher EMA by at least
-       `breakout_pct`, filtering out weak bounces.
+    3. Breakout strength: the breakout move exceeds
+       ``breakout_atr_mult × ATR``, filtering out weak bounces.
+       ATR-based thresholds automatically adapt to each stock's
+       volatility, so the same multiplier works consistently
+       across $10 micro-caps and $500 mega-caps.
 
     Volume is NOT a hard gate — real breakouts can have average volume
     when the rolling average is skewed by prior spikes (e.g. earnings).
@@ -29,8 +32,9 @@ class WedgePopDetector(PatternDetector):
         ema_slow: int = 20,
         consolidation_pct: float = 0.6,
         max_consolidation_pct: float | None = None,
-        breakout_pct: float = 0.015,
-        max_breakout_pct: float | None = None,
+        breakout_atr_mult: float = 0.5,
+        max_breakout_atr_mult: float | None = None,
+        atr_period: int = 14,
         slope_lookback: int = 20,
         cooldown_bars: int | None = None,
         require_above_long_smas: bool = True,
@@ -48,14 +52,18 @@ class WedgePopDetector(PatternDetector):
         # capitulation signature, not a coil.
         self.consolidation_pct = consolidation_pct
         self.max_consolidation_pct = max_consolidation_pct
-        # Same idea for the breakout strength gate. ``breakout_pct``
-        # is the MIN expansion required. ``max_breakout_pct`` caps
-        # the upper end so you can filter out runaway gaps that
-        # would normally pass the strength check but are already
-        # overextended (e.g. you can set the cap to 10% to skip
-        # +15% single-bar moves).
-        self.breakout_pct = breakout_pct
-        self.max_breakout_pct = max_breakout_pct
+        # Breakout strength gate in ATR units.
+        # ``breakout_atr_mult`` is the MIN expansion required,
+        # measured as ``max(ema_distance, daily_move) / ATR``.
+        # ``max_breakout_atr_mult`` caps the upper end so you can
+        # filter out runaway gaps that are already overextended
+        # (e.g. cap at 3.0 to skip +4 ATR single-bar moves).
+        # Using ATR instead of fixed % means the gate automatically
+        # scales with each stock's volatility — "0.5 ATR" is a
+        # comparable move on a $10 penny stock and a $500 blue chip.
+        self.breakout_atr_mult = breakout_atr_mult
+        self.max_breakout_atr_mult = max_breakout_atr_mult
+        self.atr_period = atr_period
         self.slope_lookback = slope_lookback
         # Cooldown — number of bars to wait after a fire before the
         # next signal can arm. Historically this was hard-coded to
@@ -82,6 +90,7 @@ class WedgePopDetector(PatternDetector):
         df["sma_mid"] = df["Close"].rolling(self.sma_mid).mean()
         df["sma_long"] = df["Close"].rolling(self.sma_long).mean()
         df["vol_avg"] = self._avg_volume(df)
+        df["atr"] = self._compute_atr(df, self.atr_period)
         # Recent EMA slopes (percent change over ``slope_lookback``
         # bars). Exposed purely as a signal-metadata variable so
         # downstream strategies can filter out wedge pops where the
@@ -130,13 +139,17 @@ class WedgePopDetector(PatternDetector):
         return True
 
     def _is_breakout(self, df: pd.DataFrame, i: int) -> bool:
-        """Close above both EMAs with meaningful strength.
+        """Close above both EMAs with meaningful strength (ATR-scaled).
 
         Passes if EITHER:
-        - EMA distance: close is >= breakout_pct above the higher EMA, OR
-        - Daily momentum: close rose >= breakout_pct from previous close.
+        - EMA distance: (close - resistance) >= breakout_atr_mult × ATR, OR
+        - Daily momentum: (close - prev_close) >= breakout_atr_mult × ATR.
         The second condition catches breakouts where the EMAs are close to
         price (tight consolidation) but the daily candle is clearly bullish.
+
+        Using ATR as the yardstick means the same multiplier (e.g. 0.5)
+        automatically adapts to high-vol and low-vol regimes — no need to
+        retune the threshold per stock or per market cycle.
 
         Additional guards:
         - ``close >= prev_open``: a "breakout" whose close is below where
@@ -173,30 +186,27 @@ class WedgePopDetector(PatternDetector):
         if self.require_above_long_smas:
             sma_mid = df["sma_mid"].iloc[i]
             sma_long = df["sma_long"].iloc[i]
-            # If either SMA is still NaN (not enough history) we treat
-            # the filter as failing — better to skip than to let an
-            # unconfirmed long-term trend through.
             if pd.isna(sma_mid) or pd.isna(sma_long):
                 return False
             if close <= sma_mid or close <= sma_long:
                 return False
 
-        resistance = max(fast, slow)
-        ema_strength = (close - resistance) / resistance
+        atr = float(df["atr"].iloc[i]) if not pd.isna(df["atr"].iloc[i]) else 0.0
+        if atr <= 0:
+            return False
 
-        prev_close = df["Close"].iloc[i - 1]
-        daily_move = (close - prev_close) / prev_close
+        resistance = max(fast, slow)
+        ema_distance = (close - resistance) / atr
+        daily_move = (close - prev_close) / atr
 
         # "Strength" is the max of the two candidate metrics —
         # whichever leg would have triggered the OR gate is the
         # one driving the breakout. Gate on
-        # ``[breakout_pct, max_breakout_pct]``: min bound is the
-        # required expansion; optional max bound caps runaway gaps
-        # that are already overextended.
-        strength = max(ema_strength, daily_move)
-        if strength < self.breakout_pct:
+        # ``[breakout_atr_mult, max_breakout_atr_mult]``.
+        strength = max(ema_distance, daily_move)
+        if strength < self.breakout_atr_mult:
             return False
-        if self.max_breakout_pct is not None and strength > self.max_breakout_pct:
+        if self.max_breakout_atr_mult is not None and strength > self.max_breakout_atr_mult:
             return False
         return True
 
@@ -215,7 +225,13 @@ class WedgePopDetector(PatternDetector):
         fast = df["ema_fast"].iloc[i]
         slow = df["ema_slow"].iloc[i]
         resistance = max(fast, slow)
-        breakout_strength = round((df["Close"].iloc[i] - resistance) / resistance, 4)
+        atr = float(df["atr"].iloc[i]) if not pd.isna(df["atr"].iloc[i]) else 0.0
+        # Report both %-based and ATR-based breakout strength in
+        # metadata so the user can compare. The ATR-based value is
+        # the one used for the gate; the %-based value is kept for
+        # human readability (e.g. "broke out +2.5% above EMA").
+        breakout_strength_pct = round((df["Close"].iloc[i] - resistance) / resistance, 4)
+        breakout_strength_atr = round((df["Close"].iloc[i] - resistance) / atr, 4) if atr > 0 else 0.0
 
         fast_slope_raw = df["ema_fast_slope"].iloc[i]
         slow_slope_raw = df["ema_slow_slope"].iloc[i]
@@ -227,9 +243,10 @@ class WedgePopDetector(PatternDetector):
             pattern_name=self.name,
             entry_price=df["Close"].iloc[i],
             stop_loss=consolidation_low,
-            confidence=min(1.0 + breakout_strength * 10, 3.0),
+            confidence=min(1.0 + breakout_strength_atr * 2, 3.0),
             metadata={
-                "breakout_strength": breakout_strength,
+                "breakout_strength": breakout_strength_pct,
+                "breakout_strength_atr": breakout_strength_atr,
                 "volume_ratio": vol_ratio,
                 "consolidation_low": round(consolidation_low, 2),
                 "ema_fast_slope": ema_fast_slope,
@@ -237,3 +254,16 @@ class WedgePopDetector(PatternDetector):
                 "slope_lookback": self.slope_lookback,
             },
         )
+
+    @staticmethod
+    def _compute_atr(df: pd.DataFrame, period: int) -> pd.Series:
+        prev_close = df["Close"].shift(1)
+        true_range = pd.concat(
+            [
+                df["High"] - df["Low"],
+                (df["High"] - prev_close).abs(),
+                (df["Low"] - prev_close).abs(),
+            ],
+            axis=1,
+        ).max(axis=1)
+        return true_range.ewm(span=period, adjust=False).mean()

@@ -88,28 +88,30 @@ with st.sidebar:
         step=5.0,
         disabled=not enable_max_cp,
     )
-    breakout_pct = st.number_input(
-        "Min breakout strength %",
-        value=1.5,
+    breakout_atr_mult = st.number_input(
+        "Min breakout strength (× ATR)",
+        value=0.01,
         min_value=0.0,
-        max_value=20.0,
-        step=0.1,
-        format="%.2f",
-        help="max(ema_strength, daily_move) 의 **하한**.",
+        max_value=10.0,
+        step=0.001,
+        format="%.3f",
+        help="breakout move가 ATR의 몇 배 이상이어야 wedge pop으로 인정. "
+        "ATR 기반이라 종목 변동성에 자동 적응. 0이면 하한 off.",
     )
     enable_max_bp = st.checkbox(
         "Cap max breakout strength",
         value=False,
-        help="상한 추가 — 이미 너무 큰 단일봉 gap을 overextended로 " "보고 제외하고 싶을 때.",
+        help="상한 추가 — 이미 너무 큰 단일봉 gap(+4 ATR+)을 overextended로 제외.",
     )
-    max_breakout_pct_ui = st.number_input(
-        "Max breakout strength %",
-        value=10.0,
+    max_breakout_atr_mult_ui = st.number_input(
+        "Max breakout strength (× ATR)",
+        value=3.0,
         min_value=0.0,
-        max_value=50.0,
+        max_value=20.0,
         step=0.5,
         format="%.2f",
         disabled=not enable_max_bp,
+        help="breakout이 ATR의 이 배수를 넘으면 overextended로 제외.",
     )
     require_above_long_smas = st.checkbox(
         "Require close above 50 & 200 SMA",
@@ -187,18 +189,18 @@ with st.sidebar:
     enable_entry_ema_filter = st.checkbox(
         "Enable EMA-extension entry filter",
         value=False,
-        help="Entry open이 signal bar의 max(10EMA, 20EMA) 위로 N% "
-        "이상 초과하면 진입 거부. chase 필터보다 EMA stack에 anchored.",
+        help="Entry open이 signal bar의 max(10EMA, 20EMA) 위로 N × ATR "
+        "이상 초과하면 진입 거부. ATR 기반이라 변동성에 자동 적응.",
     )
-    max_entry_ema_extension_pct = st.number_input(
-        "Max entry extension above EMA %",
-        value=3.0,
+    max_entry_ema_extension_atr = st.number_input(
+        "Max entry extension above EMA (× ATR)",
+        value=1.5,
         min_value=0.0,
-        max_value=50.0,
+        max_value=20.0,
         step=0.1,
         format="%.2f",
         disabled=not enable_entry_ema_filter,
-        help="(entry_open - max(ema10, ema20)) / ema > 이 값 이면 거부.",
+        help="(entry_open - max(ema10, ema20)) / ATR > 이 값이면 거부.",
     )
     st.caption("**EMA slow slope 범위 필터**")
     enable_min_slope = st.checkbox(
@@ -233,30 +235,22 @@ with st.sidebar:
     )
 
     st.header("Exit Tuning")
-    extension_pct = st.number_input(
-        "Exhaustion % above EMA",
-        value=15.0,
-        min_value=0.0,
-        max_value=500.0,
-        step=0.5,
-        help="Exit 룰: bar의 **High**가 max(fast,slow) EMA × (1+이값) "
-        "선을 터치하면 해당 라인에서 체결 (limit order 모델, gap-up이면 "
-        "open). 0%면 exit 룰이 사실상 꺼짐.",
-    )
     extension_atr_mult = st.number_input(
-        "Exhaustion ATR multiplier",
-        value=2.5,
+        "Exhaustion (× ATR above EMA)",
+        value=1.5,
         min_value=0.1,
         max_value=50.0,
         step=0.1,
-        help="대안 익절: close − EMA ≥ ATR × 이 값.",
+        help="Exit 룰: bar의 **High**가 max(fast,slow) EMA + ATR × 이 값 "
+        "선을 터치하면 해당 라인에서 체결 (limit order 모델). ATR 기반이라 "
+        "변동성에 자동 적응.",
     )
     climax_atr_mult = st.number_input(
         "Climax bar ATR multiplier",
-        value=1.5,
+        value=0.8,
         min_value=0.1,
         max_value=10.0,
-        step=0.1,
+        step=0.01,
         help="단일봉 blow-off 감지. range 및 단일봉 move가 ATR × 이 값 "
         "이상이면서 close가 상단 20%이면 익절 (AMD 2019-03-19).",
     )
@@ -326,8 +320,8 @@ detector = WedgePopDetector(
     ema_slow=int(ema_slow),
     consolidation_pct=consolidation_pct / 100.0,
     max_consolidation_pct=(max_consolidation_pct_ui / 100.0 if enable_max_cp else None),
-    breakout_pct=breakout_pct / 100.0,
-    max_breakout_pct=(max_breakout_pct_ui / 100.0 if enable_max_bp else None),
+    breakout_atr_mult=breakout_atr_mult,
+    max_breakout_atr_mult=(max_breakout_atr_mult_ui if enable_max_bp else None),
     slope_lookback=int(slope_lookback),
     cooldown_bars=int(cooldown_bars_ui),
     require_above_long_smas=require_above_long_smas,
@@ -338,11 +332,10 @@ per_ticker_strategy = WedgepopStrategy(
     ema_trail=int(ema_fast),
     ema_slow=int(ema_slow),
     atr_period=int(atr_period),
-    extension_pct=extension_pct / 100.0,
     extension_atr_mult=extension_atr_mult,
     climax_atr_mult=climax_atr_mult,
     max_entry_chase_ratio=(max_entry_chase_ratio if enable_chase_filter else float("inf")),
-    max_entry_ema_extension_pct=(max_entry_ema_extension_pct / 100.0 if enable_entry_ema_filter else None),
+    max_entry_ema_extension_atr=(max_entry_ema_extension_atr if enable_entry_ema_filter else None),
     max_ema_slope_decline=None,
     min_ema_slow_slope=(min_ema_slow_slope_ui if enable_min_slope else None),
     max_ema_slow_slope=(max_ema_slow_slope_ui if enable_max_slope else None),
@@ -468,6 +461,43 @@ rows = [
     for t in result.trades
 ]
 st.dataframe(rows, use_container_width=True)
+
+# --- Per-trade candlestick charts ---
+st.subheader("Trade Charts")
+CONTEXT_BEFORE_DAYS = 60   # calendar days before entry to show
+CONTEXT_AFTER_DAYS = 30    # calendar days after exit to show
+
+for i, t in enumerate(result.trades):
+    pnl_sign = "+" if t.pnl >= 0 else ""
+    label = (
+        f"{t.ticker} — {t.entry_date} → {t.exit_date}  "
+        f"({pnl_sign}{t.pnl_pct:.2%})"
+    )
+    with st.expander(label, expanded=(i < 3)):
+        chart_start = t.entry_date - timedelta(days=CONTEXT_BEFORE_DAYS)
+        chart_end = t.exit_date + timedelta(days=CONTEXT_AFTER_DAYS)
+        # Extra warmup so 50/200 SMA lines are converged
+        fetch_start = chart_start - timedelta(days=400)
+        try:
+            ticker_df = market_data.fetch_ohlcv(
+                t.ticker, fetch_start, chart_end
+            )
+        except Exception:
+            st.warning(f"Failed to fetch data for {t.ticker}")
+            continue
+        if ticker_df is None or ticker_df.empty:
+            st.warning(f"No data for {t.ticker}")
+            continue
+
+        trade_fig = chart_builder.build_candlestick_with_trades(
+            ticker_df,
+            [t],
+            title=f"{t.ticker} — {t.entry_date} → {t.exit_date}",
+        )
+        trade_fig.update_xaxes(
+            range=[str(chart_start), str(chart_end)]
+        )
+        st.plotly_chart(trade_fig, use_container_width=True)
 
 if result.failed_tickers:
     with st.expander(f"Failed tickers ({len(result.failed_tickers)})"):

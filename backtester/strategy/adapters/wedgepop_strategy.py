@@ -21,6 +21,14 @@ class WedgepopStrategy(StrategyRunnerPort):
     reference to the backtest domain — execution, sizing, exits, and
     performance accounting all live inside the strategy boundary.
 
+    All distance-based thresholds (exhaustion, entry extension, climax)
+    are expressed in **ATR multiples** rather than fixed percentages.
+    ATR automatically scales with each stock's volatility, so "2.5 ATR
+    above EMA" represents a comparable visual distance on a quiet $500
+    blue-chip and a jumpy $20 growth name — eliminating the "1% is huge
+    on stock A but invisible on stock B" problem that plagued the
+    old fixed-% gates.
+
     Lifecycle (one position at a time)
 
     Entry
@@ -66,23 +74,16 @@ class WedgepopStrategy(StrategyRunnerPort):
                          mechanism: a trade that briefly went green
                          and then collapsed exits at breakeven
                          instead of giving back the entire
-                         unrealized gain. Real example — CDNS
-                         2026-02-11: close > entry on 02-18, then
-                         collapsed; the breakeven stop catches it
-                         on 02-19 instead of riding to a -7% loss.
-        2. Exhaustion:   HIGH-based limit-order model. Each bar two
-                         trigger lines are computed from the reference
-                         EMA = ``max(ema_fast, ema_slow)``:
-                             pct_line = ref × (1 + extension_pct)
-                             atr_line = ref + ATR(14) × extension_atr_mult
-                         The trade has an implicit sell limit at the
-                         LOWER of the two lines — that's the one the
-                         price reaches first as the rally stretches.
+                         unrealized gain.
+        2. Exhaustion:   HIGH-based limit-order model using ATR.
+                         Each bar a single trigger line is computed:
+                             line = ref_ema + ATR × extension_atr_mult
+                         where ref_ema = max(ema_fast, ema_slow).
                          As soon as the bar's ``High`` touches the
                          line, the order fills **at the line**, not at
                          the high. A bar that gaps through the line
                          fills at ``max(open, line)`` (the gap favours
-                         the seller). Both triggers must sit above
+                         the seller). The trigger must sit above
                          ``entry_price`` to count — otherwise the line
                          would be a loss-taking level, not a
                          profit-take.
@@ -94,12 +95,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                          same ``climax_atr_mult × ATR`` threshold
                          (i.e. it's a genuinely wide bar, not a
                          one-tick wick) — the trade fills at the
-                         line (or at ``open`` on a gap-up). The rule
-                         is intentionally ``High``-based so it also
-                         fires on bars that spike intraday and then
-                         close back down (ALL 2025-05-08). AMD
-                         2019-03-19 still fires because its +11%
-                         day prints a high well above prev_close.
+                         line (or at ``open`` on a gap-up).
         4. EMA trail:    close < 10 EMA -> exit at close. The doc
                          warns that the breakout candle often
                          retests the EMAs, so we only arm the trail
@@ -109,9 +105,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                          trail only fires when *this* bar's close is
                          above entry — preserving the original 익절
                          behaviour. The 손절 side is handled by the
-                         breakeven stop above, which avoids killing
-                         trades that briefly dipped below entry and
-                         later recovered into a bigger profit.
+                         breakeven stop above.
         5. Time stop:    held >= max_holding_days  -> exit at close.
 
     The strategy's exit logic is tied to the wedge-pop lifecycle (Wedge
@@ -129,11 +123,10 @@ class WedgepopStrategy(StrategyRunnerPort):
         ema_trail: int = 10,
         ema_slow: int = 20,
         atr_period: int = 14,
-        extension_pct: float = 0.15,
         extension_atr_mult: float = 2.5,
         climax_atr_mult: float = 1.5,
         max_entry_chase_ratio: float = 0.15,
-        max_entry_ema_extension_pct: float | None = None,
+        max_entry_ema_extension_atr: float | None = None,
         max_ema_slope_decline: float | None = 0.01,
         min_ema_slow_slope: float | None = None,
         max_ema_slow_slope: float | None = None,
@@ -146,11 +139,10 @@ class WedgepopStrategy(StrategyRunnerPort):
         self.ema_trail = ema_trail
         self.ema_slow = ema_slow
         self.atr_period = atr_period
-        self.extension_pct = extension_pct
         self.extension_atr_mult = extension_atr_mult
         self.climax_atr_mult = climax_atr_mult
         self.max_entry_chase_ratio = max_entry_chase_ratio
-        self.max_entry_ema_extension_pct = max_entry_ema_extension_pct
+        self.max_entry_ema_extension_atr = max_entry_ema_extension_atr
         # Slope entry filter as a RANGE ``[min, max]``. The legacy
         # ``max_ema_slope_decline`` param still works as a
         # backwards-compatible shim: setting it to e.g. 0.01 is
@@ -313,24 +305,25 @@ class WedgepopStrategy(StrategyRunnerPort):
                 if chase_ratio > self.max_entry_chase_ratio:
                     return None, entry_idx
 
-        # "EMA-extension" entry filter: reject entries where the
-        # entry-bar open is more than ``max_entry_ema_extension_pct``
-        # above ``max(ema_fast, ema_slow)`` at the signal bar. The
-        # motivation is the same as the chase filter but anchored at
-        # the EMA stack instead of the signal bar's high — catches
-        # entries where the breakout has already stretched well past
-        # the trend line before we buy. Setting this to ``None``
+        # "EMA-extension" entry filter (ATR-scaled): reject entries
+        # where the entry-bar open is more than
+        # ``max_entry_ema_extension_atr × ATR`` above
+        # ``max(ema_fast, ema_slow)`` at the signal bar. Using ATR
+        # as the yardstick means the same multiplier (e.g. 1.5)
+        # works across high- and low-volatility regimes — no need
+        # to retune a fixed % per stock. Setting to ``None``
         # disables the filter entirely.
         if (
-            self.max_entry_ema_extension_pct is not None
+            self.max_entry_ema_extension_atr is not None
             and entry_idx > 0
         ):
             sig_fast = float(df["ema_trail"].iloc[entry_idx - 1])
             sig_slow = float(df["ema_slow"].iloc[entry_idx - 1])
             ref_ema = max(sig_fast, sig_slow)
-            if ref_ema > 0:
-                extension = (entry_price - ref_ema) / ref_ema
-                if extension > self.max_entry_ema_extension_pct:
+            atr_at_signal = float(df["atr"].iloc[entry_idx - 1])
+            if ref_ema > 0 and atr_at_signal > 0:
+                extension_atr = (entry_price - ref_ema) / atr_at_signal
+                if extension_atr > self.max_entry_ema_extension_atr:
                     return None, entry_idx
 
         # Slope range filter: reject entries where the signal's
@@ -434,42 +427,24 @@ class WedgepopStrategy(StrategyRunnerPort):
             if low <= armed_stop:
                 return min(open_bar, armed_stop), i
 
-            # 2. Exhaustion Extension — HIGH-based limit-order model.
-            #    Two trigger lines are computed each bar from the
-            #    higher of the fast/slow EMAs:
-            #        pct_line =   ref_ema × (1 + extension_pct)
-            #        atr_line =   ref_ema + atr × extension_atr_mult
-            #    The trade has an implicit sell limit at the LOWER of
-            #    the two — that's the line the price reaches first as
-            #    the rally stretches. As soon as the bar's HIGH touches
-            #    that line, the order fills at the LINE — NOT at the
-            #    bar's high. The gap-up case is handled by
-            #    ``max(open, trigger)``: when a bar gaps clean through
-            #    the line, the limit order fills at the open (the gap
-            #    favours the seller).
+            # 2. Exhaustion Extension — HIGH-based, ATR-scaled.
+            #    A single trigger line is computed each bar:
+            #        trigger = ref_ema + ATR × extension_atr_mult
+            #    where ref_ema = max(ema_fast, ema_slow). Using ATR
+            #    instead of a fixed % means the exhaustion line
+            #    automatically adapts to the stock's volatility —
+            #    "2.5 ATR above EMA" is a comparable visual distance
+            #    on a quiet $500 name and a jumpy $20 name.
             #
-            #    Both triggers must sit above ``entry_price`` to count;
-            #    right after entry the ref_ema is typically below entry,
-            #    so the "trigger line" would sit at a loss and firing
-            #    it makes no sense as a sell-into-strength exit. This
-            #    guard lets the EMAs catch up before the rule arms.
+            #    The trigger must sit above ``entry_price`` to count;
+            #    right after entry the ref_ema is typically below
+            #    entry, so the line would be a loss-taking level.
+            #    This guard lets the EMAs catch up before the rule arms.
             ref_ema = max(ema_fast, ema_slow)
-            if ref_ema > 0:
-                pct_trigger = ref_ema * (1 + self.extension_pct)
-                atr_trigger = (
-                    ref_ema + atr * self.extension_atr_mult
-                    if atr > 0
-                    else float("inf")
-                )
-                candidates = [
-                    t
-                    for t in (pct_trigger, atr_trigger)
-                    if t > entry_price
-                ]
-                if candidates:
-                    trigger = min(candidates)
-                    if high_bar >= trigger:
-                        return max(open_bar, trigger), i
+            if ref_ema > 0 and atr > 0:
+                trigger = ref_ema + atr * self.extension_atr_mult
+                if trigger > entry_price and high_bar >= trigger:
+                    return max(open_bar, trigger), i
 
             # 3. Climax bar — HIGH-based limit-order model.
             #    Triggers on a "parabolic pop" bar: the bar's HIGH

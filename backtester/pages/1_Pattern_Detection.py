@@ -57,27 +57,29 @@ with st.sidebar:
         step=5.0,
         disabled=not enable_max_cp,
     )
-    breakout_pct = st.number_input(
-        "Min breakout strength %",
-        value=1.5,
+    breakout_atr_mult = st.number_input(
+        "Min breakout strength (× ATR)",
+        value=0.01,
         min_value=0.0,
-        max_value=20.0,
-        step=0.1,
-        format="%.2f",
-        help="max(ema_strength, daily_move) 의 **하한**.",
+        max_value=10.0,
+        step=0.001,
+        format="%.3f",
+        help="breakout move가 ATR의 몇 배 이상이어야 wedge pop으로 인정. "
+        "ATR 기반이라 종목 변동성에 자동 적응. 0이면 하한 off.",
     )
     enable_max_bp = st.checkbox(
         "Cap max breakout strength",
         value=False,
     )
-    max_breakout_pct_ui = st.number_input(
-        "Max breakout strength %",
-        value=10.0,
+    max_breakout_atr_mult_ui = st.number_input(
+        "Max breakout strength (× ATR)",
+        value=3.0,
         min_value=0.0,
-        max_value=50.0,
+        max_value=20.0,
         step=0.5,
         format="%.2f",
         disabled=not enable_max_bp,
+        help="breakout이 ATR의 이 배수를 넘으면 overextended로 제외.",
     )
     slope_lookback = st.number_input(
         "Slope lookback (days)",
@@ -110,8 +112,8 @@ if run_btn:
                     ema_slow=int(ema_slow),
                     consolidation_pct=consolidation_pct / 100.0,
                     max_consolidation_pct=(max_consolidation_pct_ui / 100.0 if enable_max_cp else None),
-                    breakout_pct=breakout_pct / 100.0,
-                    max_breakout_pct=(max_breakout_pct_ui / 100.0 if enable_max_bp else None),
+                    breakout_atr_mult=breakout_atr_mult,
+                    max_breakout_atr_mult=(max_breakout_atr_mult_ui if enable_max_bp else None),
                     slope_lookback=int(slope_lookback),
                     cooldown_bars=int(cooldown_bars_ui),
                     require_above_long_smas=require_above_long_smas,

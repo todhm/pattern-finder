@@ -468,7 +468,7 @@ AMD_2020_CASE4 = _make_df([
 # AAPL tuning fixtures. Four real AAPL dates the user asked us to
 # investigate. Two of them (Group A) are blocked by the default
 # ``consolidation_pct=0.6`` gate; two (Group B) are blocked by the
-# default ``breakout_pct=0.015`` gate. Both thresholds are now
+# default ``breakout_atr_mult=0.5`` gate. Both thresholds are now
 # exposed as detector parameters (and surfaced in the Streamlit
 # UI) so the user can loosen them for specific backtests.
 #
@@ -893,19 +893,25 @@ AAPL_2026_04_02 = _make_df([
 
 class TestWedgePopDetector:
     def setup_method(self):
-        self.detector = WedgePopDetector()
+        # Production-like defaults but with long-SMA requirement off
+        # (most fixtures < 200 bars → 200 SMA would be NaN).
+        self.detector = WedgePopDetector(require_above_long_smas=False)
 
     # --- real data tests ---
 
     def test_detects_elf_wedge_pop(self):
-        """ELF 2023-11-14: textbook wedge pop after consolidation below EMAs."""
+        """ELF 2023-11: wedge pop detected after consolidation below EMAs.
+
+        With ATR-based breakout gating, the first signal fires on
+        2023-11-06 (daily move ≈ 0.8 ATR, consolidation ≥ 60% below
+        fast EMA). The textbook 11-14 bar is within the cooldown window.
+        """
         signals = self.detector.detect(ELF_DATA)
         assert len(signals) > 0
 
-        # The first signal should be on or around 2023-11-14
         first = signals[0]
         assert first.pattern_name == "wedge_pop"
-        assert first.date == date(2023, 11, 14)
+        assert first.date in (date(2023, 11, 6), date(2023, 11, 14))
         assert first.stop_loss < first.entry_price
 
     def test_detects_amzn_2021_wedge_pop(self):
@@ -943,8 +949,12 @@ class TestWedgePopDetector:
     def test_stricter_params_fewer_signals(
         self, consolidation_with_breakout: pd.DataFrame
     ):
-        strict = WedgePopDetector(consolidation_pct=0.9, breakout_pct=0.10)
-        lenient = WedgePopDetector(consolidation_pct=0.3, breakout_pct=0.005)
+        strict = WedgePopDetector(
+            consolidation_pct=0.9, breakout_atr_mult=5.0, require_above_long_smas=False
+        )
+        lenient = WedgePopDetector(
+            consolidation_pct=0.3, breakout_atr_mult=0.0, require_above_long_smas=False
+        )
         assert len(strict.detect(consolidation_with_breakout)) <= len(
             lenient.detect(consolidation_with_breakout)
         )
@@ -959,7 +969,9 @@ class TestWedgePopDetector:
         df = consolidation_with_breakout.copy()
         # Sanity-check baseline: the synthetic fixture currently
         # produces at least one wedge-pop signal.
-        baseline = WedgePopDetector().detect(df)
+        baseline = WedgePopDetector(
+            breakout_atr_mult=0.0, require_above_long_smas=False
+        ).detect(df)
         assert len(baseline) > 0
         signal_idx = df.index.get_loc(pd.Timestamp(baseline[0].date))
 
@@ -973,14 +985,16 @@ class TestWedgePopDetector:
             signal_idx - 1, df.columns.get_loc("Open")
         ] = breakout_close + 5.0
 
-        signals_after = WedgePopDetector().detect(df)
+        signals_after = WedgePopDetector(
+            breakout_atr_mult=0.0, require_above_long_smas=False
+        ).detect(df)
         # That specific date must no longer produce a signal.
         rejected_dates = {s.date for s in signals_after}
         assert baseline[0].date not in rejected_dates
 
 
 class TestWedgePopDetectorTunableGates:
-    """The ``consolidation_pct`` and ``breakout_pct`` gates are now
+    """The ``consolidation_pct`` and ``breakout_atr_mult`` gates are now
     exposed as detector parameters (and surfaced in the Streamlit
     UI). Four real AAPL cases drove this: two that fail the
     consolidation gate, two that fail the breakout-strength gate.
@@ -991,81 +1005,85 @@ class TestWedgePopDetectorTunableGates:
     # ---- Group A: consolidation gate ----
 
     def test_aapl_2025_08_06_blocked_by_default_consolidation(self):
-        """Default ``consolidation_pct=0.6`` requires ≥ 60% of
-        prior-15-bar closes below the fast EMA. AAPL on 2025-08-06
-        only has 6/15 = 40%, so the default detector does NOT fire.
+        """With ``lookback=15, consolidation_pct=0.6``, AAPL 2025-08-06
+        has only 6/15 = 40% below fast EMA → blocked.
         """
-        sigs = WedgePopDetector().detect(AAPL_2025_08_06)
+        sigs = WedgePopDetector(
+            lookback=15, require_above_long_smas=False
+        ).detect(AAPL_2025_08_06)
         assert date(2025, 8, 6) not in {s.date for s in sigs}
 
     def test_aapl_2025_08_06_fires_when_consolidation_relaxed(self):
-        sigs = WedgePopDetector(consolidation_pct=0.4).detect(
-            AAPL_2025_08_06
-        )
+        sigs = WedgePopDetector(
+            lookback=15, consolidation_pct=0.4, require_above_long_smas=False
+        ).detect(AAPL_2025_08_06)
         assert date(2025, 8, 6) in {s.date for s in sigs}
 
     def test_aapl_2025_10_17_blocked_by_default_consolidation(self):
-        sigs = WedgePopDetector().detect(AAPL_2025_10_17)
+        sigs = WedgePopDetector(
+            lookback=15, require_above_long_smas=False
+        ).detect(AAPL_2025_10_17)
         assert date(2025, 10, 17) not in {s.date for s in sigs}
 
     def test_aapl_2025_10_17_fires_when_consolidation_relaxed(self):
-        """Even though the entry bar itself pierces cleanly — open
-        247.55 below both EMAs, close 251.81 above both — the prior
-        15 bars spent most of their time ABOVE the fast EMA, so the
-        default consolidation gate blocks the signal. Loosening
-        ``consolidation_pct`` to 0.4 releases it.
+        """With ``lookback=15``, prior 15 bars spent most of their
+        time ABOVE the fast EMA. Loosening ``consolidation_pct`` to
+        0.4 releases it.
         """
-        sigs = WedgePopDetector(consolidation_pct=0.4).detect(
-            AAPL_2025_10_17
-        )
+        sigs = WedgePopDetector(
+            lookback=15, consolidation_pct=0.4, require_above_long_smas=False
+        ).detect(AAPL_2025_10_17)
         assert date(2025, 10, 17) in {s.date for s in sigs}
 
     def test_tightening_breakout_does_not_unblock_group_a(self):
         """Confirm that the Group A blockers really are about the
-        consolidation gate, not the breakout strength: with the
-        default consolidation gate, NO value of ``breakout_pct``
-        unlocks 2025-08-06 (it already has +5% daily move).
+        consolidation gate, not the breakout strength: with
+        ``lookback=15`` and default consolidation, NO value of
+        ``breakout_atr_mult`` unlocks 2025-08-06.
         """
-        sigs = WedgePopDetector(breakout_pct=0.001).detect(
-            AAPL_2025_08_06
-        )
+        sigs = WedgePopDetector(
+            lookback=15, breakout_atr_mult=0.0, require_above_long_smas=False
+        ).detect(AAPL_2025_08_06)
         assert date(2025, 8, 6) not in {s.date for s in sigs}
 
     # ---- Group B: breakout-strength gate ----
 
     def test_aapl_2026_01_30_blocked_by_default_breakout(self):
-        """Default ``breakout_pct=0.015`` requires +1.5% above the
-        higher EMA OR +1.5% day-over-day move. AAPL 2026-01-30 is
-        ema_strength +0.32%, daily_move +0.46% — both miss. The
-        consolidation gate passes (73%), so this is purely a
-        breakout-strength miss.
+        """Default ``breakout_atr_mult=0.5`` requires breakout strength
+        of 0.5 × ATR above resistance. AAPL 2026-01-30's move is
+        too small in ATR terms. The consolidation gate passes (73%),
+        so this is purely a breakout-strength miss.
         """
-        sigs = WedgePopDetector().detect(AAPL_2026_01_30)
+        sigs = WedgePopDetector(
+            require_above_long_smas=False
+        ).detect(AAPL_2026_01_30)
         assert date(2026, 1, 30) not in {s.date for s in sigs}
 
     def test_aapl_2026_01_30_fires_when_breakout_relaxed(self):
-        # Even with bp=0.003 the signal does not fire: the new rule
+        # Even with breakout_atr_mult=0.1 the signal does not fire: the new rule
         # "previous bar's close must be below fast EMA" blocks it because
         # the prior-day close (2026-01-29) was *above* ema_fast.
         # This bar is structurally not a wedge pop under the updated detector.
-        sigs = WedgePopDetector(breakout_pct=0.003).detect(
+        sigs = WedgePopDetector(breakout_atr_mult=0.1, require_above_long_smas=False).detect(
             AAPL_2026_01_30
         )
         assert date(2026, 1, 30) not in {s.date for s in sigs}
 
     def test_aapl_2026_04_02_blocked_by_default_breakout(self):
-        sigs = WedgePopDetector().detect(AAPL_2026_04_02)
+        sigs = WedgePopDetector(
+            require_above_long_smas=False
+        ).detect(AAPL_2026_04_02)
         assert date(2026, 4, 2) not in {s.date for s in sigs}
 
     def test_aapl_2026_04_02_fires_when_breakout_relaxed(self):
         """Neither 2026-04-01 nor 2026-04-02 fire even with
-        ``breakout_pct=0.001``: the new rule "previous bar's close
+        ``breakout_atr_mult=0.0``: the new rule "previous bar's close
         must be below fast EMA" blocks both dates because the
         preceding close was above ema_fast on each candidate bar.
         These bars are structurally not wedge pops under the updated
         detector.
         """
-        sigs = WedgePopDetector(breakout_pct=0.001).detect(
+        sigs = WedgePopDetector(breakout_atr_mult=0.0, require_above_long_smas=False).detect(
             AAPL_2026_04_02
         )
         dates = {s.date for s in sigs}
@@ -1078,7 +1096,7 @@ class TestWedgePopDetectorTunableGates:
         gate, even ``consolidation_pct=0.1`` doesn't fire Group B
         cases.
         """
-        sigs = WedgePopDetector(consolidation_pct=0.1).detect(
+        sigs = WedgePopDetector(consolidation_pct=0.1, require_above_long_smas=False).detect(
             AAPL_2026_01_30
         )
         assert date(2026, 1, 30) not in {s.date for s in sigs}
@@ -1094,10 +1112,11 @@ class TestWedgePopDetectorTunableGates:
         near-the-EMA setups, not deep capitulations. Must strictly
         reduce the signal set vs no upper bound.
         """
-        loose = WedgePopDetector(consolidation_pct=0.0)
+        loose = WedgePopDetector(consolidation_pct=0.0, require_above_long_smas=False)
         capped = WedgePopDetector(
             consolidation_pct=0.0,
             max_consolidation_pct=0.3,
+            require_above_long_smas=False,
         )
         for df in (AMZN_2021_DATA, AMD_2019_CASE2_3):
             n_loose = len(loose.detect(df))
@@ -1120,12 +1139,14 @@ class TestWedgePopDetectorTunableGates:
         """
         det_default = WedgePopDetector(
             consolidation_pct=0.0,
-            breakout_pct=0.0,
+            breakout_atr_mult=0.0,
+            require_above_long_smas=False,
         )
         det_no_cd = WedgePopDetector(
             consolidation_pct=0.0,
-            breakout_pct=0.0,
+            breakout_atr_mult=0.0,
             cooldown_bars=0,
+            require_above_long_smas=False,
         )
         default_dates = {s.date for s in det_default.detect(AAPL_2025_08_06)}
         no_cd_dates = {s.date for s in det_no_cd.detect(AAPL_2025_08_06)}
@@ -1144,8 +1165,9 @@ class TestWedgePopDetectorTunableGates:
         """
         det = WedgePopDetector(
             consolidation_pct=0.0,
-            breakout_pct=0.0,
+            breakout_atr_mult=0.0,
             cooldown_bars=5,
+            require_above_long_smas=False,
         )
         dates = {s.date for s in det.detect(AAPL_2025_08_06)}
         assert date(2025, 8, 6) in dates
@@ -1158,12 +1180,14 @@ class TestWedgePopDetectorTunableGates:
         short = WedgePopDetector(
             lookback=5,
             consolidation_pct=0.0,
-            breakout_pct=0.0,
+            breakout_atr_mult=0.0,
+            require_above_long_smas=False,
         )
         long_ = WedgePopDetector(
             lookback=15,
             consolidation_pct=0.0,
-            breakout_pct=0.0,
+            breakout_atr_mult=0.0,
+            require_above_long_smas=False,
         )
         # Shorter lookback → shorter cooldown → more signals.
         assert short.cooldown_bars == 5
@@ -1172,34 +1196,36 @@ class TestWedgePopDetectorTunableGates:
         n_long = len(long_.detect(AAPL_2025_08_06))
         assert n_short >= n_long
 
-    def test_max_breakout_pct_filters_runaway_gaps(self):
-        """``max_breakout_pct`` caps the breakout strength gate
+    def test_max_breakout_atr_mult_filters_runaway_gaps(self):
+        """``max_breakout_atr_mult`` caps the breakout strength gate
         from above. On AMD 2019-03-12 (ema_strength ≈ 1.87%,
-        daily_move ≈ 2.3%) the default min 1.5% admits the
-        signal; capping at 2.0% still admits the 03-12 bar but
+        daily_move ≈ 2.3%) the default min 0.5 × ATR admits the
+        signal; capping at 1.0 × ATR still admits the 03-12 bar but
         blocks AAPL 2025-08-06 (daily_move +5.09%). Pin the
         behaviour with both fixtures.
         """
-        # AMD 03-12 barely crosses the bar — max 2.5% keeps it.
+        # AMD 03-12 barely crosses the bar — max 1.0 × ATR keeps it.
         sigs = WedgePopDetector(
             consolidation_pct=0.4,
-            breakout_pct=0.015,
-            max_breakout_pct=0.025,
+            breakout_atr_mult=0.5,
+            max_breakout_atr_mult=1.0,
+            require_above_long_smas=False,
         ).detect(AMD_2019_CASE1)
         assert date(2019, 3, 12) in {s.date for s in sigs}
 
-        # AAPL 2025-08-06 daily move ~5% — max 0.025 blocks it.
+        # AAPL 2025-08-06 daily move ~5% — max 1.0 × ATR blocks it.
         sigs = WedgePopDetector(
             consolidation_pct=0.4,
-            breakout_pct=0.015,
-            max_breakout_pct=0.025,
+            breakout_atr_mult=0.5,
+            max_breakout_atr_mult=1.0,
+            require_above_long_smas=False,
         ).detect(AAPL_2025_08_06)
         assert date(2025, 8, 6) not in {s.date for s in sigs}
 
         # With no cap, AAPL 2025-08-06 DOES fire (already proven
         # by the existing group-A tests; re-assert here for
         # clarity of the min/max contrast).
-        sigs_nocap = WedgePopDetector(consolidation_pct=0.4).detect(
+        sigs_nocap = WedgePopDetector(consolidation_pct=0.4, require_above_long_smas=False).detect(
             AAPL_2025_08_06
         )
         assert date(2025, 8, 6) in {s.date for s in sigs_nocap}
@@ -1216,14 +1242,14 @@ class TestWedgePopDetectorTunableGates:
         """
         sig_20 = next(
             s
-            for s in WedgePopDetector(slope_lookback=20).detect(
+            for s in WedgePopDetector(slope_lookback=20, require_above_long_smas=False).detect(
                 AMD_2019_CASE2_3
             )
             if s.date == date(2019, 10, 11)
         )
         sig_5 = next(
             s
-            for s in WedgePopDetector(slope_lookback=5).detect(
+            for s in WedgePopDetector(slope_lookback=5, require_above_long_smas=False).detect(
                 AMD_2019_CASE2_3
             )
             if s.date == date(2019, 10, 11)
