@@ -87,8 +87,6 @@ class ReversalExtensionDetector(PatternDetector):
             confidence=min(extension / self.extension_pct, 2.0),
             metadata={
                 "extension_pct": round(extension, 4),
-                "volume_ratio": round(
-                    df["Volume"].iloc[i] / df["vol_avg"].iloc[i], 2
-                ),
+                "volume_ratio": round(df["Volume"].iloc[i] / df["vol_avg"].iloc[i], 2),
             },
         )

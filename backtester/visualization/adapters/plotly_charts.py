@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from pattern.domain.models import PatternSignal
-from strategy.domain.models import EquityPoint, Trade
+from strategy.domain.models import EquityPoint, MultiTrade, Trade
 from visualization.domain.ports import ChartBuilderPort
 
 
@@ -215,12 +215,18 @@ class PlotlyChartBuilder(ChartBuilderPort):
             col=1,
         )
 
-        # 10/20 EMA — these are the levels the strategy uses for trail/exit
+        # Moving averages — 10/20 EMA drive the strategy's trail/exit
+        # logic; 50/200 SMA give a longer-term trend context so you can
+        # visually confirm whether a trade sits in an uptrend or not.
         ema10 = df["Close"].ewm(span=10, adjust=False).mean()
         ema20 = df["Close"].ewm(span=20, adjust=False).mean()
+        sma50 = df["Close"].rolling(50).mean()
+        sma200 = df["Close"].rolling(200).mean()
         for ma, name, color in [
             (ema10, "10 EMA", "#ef5350"),
             (ema20, "20 EMA", "#2196F3"),
+            (sma50, "50 SMA", "#9C27B0"),
+            (sma200, "200 SMA", "#00BCD4"),
         ]:
             fig.add_trace(
                 go.Scatter(
@@ -457,4 +463,122 @@ class PlotlyChartBuilder(ChartBuilderPort):
             margin=dict(l=50, r=50, t=50, b=30),
         )
 
+        return fig
+
+    # ---- multi-ticker scan visualizations ----
+
+    def build_top_trades_bar(
+        self,
+        trades: list[MultiTrade],
+        title: str = "",
+    ) -> go.Figure:
+        """Horizontal bar of the best individual trades the scan took.
+
+        Each bar is one trade, labelled ``TICKER · entry_date``, sized
+        by ``pnl_pct`` and coloured by sign. The hover surfaces the
+        signal-day volume that won the daily auction so the user can
+        see *why* the multi-strategy picked this ticker.
+        """
+        ordered = sorted(trades, key=lambda t: t.pnl_pct, reverse=True)
+        # Reverse so the largest bar lands at the top of the chart.
+        ordered = list(reversed(ordered))
+        labels = [
+            f"{t.ticker} · {t.entry_date.isoformat()}" for t in ordered
+        ]
+        returns = [t.pnl_pct * 100 for t in ordered]
+        colors = ["#26a69a" if r >= 0 else "#ef5350" for r in returns]
+        hover = [
+            f"<b>{t.ticker}</b><br>"
+            f"Entry: {t.entry_date} @ ${t.entry_price:,.2f}<br>"
+            f"Exit:  {t.exit_date} @ ${t.exit_price:,.2f}<br>"
+            f"Stop:  ${t.stop_loss:,.2f}<br>"
+            f"Shares: {t.shares}<br>"
+            f"P&L: ${t.pnl:,.2f} ({t.pnl_pct:.2%})<br>"
+            f"Signal Vol: {t.signal_volume:,.0f}<br>"
+            f"Buy / Sell Vol: {t.signal_buy_volume:,.0f} / "
+            f"{t.signal_sell_volume:,.0f}<br>"
+            f"Buy/Sell Ratio: {t.signal_buy_sell_ratio:.2f}"
+            for t in ordered
+        ]
+
+        fig = go.Figure()
+        fig.add_trace(
+            go.Bar(
+                x=returns,
+                y=labels,
+                orientation="h",
+                marker_color=colors,
+                hovertext=hover,
+                hoverinfo="text",
+                text=[f"{r:.1f}%" for r in returns],
+                textposition="outside",
+            )
+        )
+        fig.update_layout(
+            title=title,
+            template="plotly_dark",
+            height=max(320, 26 * len(trades) + 120),
+            xaxis_title="Trade Return (%)",
+            yaxis_title="Trade",
+            margin=dict(l=180, r=50, t=50, b=40),
+        )
+        return fig
+
+    def build_ticker_contribution_bar(
+        self,
+        trades: list[MultiTrade],
+        title: str = "",
+    ) -> go.Figure:
+        """Per-ticker total P&L contribution.
+
+        Sums dollar P&L by ticker so the user can see which names did
+        the heavy lifting. Hover surfaces trade count and win rate per
+        ticker — important context because a ticker that contributed
+        $5k from one giant winner reads very differently from one that
+        ground out $5k across ten trades.
+        """
+        agg: dict[str, dict[str, float]] = {}
+        for t in trades:
+            slot = agg.setdefault(
+                t.ticker, {"pnl": 0.0, "trades": 0, "wins": 0}
+            )
+            slot["pnl"] += t.pnl
+            slot["trades"] += 1
+            if t.pnl > 0:
+                slot["wins"] += 1
+
+        rows = sorted(agg.items(), key=lambda kv: kv[1]["pnl"])
+        tickers = [k for k, _ in rows]
+        pnls = [v["pnl"] for _, v in rows]
+        colors = ["#26a69a" if p >= 0 else "#ef5350" for p in pnls]
+        hover = [
+            f"<b>{k}</b><br>"
+            f"P&L: ${v['pnl']:,.2f}<br>"
+            f"Trades: {int(v['trades'])}<br>"
+            f"Win Rate: "
+            f"{(v['wins'] / v['trades']) if v['trades'] else 0:.0%}"
+            for k, v in rows
+        ]
+
+        fig = go.Figure()
+        fig.add_trace(
+            go.Bar(
+                x=pnls,
+                y=tickers,
+                orientation="h",
+                marker_color=colors,
+                hovertext=hover,
+                hoverinfo="text",
+                text=[f"${p:,.0f}" for p in pnls],
+                textposition="outside",
+            )
+        )
+        fig.update_layout(
+            title=title,
+            template="plotly_dark",
+            height=max(320, 24 * len(rows) + 120),
+            xaxis_title="P&L ($)",
+            yaxis_title="Ticker",
+            margin=dict(l=80, r=50, t=50, b=40),
+        )
         return fig

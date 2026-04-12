@@ -19,9 +19,7 @@ st.caption(
 with st.sidebar:
     st.header("Market")
     ticker = st.text_input("Ticker", value="AAPL")
-    start_date = st.date_input(
-        "Start Date", value=date.today() - timedelta(days=365)
-    )
+    start_date = st.date_input("Start Date", value=date.today() - timedelta(days=365))
     end_date = st.date_input("End Date", value=date.today())
 
     st.header("Risk")
@@ -49,6 +47,109 @@ with st.sidebar:
         help="Time stop 발동까지 최대 보유 일수.",
     )
 
+    st.header("Pattern Detection")
+    consolidation_pct = st.number_input(
+        "Min consolidation %",
+        value=60.0,
+        min_value=0.0,
+        max_value=100.0,
+        step=5.0,
+        help="직전 N일 중 close가 fast EMA 아래에 있어야 하는 "
+        "**최소** 비율. 0%면 하한 off.",
+    )
+    enable_max_cp = st.checkbox(
+        "Cap max consolidation %",
+        value=False,
+        help="상한 추가 — 너무 깊은 consolidation (95%+)은 coil이 "
+        "아니라 capitulation이라 제외하고 싶을 때.",
+    )
+    max_consolidation_pct_ui = st.number_input(
+        "Max consolidation %",
+        value=95.0,
+        min_value=0.0,
+        max_value=100.0,
+        step=5.0,
+        disabled=not enable_max_cp,
+    )
+    breakout_pct = st.number_input(
+        "Min breakout strength %",
+        value=1.5,
+        min_value=0.0,
+        max_value=20.0,
+        step=0.1,
+        format="%.2f",
+        help="Wedge pop이 인정되려면 `max(ema_strength, daily_move)`가 "
+        "이 값 이상이어야 함. 0%면 하한 off.",
+    )
+    enable_max_bp = st.checkbox(
+        "Cap max breakout strength",
+        value=False,
+        help="상한 추가 — 이미 너무 큰 단일봉 gap(+15%+)은 overextended "
+        "라 제외하고 싶을 때.",
+    )
+    max_breakout_pct_ui = st.number_input(
+        "Max breakout strength %",
+        value=10.0,
+        min_value=0.0,
+        max_value=50.0,
+        step=0.5,
+        format="%.2f",
+        disabled=not enable_max_bp,
+    )
+    require_above_long_smas = st.checkbox(
+        "Require close above 50 & 200 SMA",
+        value=False,
+        help="signal 캔들의 close가 50 SMA와 200 SMA 둘 다 위에 있을 "
+        "때만 wedge pop으로 인정. 장기 추세 confirm 용.",
+    )
+    detect_lookback = st.number_input(
+        "Consolidation lookback (days)",
+        value=15,
+        min_value=3,
+        max_value=60,
+        step=1,
+        help="Consolidation 체크 및 stop-loss (consolidation low) 계산에 "
+        "쓰이는 직전 봉 개수. 기본 15일.",
+    )
+    cooldown_bars_ui = st.number_input(
+        "Cooldown bars (after a signal)",
+        value=15,
+        min_value=0,
+        max_value=60,
+        step=1,
+        help="한 signal이 fire된 후 다음 signal까지 건너뛰는 바 개수. "
+        "0으로 두면 쿨다운 없이 연속 signal 허용 (예전엔 "
+        "Consolidation lookback 값을 그대로 쓰던 부분을 독립 파라미터로 "
+        "분리). Case: AAPL 2025-08-06은 07-16 signal의 기본 쿨다운에 "
+        "걸려서 안 잡히는데, 5 정도로 낮추면 잡힘.",
+    )
+    ema_fast = st.number_input(
+        "Fast EMA period",
+        value=10,
+        min_value=2,
+        max_value=100,
+        step=1,
+        help="Detector와 strategy가 공통으로 쓰는 fast EMA (기본 10).",
+    )
+    ema_slow = st.number_input(
+        "Slow EMA period",
+        value=20,
+        min_value=2,
+        max_value=200,
+        step=1,
+        help="Detector의 breakout 체크와 strategy의 exhaustion reference "
+        "라인 max(fast, slow) 계산에 쓰이는 slow EMA (기본 20).",
+    )
+    slope_lookback = st.number_input(
+        "Slope lookback (days)",
+        value=20,
+        min_value=5,
+        max_value=120,
+        step=1,
+        help="ema_fast_slope / ema_slow_slope를 계산하는 기간. "
+        "signal metadata에 담겨 downstream slope 필터의 입력이 됨.",
+    )
+
     st.header("Entry Filter")
     require_gap_up = st.checkbox(
         "Require gap-up confirmation",
@@ -56,25 +157,123 @@ with st.sidebar:
         help="다음날 시초가가 전날 종가보다 높을 때만 진입 (TraderLion의 "
         "'Wedge Pops with unfilled gaps show strong momentum' 룰).",
     )
+    enable_chase_filter = st.checkbox(
+        "Enable entry chase filter",
+        value=True,
+        help="Entry open이 signal bar high 위로 너무 멀리 gap-up하면 "
+        "'chasing'으로 간주해 진입 거부. 끄면 gap-up 제한 없음.",
+    )
+    max_entry_chase_ratio = st.number_input(
+        "Max entry chase (× signal range)",
+        value=0.15,
+        min_value=0.0,
+        max_value=5.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_chase_filter,
+        help="Entry open이 signal bar high 위로 signal bar 범위의 몇 배 "
+        "까지 초과해도 허용할지. 넘으면 'chasing' 거부. "
+        "주의: 0 = 모든 gap-up 차단 (가장 빡빡), 5 = 사실상 off.",
+    )
+    enable_entry_ema_filter = st.checkbox(
+        "Enable EMA-extension entry filter",
+        value=False,
+        help="Entry open이 signal bar의 max(10EMA, 20EMA) 위로 N% "
+        "이상 초과하면 진입 거부.",
+    )
+    max_entry_ema_extension_pct = st.number_input(
+        "Max entry extension above EMA %",
+        value=3.0,
+        min_value=0.0,
+        max_value=50.0,
+        step=0.1,
+        format="%.2f",
+        disabled=not enable_entry_ema_filter,
+        help="(entry_open - max(ema10, ema20)) / ema > 이 값 이면 거부.",
+    )
+    st.caption("**EMA slow slope 범위 필터** — 양수/음수 모두 가능.")
+    enable_min_slope = st.checkbox(
+        "Enforce min EMA slow slope",
+        value=True,
+        help="ema_slow_slope의 **하한**. 양수로 설정하면 '반드시 +N% "
+        "이상 올라가는 추세'만 통과 (예: 0.05 → 20일 동안 +5% 이상). "
+        "음수로 설정하면 dead-cat bounce를 걸러냄 (예: -0.01).",
+    )
+    min_ema_slow_slope_ui = st.number_input(
+        "Min EMA slow slope",
+        value=-0.01,
+        min_value=-1.0,
+        max_value=1.0,
+        step=0.01,
+        format="%.3f",
+        disabled=not enable_min_slope,
+    )
+    enable_max_slope = st.checkbox(
+        "Enforce max EMA slow slope",
+        value=False,
+        help="ema_slow_slope의 **상한**. 이미 너무 가파르게 오른 "
+        "종목 (parabolic)을 제외하려면 켜세요 (예: 0.30 → +30% 이상 "
+        "오른 종목 제외).",
+    )
+    max_ema_slow_slope_ui = st.number_input(
+        "Max EMA slow slope",
+        value=0.30,
+        min_value=-1.0,
+        max_value=5.0,
+        step=0.05,
+        format="%.3f",
+        disabled=not enable_max_slope,
+    )
 
     st.header("Exit Tuning")
     extension_pct = st.number_input(
-        "Exhaustion % above 10 EMA",
+        "Exhaustion % above EMA",
         value=15.0,
-        min_value=1.0,
+        min_value=0.0,
         max_value=500.0,
-        step=1.0,
-        help="종가가 10 EMA보다 이 % 이상 위로 벌어지면 익절. "
-        "보통 10~20%. 변동성 큰 종목/장기 보유엔 더 크게.",
+        step=0.5,
+        help="Exit 룰: bar의 **High**가 max(fast, slow) EMA × (1 + 이 "
+        "값) 선을 터치하면 그 라인에서 체결 (limit order 모델, gap-up "
+        "이면 open). 0%면 사실상 exit 끔.",
     )
     extension_atr_mult = st.number_input(
         "Exhaustion ATR multiplier",
         value=2.5,
-        min_value=0.1,
+        min_value=0.0,
         max_value=50.0,
         step=0.1,
-        help="대안 익절 트리거: close − 10 EMA ≥ ATR(14) × 이 값. "
-        "보통 2~4. 큰 값일수록 더 많이 풀어주고 익절 늦춤.",
+        help="Exit 룰 대안: High가 EMA + ATR × 이 값 라인 터치 시 체결. "
+        "두 라인(% 와 ATR) 중 낮은 쪽이 먼저 발동.",
+    )
+    climax_atr_mult = st.number_input(
+        "Climax bar ATR multiplier",
+        value=1.5,
+        min_value=0.0,
+        max_value=10.0,
+        step=0.1,
+        help="단일봉 climax/blow-off 감지 임계. bar range 및 단일봉 "
+        "move가 ATR × 이 값 이상이면서 close가 상단 20%에 위치 → "
+        "익절 (예: AMD 2019-03-19 climax).",
+    )
+    atr_period = st.number_input(
+        "ATR period",
+        value=14,
+        min_value=2,
+        max_value=100,
+        step=1,
+        help="ATR(N) 윈도우. Exhaustion / climax 모두 이 ATR 사용 (기본 14).",
+    )
+    trail_after_profit = st.checkbox(
+        "Arm EMA trail only after profit",
+        value=True,
+        help="꺼두면 첫 bar부터 EMA trail이 발동 — breakout 캔들의 EMA "
+        "retest에 손절될 수 있어 권장 안 함.",
+    )
+    arm_breakeven = st.checkbox(
+        "Ratchet stop to breakeven after profit",
+        value=True,
+        help="수익권 진입 시 consolidation-low stop을 entry price까지 "
+        "올림. 이후 하락하면 breakeven 청산 (CDNS 2026-02 case).",
     )
 
     run_btn = st.button("Run Strategy", type="primary", use_container_width=True)
@@ -108,11 +307,48 @@ config = StrategyConfig(
     max_holding_days=max_holding_days,
 )
 
+detector = WedgePopDetector(
+    lookback=int(detect_lookback),
+    ema_fast=int(ema_fast),
+    ema_slow=int(ema_slow),
+    consolidation_pct=consolidation_pct / 100.0,
+    max_consolidation_pct=(
+        max_consolidation_pct_ui / 100.0 if enable_max_cp else None
+    ),
+    breakout_pct=breakout_pct / 100.0,
+    max_breakout_pct=(
+        max_breakout_pct_ui / 100.0 if enable_max_bp else None
+    ),
+    slope_lookback=int(slope_lookback),
+    cooldown_bars=int(cooldown_bars_ui),
+    require_above_long_smas=require_above_long_smas,
+)
 strategy = WedgepopStrategy(
     market_data=market_data,
-    detector=WedgePopDetector(),
+    detector=detector,
+    ema_trail=int(ema_fast),
+    ema_slow=int(ema_slow),
+    atr_period=int(atr_period),
     extension_pct=extension_pct / 100.0,
     extension_atr_mult=extension_atr_mult,
+    climax_atr_mult=climax_atr_mult,
+    max_entry_chase_ratio=(
+        max_entry_chase_ratio if enable_chase_filter else float("inf")
+    ),
+    max_entry_ema_extension_pct=(
+        max_entry_ema_extension_pct / 100.0
+        if enable_entry_ema_filter
+        else None
+    ),
+    max_ema_slope_decline=None,    # superseded by min/max_ema_slow_slope
+    min_ema_slow_slope=(
+        min_ema_slow_slope_ui if enable_min_slope else None
+    ),
+    max_ema_slow_slope=(
+        max_ema_slow_slope_ui if enable_max_slope else None
+    ),
+    trail_after_profit=trail_after_profit,
+    arm_breakeven_after_profit=arm_breakeven,
     require_gap_up=require_gap_up,
 )
 
@@ -157,9 +393,7 @@ if not perf.trades:
 
 # --- Equity curve ---
 if len(result.equity_curve) > 1:
-    eq_fig = chart_builder.build_equity_curve(
-        result.equity_curve, title="Equity Curve"
-    )
+    eq_fig = chart_builder.build_equity_curve(result.equity_curve, title="Equity Curve")
     st.plotly_chart(eq_fig, use_container_width=True)
 
 # --- Trade table with dollar values ---

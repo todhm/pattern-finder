@@ -20,3 +20,17 @@ class MarketDataPort(ABC):
         indexed by DatetimeIndex.
         """
         ...
+
+
+class UniverseProviderPort(ABC):
+    """Port: ticker-universe provider.
+
+    Resolves a universe identifier (e.g. ``"sp500"``, ``"nasdaq100"``) to
+    the list of tickers belonging to that index. Used by multi-ticker
+    strategies that scan an entire universe for opportunities.
+    """
+
+    @abstractmethod
+    def get_tickers(self, universe: str) -> list[str]:
+        """Return the list of tickers for the named universe."""
+        ...
