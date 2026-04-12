@@ -24,7 +24,7 @@ class WedgePopDetector(PatternDetector):
 
     def __init__(
         self,
-        lookback: int = 15,
+        lookback: int = 10,
         ema_fast: int = 10,
         ema_slow: int = 20,
         consolidation_pct: float = 0.6,
@@ -33,7 +33,7 @@ class WedgePopDetector(PatternDetector):
         max_breakout_pct: float | None = None,
         slope_lookback: int = 20,
         cooldown_bars: int | None = None,
-        require_above_long_smas: bool = False,
+        require_above_long_smas: bool = True,
         sma_mid: int = 50,
         sma_long: int = 200,
     ):
@@ -65,9 +65,7 @@ class WedgePopDetector(PatternDetector):
         # as a side effect. It's now a separate knob, defaulting to
         # ``lookback`` for backwards compatibility. Set to 0 to
         # allow back-to-back signals.
-        self.cooldown_bars = (
-            cooldown_bars if cooldown_bars is not None else lookback
-        )
+        self.cooldown_bars = cooldown_bars if cooldown_bars is not None else lookback
         self.require_above_long_smas = require_above_long_smas
         self.sma_mid = sma_mid
         self.sma_long = sma_long
@@ -127,10 +125,7 @@ class WedgePopDetector(PatternDetector):
         ratio = below / self.lookback
         if ratio < self.consolidation_pct:
             return False
-        if (
-            self.max_consolidation_pct is not None
-            and ratio > self.max_consolidation_pct
-        ):
+        if self.max_consolidation_pct is not None and ratio > self.max_consolidation_pct:
             return False
         return True
 
@@ -201,10 +196,7 @@ class WedgePopDetector(PatternDetector):
         strength = max(ema_strength, daily_move)
         if strength < self.breakout_pct:
             return False
-        if (
-            self.max_breakout_pct is not None
-            and strength > self.max_breakout_pct
-        ):
+        if self.max_breakout_pct is not None and strength > self.max_breakout_pct:
             return False
         return True
 
@@ -227,16 +219,8 @@ class WedgePopDetector(PatternDetector):
 
         fast_slope_raw = df["ema_fast_slope"].iloc[i]
         slow_slope_raw = df["ema_slow_slope"].iloc[i]
-        ema_fast_slope = (
-            round(float(fast_slope_raw), 4)
-            if not pd.isna(fast_slope_raw)
-            else 0.0
-        )
-        ema_slow_slope = (
-            round(float(slow_slope_raw), 4)
-            if not pd.isna(slow_slope_raw)
-            else 0.0
-        )
+        ema_fast_slope = round(float(fast_slope_raw), 4) if not pd.isna(fast_slope_raw) else 0.0
+        ema_slow_slope = round(float(slow_slope_raw), 4) if not pd.isna(slow_slope_raw) else 0.0
 
         return PatternSignal(
             date=df.index[i].date(),

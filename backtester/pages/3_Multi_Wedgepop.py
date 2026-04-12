@@ -73,8 +73,7 @@ with st.sidebar:
         min_value=0.0,
         max_value=100.0,
         step=5.0,
-        help="직전 N일 중 close가 fast EMA 아래에 있어야 하는 "
-        "**최소** 비율.",
+        help="직전 N일 중 close가 fast EMA 아래에 있어야 하는 " "**최소** 비율.",
     )
     enable_max_cp = st.checkbox(
         "Cap max consolidation %",
@@ -101,8 +100,7 @@ with st.sidebar:
     enable_max_bp = st.checkbox(
         "Cap max breakout strength",
         value=False,
-        help="상한 추가 — 이미 너무 큰 단일봉 gap을 overextended로 "
-        "보고 제외하고 싶을 때.",
+        help="상한 추가 — 이미 너무 큰 단일봉 gap을 overextended로 " "보고 제외하고 싶을 때.",
     )
     max_breakout_pct_ui = st.number_input(
         "Max breakout strength %",
@@ -115,14 +113,14 @@ with st.sidebar:
     )
     require_above_long_smas = st.checkbox(
         "Require close above 50 & 200 SMA",
-        value=False,
+        value=True,
         help="signal 캔들의 close가 50 SMA와 200 SMA 둘 다 위에 있을 "
         "때만 wedge pop으로 인정. 장기 추세 안에 있는 wedge pop만 "
         "필터링하고 싶을 때 켜세요.",
     )
     detect_lookback = st.number_input(
         "Consolidation lookback (days)",
-        value=15,
+        value=10,
         min_value=3,
         max_value=60,
         step=1,
@@ -222,8 +220,7 @@ with st.sidebar:
     enable_max_slope = st.checkbox(
         "Enforce max EMA slow slope",
         value=False,
-        help="ema_slow_slope의 **상한**. parabolic하게 오른 종목을 "
-        "제외하려면 켜세요 (예: 0.30).",
+        help="ema_slow_slope의 **상한**. parabolic하게 오른 종목을 " "제외하려면 켜세요 (예: 0.30).",
     )
     max_ema_slow_slope_ui = st.number_input(
         "Max EMA slow slope",
@@ -328,13 +325,9 @@ detector = WedgePopDetector(
     ema_fast=int(ema_fast),
     ema_slow=int(ema_slow),
     consolidation_pct=consolidation_pct / 100.0,
-    max_consolidation_pct=(
-        max_consolidation_pct_ui / 100.0 if enable_max_cp else None
-    ),
+    max_consolidation_pct=(max_consolidation_pct_ui / 100.0 if enable_max_cp else None),
     breakout_pct=breakout_pct / 100.0,
-    max_breakout_pct=(
-        max_breakout_pct_ui / 100.0 if enable_max_bp else None
-    ),
+    max_breakout_pct=(max_breakout_pct_ui / 100.0 if enable_max_bp else None),
     slope_lookback=int(slope_lookback),
     cooldown_bars=int(cooldown_bars_ui),
     require_above_long_smas=require_above_long_smas,
@@ -348,21 +341,11 @@ per_ticker_strategy = WedgepopStrategy(
     extension_pct=extension_pct / 100.0,
     extension_atr_mult=extension_atr_mult,
     climax_atr_mult=climax_atr_mult,
-    max_entry_chase_ratio=(
-        max_entry_chase_ratio if enable_chase_filter else float("inf")
-    ),
-    max_entry_ema_extension_pct=(
-        max_entry_ema_extension_pct / 100.0
-        if enable_entry_ema_filter
-        else None
-    ),
+    max_entry_chase_ratio=(max_entry_chase_ratio if enable_chase_filter else float("inf")),
+    max_entry_ema_extension_pct=(max_entry_ema_extension_pct / 100.0 if enable_entry_ema_filter else None),
     max_ema_slope_decline=None,
-    min_ema_slow_slope=(
-        min_ema_slow_slope_ui if enable_min_slope else None
-    ),
-    max_ema_slow_slope=(
-        max_ema_slow_slope_ui if enable_max_slope else None
-    ),
+    min_ema_slow_slope=(min_ema_slow_slope_ui if enable_min_slope else None),
+    max_ema_slow_slope=(max_ema_slow_slope_ui if enable_max_slope else None),
     trail_after_profit=trail_after_profit,
     arm_breakeven_after_profit=arm_breakeven,
     require_gap_up=require_gap_up,

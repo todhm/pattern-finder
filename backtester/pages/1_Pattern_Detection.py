@@ -22,7 +22,7 @@ with st.sidebar:
     st.caption("Used only when `wedge_pop` is selected above.")
     detect_lookback = st.number_input(
         "Consolidation lookback (days)",
-        value=15,
+        value=10,
         min_value=3,
         max_value=60,
         step=1,
@@ -35,12 +35,8 @@ with st.sidebar:
         step=1,
         help="signal 이후 건너뛰는 바 수. 0 = 연속 허용.",
     )
-    ema_fast = st.number_input(
-        "Fast EMA period", value=10, min_value=2, max_value=100, step=1
-    )
-    ema_slow = st.number_input(
-        "Slow EMA period", value=20, min_value=2, max_value=200, step=1
-    )
+    ema_fast = st.number_input("Fast EMA period", value=10, min_value=2, max_value=100, step=1)
+    ema_slow = st.number_input("Slow EMA period", value=20, min_value=2, max_value=200, step=1)
     consolidation_pct = st.number_input(
         "Min consolidation %",
         value=60.0,
@@ -93,9 +89,8 @@ with st.sidebar:
     )
     require_above_long_smas = st.checkbox(
         "Require close above 50 & 200 SMA",
-        value=False,
-        help="signal 캔들의 close가 50 SMA 및 200 SMA 위일 때만 wedge "
-        "pop으로 인정.",
+        value=True,
+        help="signal 캔들의 close가 50 SMA 및 200 SMA 위일 때만 wedge " "pop으로 인정.",
     )
 
     run_btn = st.button("Detect", type="primary", use_container_width=True)
@@ -114,17 +109,9 @@ if run_btn:
                     ema_fast=int(ema_fast),
                     ema_slow=int(ema_slow),
                     consolidation_pct=consolidation_pct / 100.0,
-                    max_consolidation_pct=(
-                        max_consolidation_pct_ui / 100.0
-                        if enable_max_cp
-                        else None
-                    ),
+                    max_consolidation_pct=(max_consolidation_pct_ui / 100.0 if enable_max_cp else None),
                     breakout_pct=breakout_pct / 100.0,
-                    max_breakout_pct=(
-                        max_breakout_pct_ui / 100.0
-                        if enable_max_bp
-                        else None
-                    ),
+                    max_breakout_pct=(max_breakout_pct_ui / 100.0 if enable_max_bp else None),
                     slope_lookback=int(slope_lookback),
                     cooldown_bars=int(cooldown_bars_ui),
                     require_above_long_smas=require_above_long_smas,
@@ -139,9 +126,7 @@ if run_btn:
     st.subheader(f"{ticker} — {pattern_name} ({len(signals)} signals)")
 
     chart_builder = PlotlyChartBuilder()
-    fig = chart_builder.build_candlestick_with_signals(
-        df, signals, title=f"{ticker} — {pattern_name}"
-    )
+    fig = chart_builder.build_candlestick_with_signals(df, signals, title=f"{ticker} — {pattern_name}")
     fig.update_xaxes(range=[str(start_date), str(end_date)])
     st.plotly_chart(fig, use_container_width=True)
 
