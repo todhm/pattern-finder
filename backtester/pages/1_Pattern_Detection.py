@@ -102,10 +102,12 @@ with st.sidebar:
 
 # --- Main area ---
 if run_btn:
+    # Fetch extra history so 50/200 SMA are converged from day 1.
+    fetch_start = start_date - timedelta(days=400)
     with st.spinner("Fetching data & detecting patterns..."):
         try:
             adapter = YFinanceAdapter()
-            df = adapter.fetch_ohlcv(ticker, start_date, end_date)
+            df = adapter.fetch_ohlcv(ticker, fetch_start, end_date)
             if pattern_name == "wedge_pop":
                 detector = WedgePopDetector(
                     lookback=int(detect_lookback),
@@ -140,6 +142,7 @@ if run_btn:
     fig = chart_builder.build_candlestick_with_signals(
         df, signals, title=f"{ticker} — {pattern_name}"
     )
+    fig.update_xaxes(range=[str(start_date), str(end_date)])
     st.plotly_chart(fig, use_container_width=True)
 
     if signals:

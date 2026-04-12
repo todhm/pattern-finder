@@ -286,9 +286,12 @@ if not run_btn:
 
 market_data = YFinanceAdapter()
 
-with st.spinner(f"Fetching {ticker} {start_date} → {end_date}..."):
+# Fetch extra history so 50/200 SMA are converged from day 1 of the
+# user's date range. ~400 calendar days ≈ 200+ trading days.
+fetch_start = start_date - timedelta(days=400)
+with st.spinner(f"Fetching {ticker} {fetch_start} → {end_date} (SMA warmup)..."):
     try:
-        df = market_data.fetch_ohlcv(ticker, start_date, end_date)
+        df = market_data.fetch_ohlcv(ticker, fetch_start, end_date)
     except Exception as e:
         st.error(f"Failed to fetch data: {e}")
         st.stop()
@@ -385,6 +388,9 @@ trade_fig = chart_builder.build_candlestick_with_trades(
     perf.trades,
     title=f"{ticker} — Buy / Sell / Stop",
 )
+# Zoom the chart to the user's date range while keeping the warmup
+# bars accessible via scroll/pan (needed for converged 50/200 SMA).
+trade_fig.update_xaxes(range=[str(start_date), str(end_date)])
 st.plotly_chart(trade_fig, use_container_width=True)
 
 if not perf.trades:

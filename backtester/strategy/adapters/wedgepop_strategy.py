@@ -184,9 +184,20 @@ class WedgepopStrategy(StrategyRunnerPort):
         page rendering both the chart and the strategy from a single
         fetch). The DataFrame must have the same shape as
         `MarketDataPort.fetch_ohlcv` returns.
+
+        The DataFrame may contain bars before ``config.start_date``
+        (warmup for indicator convergence — e.g. 200 extra bars so
+        the 200 SMA is valid from day 1). Signals that fire during
+        the warmup period are silently discarded.
         """
         df = self._with_indicators(df)
         signals = self._detector.detect(df)
+        # Discard warmup-period signals outside the user's date range.
+        signals = [
+            s
+            for s in signals
+            if config.start_date <= s.date <= config.end_date
+        ]
 
         performance, equity_curve = self._run_signals(df, signals, config)
 

@@ -93,7 +93,9 @@ class MultiWedgepopStrategy:
             tickers = tickers[: config.max_tickers]
 
         ticker_state, failed = self._scan_universe(tickers, config)
-        signals_by_date, total_signals = self._collect_signals(ticker_state)
+        signals_by_date, total_signals = self._collect_signals(
+            ticker_state, config
+        )
         trades, equity_curve, final_capital, max_dd = self._walk_signals(
             signals_by_date, ticker_state, config
         )
@@ -138,9 +140,13 @@ class MultiWedgepopStrategy:
     def _scan_ticker(
         self, ticker: str, config: MultiStrategyConfig
     ) -> dict[str, Any] | None:
+        # Fetch extra history so 50/200 SMA converge from day 1.
+        from datetime import timedelta
+
+        fetch_start = config.start_date - timedelta(days=400)
         try:
             df = self._market_data.fetch_ohlcv(
-                ticker, config.start_date, config.end_date
+                ticker, fetch_start, config.end_date
             )
         except Exception:
             return None
@@ -154,27 +160,27 @@ class MultiWedgepopStrategy:
     # ---- phase 2a: collect signals across universe ----
 
     def _collect_signals(
-        self, ticker_state: dict[str, dict[str, Any]]
+        self,
+        ticker_state: dict[str, dict[str, Any]],
+        config: MultiStrategyConfig,
     ) -> tuple[dict[date, list[dict[str, Any]]], int]:
         """Collect all signals tagged with their buy/sell pressure.
+
+        Signals outside ``[config.start_date, config.end_date]`` are
+        silently discarded (they come from the SMA-warmup bars).
 
         Hard volume filter: a wedge-pop signal whose breakout-bar
         volume is *below* the 20-day average (``metadata.volume_ratio
         < 1.0``) is excluded from the multi-strategy's candidate
-        pool entirely. Rationale: a breakout closing near the high
-        on below-average volume is weak confirmation — the buying
-        simply wasn't there. The per-ticker strategy can still take
-        those signals; only the multi-strategy auction discards
-        them. Real example — AMD 2019-08-21: breakout bar volume
-        41.4M vs 20-day avg ~60M (volume_ratio ~0.69), which looks
-        like a high buy/sell ratio intrabar but is not a real
-        institutional push.
+        pool entirely.
         """
         by_date: dict[date, list[dict[str, Any]]] = defaultdict(list)
         total = 0
         for ticker, state in ticker_state.items():
             df: pd.DataFrame = state["df"]
             for signal in state["signals"]:
+                if signal.date < config.start_date or signal.date > config.end_date:
+                    continue
                 vol_ratio = signal.metadata.get("volume_ratio", 1.0)
                 if vol_ratio < 1.0:
                     continue
