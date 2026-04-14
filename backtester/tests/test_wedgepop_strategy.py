@@ -229,7 +229,7 @@ class TestWedgepopStrategyExitPaths:
         strategy = _build_strategy(
             df,
             extension_atr_mult=99.0,  # disable extension trigger
-            trail_after_profit=True,
+
         )
         result = strategy.run(_config(max_holding_days=20))
 
@@ -239,89 +239,6 @@ class TestWedgepopStrategyExitPaths:
         assert trade.exit_price > trade.stop_loss
         # Should still be net profitable (we trailed a winning trade).
         assert trade.pnl > 0
-
-    def test_breakeven_stop_arms_after_profit(self):
-        """Stateful 손절: once a single in-trade bar closes above
-        ``entry_price``, the hard stop ratchets from the
-        consolidation low up to ``entry_price`` (breakeven). A later
-        intraday low piercing entry exits the trade at breakeven
-        instead of giving back the full unrealized gain to the
-        original consolidation-low stop or the time stop. Mirrors
-        the CDNS 2026-02 case the user reported.
-
-        The 익절 path (EMA trail) is *not* affected — it still uses
-        the per-bar ``close > entry`` check, so a trade that briefly
-        dipped below entry and then recovered into bigger profits
-        stays in the position.
-        """
-        post = [
-            # Day 21: rallies above entry (76) — arms breakeven stop
-            (76.0, 79.0, 75.8, 78.5),
-            # Day 22: still in profit, close > ema → no trail exit
-            (78.5, 82.5, 78.0, 81.5),
-            # Day 23: collapses — intraday low (70.5) pierces the
-            # now-armed breakeven stop at 76. Exit at 76, not at the
-            # consolidation-low stop and not at the day-23 close.
-            (81.0, 81.5, 70.5, 70.8),
-            # Days 24-25: stay below entry. Without breakeven arming
-            # the old logic dragged this trade to the time stop.
-            (70.8, 71.0, 69.5, 69.8),
-            (69.8, 70.5, 69.0, 70.0),
-        ]
-        df = self._consolidation_then_breakout(post)
-        strategy = _build_strategy(
-            df,
-            extension_atr_mult=99.0,   # disable exhaustion exit
-            climax_atr_mult=99.0,      # disable climax exit
-            trail_after_profit=True,
-        )
-        result = strategy.run(_config(max_holding_days=20))
-
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-        # Breakeven stop fills at the entry price, not the original
-        # consolidation-low stop and not the day-23 close.
-        assert trade.exit_price == round(trade.entry_price, 2)
-        assert trade.exit_price > trade.stop_loss
-        assert trade.pnl == 0
-
-    def test_ema_trail_does_not_fire_under_water(self):
-        """Regression guard: the EMA trail must NOT fire on a bar
-        whose close is below ``entry_price``, even if the trade was
-        previously above entry. The 익절 path stays per-bar so
-        recoverable dips don't kill profitable trades.
-
-        This is the inverse of the breakeven-stop test: we craft a
-        scenario where the breakeven stop is *not* hit (intraday low
-        stays above entry) but a single down-close drops below entry
-        AND below the EMA. The trade must continue.
-        """
-        post = [
-            # Day 21: profit (arms breakeven stop, but stop irrelevant
-            # here because no later low pierces entry)
-            (76.0, 79.0, 75.8, 78.5),
-            (78.5, 82.5, 78.0, 81.5),
-            (81.5, 84.0, 81.0, 83.5),
-            (83.5, 86.0, 83.0, 85.0),
-            # A down-close to 76.5: above entry (76), so the trail's
-            # per-bar `close > entry` check stays true. No exit.
-            (84.5, 85.0, 76.2, 76.5),
-            (76.5, 78.0, 76.1, 77.5),
-        ]
-        df = self._consolidation_then_breakout(post)
-        strategy = _build_strategy(
-            df,
-            extension_atr_mult=99.0,   # disable exhaustion exit
-            trail_after_profit=True,
-        )
-        result = strategy.run(_config(max_holding_days=20))
-
-        # Trade exists but did NOT exit at breakeven (entry=76):
-        # the down-close is still above entry, so neither the trail
-        # nor the breakeven stop trips.
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-        assert trade.exit_price > trade.entry_price
 
     def test_time_stop_exit_at_max_holding(self):
         # Post-breakout: drifts sideways above the EMA → no other
@@ -333,7 +250,7 @@ class TestWedgepopStrategyExitPaths:
         strategy = _build_strategy(
             df,
             extension_atr_mult=99.0,  # disable exhaustion exit
-            trail_after_profit=True,
+
         )
         result = strategy.run(_config(max_holding_days=5))
 
@@ -501,11 +418,6 @@ class TestWedgepopStrategyAMDCases:
               even with all the new exit rules (climax bar, stricter
               exhaustion reference).
 
-    Case 4  — 2020-06-09 wedge pop. Next-bar open on 2020-06-10 is
-              $57.20, which is 20% of the signal bar's range above
-              the signal bar's high of $56.46. The entry is
-              "chasing" — new ``max_entry_chase_ratio=0.15`` rule
-              rejects the trade outright, avoiding a -14% loss.
     """
 
     @staticmethod
@@ -529,35 +441,20 @@ class TestWedgepopStrategyAMDCases:
 
     # ---- Case 1 ----
 
-    def test_case1_climax_bar_exits_on_2019_03_19(self):
+    def test_case1_ema_trail_exits_on_2019_03_14(self):
+        """Without trail_after_profit gating, the EMA trail fires
+        unconditionally when close < fast EMA. On 03-14 the close
+        dips below the 10 EMA → exit. The trade never reaches the
+        climax bar on 03-19.
+        """
         result = self._run(AMD_2019_CASE1)
 
-        # Exactly one trade over the window (only one wedge pop).
         assert result.performance.total_trades == 1
         trade = result.performance.trades[0]
 
-        # Entry is next open after the 2019-03-12 signal.
         assert trade.entry_date == date(2019, 3, 13)
         assert trade.entry_price == 23.66
-        # Climax-bar exit still fires on 2019-03-19 — but under the
-        # new HIGH-based limit-order model the fill is at the climax
-        # line (prev_close + climax_atr_mult × ATR), not at the bar's
-        # close. For AMD 2019-03-19 that line sits around $24.87.
-        assert trade.exit_date == date(2019, 3, 19)
-        assert trade.exit_price == 24.87
-        # Still profitable — trade exits above entry.
-        assert trade.pnl_pct > 0.04
-
-    def test_case1_disabling_climax_reverts_to_old_late_exit(self):
-        """Setting climax_atr_mult to infinity disables the climax
-        rule; the trade then rides to a later exit via the EMA
-        trail / time stop, showing why the structural rule matters.
-        """
-        # With climax off, the trade must NOT exit on 2019-03-19 via
-        # a single-bar blow-off — it rides further.
-        result = self._run(AMD_2019_CASE1, climax_atr_mult=float("inf"))
-        trade = result.performance.trades[0]
-        assert trade.exit_date > date(2019, 3, 19)
+        assert trade.exit_date == date(2019, 3, 14)
 
     # ---- Case 2 ----
 
@@ -567,33 +464,6 @@ class TestWedgepopStrategyAMDCases:
             if t.entry_date == entry_date:
                 return t
         return None
-
-    def test_case2_breakeven_stop_fires_on_08_09_entry(self):
-        """The 2019-08-08 wedge pop fires (strong ATR breakout). Entry
-        on 08-09 at $33.45. The 08-09 close briefly goes above entry,
-        arming the breakeven stop. When the price drops, the stop
-        catches it at breakeven — a 0% outcome vs riding to the
-        consolidation-low stop for a bigger loss.
-        """
-        result = self._run(AMD_2019_CASE2_3)
-        trade = self._trade_by_entry_date(result, date(2019, 8, 9))
-        assert trade is not None
-        assert trade.entry_price == 33.45
-        # Breakeven stop: exit at entry_price or better.
-        assert trade.pnl_pct >= -0.02
-        assert trade.exit_price >= trade.stop_loss
-
-    def test_case2_without_breakeven_would_lose_more(self):
-        """With the breakeven mechanism disabled, the 08-09 trade
-        rides down to the consolidation-low stop for a bigger loss.
-        """
-        result = self._run(
-            AMD_2019_CASE2_3, arm_breakeven_after_profit=False
-        )
-        trade = self._trade_by_entry_date(result, date(2019, 8, 9))
-        assert trade is not None
-        # Without breakeven arming the trade falls to a worse exit.
-        assert trade.pnl_pct < 0.0
 
     # ---- Case 3 ----
 
@@ -614,48 +484,6 @@ class TestWedgepopStrategyAMDCases:
         assert winner.exit_date == date(2019, 11, 5)
         assert winner.pnl_pct > 0.20
 
-    # ---- Case 4 ----
-
-    def test_case4_chase_entry_is_rejected(self):
-        result = self._run(AMD_2020_CASE4)
-
-        # The 2020-06-09 signal is the only one in the window, and
-        # the chase-entry filter must reject it → zero trades.
-        assert result.performance.total_trades == 0
-
-    def test_case4_disabling_chase_filter_lets_the_entry_through(self):
-        """Setting max_entry_chase_ratio to infinity disables the
-        filter; the bad trade goes through on 2020-06-10. With the
-        breakeven-stop fix the loss is now limited, but the entry
-        still fires — which is the point of the filter: avoid
-        committing capital to a chasing entry in the first place.
-        """
-        result = self._run(
-            AMD_2020_CASE4, max_entry_chase_ratio=float("inf")
-        )
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-        assert trade.entry_date == date(2020, 6, 10)
-        assert trade.entry_price == 57.20
-
-    def test_case4_disabling_both_guards_reproduces_loser(self):
-        """With both the chase filter and the breakeven stop
-        disabled, Case 4 reverts to its original "ride the loss"
-        behaviour. The fixture's 30-bar window cuts off before the
-        full -14% crash to the consolidation-low stop, but even
-        within that window the trade is clearly a loser (no
-        profitable exit fires). This is the "before" state the
-        structural fixes defend against.
-        """
-        result = self._run(
-            AMD_2020_CASE4,
-            max_entry_chase_ratio=float("inf"),
-            arm_breakeven_after_profit=False,
-        )
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-        assert trade.entry_date == date(2020, 6, 10)
-        assert trade.pnl_pct < -0.03
 
 
 class TestWedgepopStrategySlopeFilter:
@@ -798,7 +626,6 @@ def _force_entry(df: pd.DataFrame, entry_date: date, **strategy_overrides):
     detector = strategy_overrides.pop("detector", WedgePopDetector(require_above_long_smas=False))
     # Default helper knobs: off for filters that aren't under test here.
     strategy_overrides.setdefault("max_ema_slope_decline", None)
-    strategy_overrides.setdefault("max_entry_chase_ratio", float("inf"))
     strategy = WedgepopStrategy(
         market_data=FakeMarketData(df),
         detector=detector,
@@ -937,11 +764,9 @@ class TestAllstate20250506Exhaustion:
 
 
 class TestEntryEmaExtensionFilter:
-    """New ``max_entry_ema_extension_atr`` entry filter: rejects
-    entries where the open price sits more than N ATR above the higher
-    of the two signal-bar EMAs. Complements the existing
-    ``max_entry_chase_ratio`` (which anchors on the signal bar's
-    high, not on the EMA stack).
+    """``max_entry_ema_extension_atr`` entry filter: rejects entries
+    where the open price sits more than N ATR above the higher of
+    the two signal-bar EMAs.
     """
 
     def test_default_is_off_and_preserves_existing_behaviour(self):
@@ -978,7 +803,6 @@ class TestEntryEmaExtensionFilter:
         strategy = WedgepopStrategy(
             market_data=FakeMarketData(AMD_2020_CASE4),
             detector=WedgePopDetector(require_above_long_smas=False),
-            max_entry_chase_ratio=float("inf"),   # isolate the new filter
             max_entry_ema_extension_atr=1.5,
             max_ema_slope_decline=None,
         )
@@ -1002,7 +826,6 @@ class TestEntryEmaExtensionFilter:
         strategy = WedgepopStrategy(
             market_data=FakeMarketData(AMD_2020_CASE4),
             detector=WedgePopDetector(require_above_long_smas=False),
-            max_entry_chase_ratio=float("inf"),
             max_entry_ema_extension_atr=10.0,
             max_ema_slope_decline=None,
         )
@@ -1175,18 +998,17 @@ class TestSameDayExit:
     """
 
     def test_default_exhaustion_does_not_fire_same_day_on_adbe_12_13(self):
-        """Production defaults (15% / 2.5 ATR / climax 1.5) are too
-        loose to fire on the 12-13 entry bar. The trade is armed to
-        breakeven at end-of-day and is carried to 12-14 — but
-        12-14 opens at $635.36, already below the armed breakeven
-        $652.77. Under the new LOW-based stop-fill model the gap
-        fills at the OPEN (realistic slippage), not at the stop.
+        """Production defaults are too loose to fire on the 12-13
+        entry bar. On 12-14 the low pierces the consolidation-low
+        stop ($604.30). The LOW-based stop-fill model fills at
+        ``min(open, stop)`` — since the open ($635.36) is above the
+        stop, the fill is at the stop line.
         """
         strategy = WedgepopStrategy(
             market_data=FakeMarketData(ADBE_2021_12_13),
             detector=WedgePopDetector(consolidation_pct=0.10, require_above_long_smas=False),
             max_ema_slope_decline=None,
-            max_entry_chase_ratio=float("inf"),
+
         )
         result = strategy.execute(
             ADBE_2021_12_13,
@@ -1204,12 +1026,9 @@ class TestSameDayExit:
             if t.entry_date == date(2021, 12, 13)
         )
         assert trade.entry_price == 652.77
-        # Exit on 12-14 at the gap-down open — not the breakeven
-        # line, and not at the intraday low ($599.10).
         assert trade.exit_date == date(2021, 12, 14)
-        assert trade.exit_price == 635.36
-        assert trade.exit_price < 652.77
-        assert trade.exit_price > 599.10
+        # Fills at the consolidation-low stop, not the open.
+        assert trade.exit_price == trade.stop_loss
         assert trade.pnl < 0
 
     def test_tuned_exhaustion_tight_atr_exits_same_day_on_entry_bar(self):
@@ -1222,7 +1041,7 @@ class TestSameDayExit:
             market_data=FakeMarketData(ADBE_2021_12_13),
             detector=WedgePopDetector(consolidation_pct=0.10, require_above_long_smas=False),
             max_ema_slope_decline=None,
-            max_entry_chase_ratio=float("inf"),
+
             extension_atr_mult=0.3,     # tight ATR mult
             climax_atr_mult=99.0,       # isolate from climax
         )
@@ -1258,7 +1077,7 @@ class TestSameDayExit:
             market_data=FakeMarketData(ADBE_2021_12_13),
             detector=WedgePopDetector(consolidation_pct=0.10, require_above_long_smas=False),
             max_ema_slope_decline=None,
-            max_entry_chase_ratio=float("inf"),
+
             extension_atr_mult=0.8,
             climax_atr_mult=99.0,
         )
@@ -1318,7 +1137,6 @@ class TestSameDayExit:
             date(2023, 2, 7),
             extension_atr_mult=99.0,    # disable exhaustion
             climax_atr_mult=99.0,
-            arm_breakeven_after_profit=False,   # keep stop at cons_low
         )
         # Stop fires 02-08 at the cons_low line (99.5), not the
         # bar's low (98.5).
@@ -1364,7 +1182,6 @@ class TestSameDayExit:
             date(2023, 2, 7),
             extension_atr_mult=99.0,    # disable exhaustion
             climax_atr_mult=99.0,
-            arm_breakeven_after_profit=False,
         )
         assert trade is not None
         assert trade.exit_date == date(2023, 2, 8)

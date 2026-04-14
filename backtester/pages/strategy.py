@@ -158,24 +158,6 @@ with st.sidebar:
         help="다음날 시초가가 전날 종가보다 높을 때만 진입 (TraderLion의 "
         "'Wedge Pops with unfilled gaps show strong momentum' 룰).",
     )
-    enable_chase_filter = st.checkbox(
-        "Enable entry chase filter",
-        value=True,
-        help="Entry open이 signal bar high 위로 너무 멀리 gap-up하면 "
-        "'chasing'으로 간주해 진입 거부. 끄면 gap-up 제한 없음.",
-    )
-    max_entry_chase_ratio = st.number_input(
-        "Max entry chase (× signal range)",
-        value=0.15,
-        min_value=0.0,
-        max_value=5.0,
-        step=0.05,
-        format="%.2f",
-        disabled=not enable_chase_filter,
-        help="Entry open이 signal bar high 위로 signal bar 범위의 몇 배 "
-        "까지 초과해도 허용할지. 넘으면 'chasing' 거부. "
-        "주의: 0 = 모든 gap-up 차단 (가장 빡빡), 5 = 사실상 off.",
-    )
     enable_entry_ema_filter = st.checkbox(
         "Enable EMA-extension entry filter",
         value=False,
@@ -227,6 +209,15 @@ with st.sidebar:
     )
 
     st.header("Exit Tuning")
+    use_smart_trail = st.checkbox(
+        "Smart Trail (Chandelier + Profit-tier)",
+        value=True,
+        help="기존 10 EMA trail 대신 고수들이 쓰는 Chandelier Exit 사용. "
+        "진입 후 최고가에서 ATR 기반으로 trailing하며, 수익이 커질수록 "
+        "(R배수 기준) trail을 넓혀서 큰 수익은 더 달리게 함. "
+        "**<2R → 3×ATR, 2~4R → 4×ATR, >4R → 5×ATR**. "
+        "진입 후 최소 3봉은 trail 비활성화해서 초기 흔들림에 안 걸림.",
+    )
     extension_atr_mult = st.number_input(
         "Exhaustion (× ATR above EMA)",
         value=1.5,
@@ -256,19 +247,6 @@ with st.sidebar:
         step=1,
         help="ATR(N) 윈도우. Exhaustion / climax 모두 이 ATR 사용 (기본 14).",
     )
-    trail_after_profit = st.checkbox(
-        "Arm EMA trail only after profit",
-        value=True,
-        help="꺼두면 첫 bar부터 EMA trail이 발동 — breakout 캔들의 EMA "
-        "retest에 손절될 수 있어 권장 안 함.",
-    )
-    arm_breakeven = st.checkbox(
-        "Ratchet stop to breakeven after profit",
-        value=True,
-        help="수익권 진입 시 consolidation-low stop을 entry price까지 "
-        "올림. 이후 하락하면 breakeven 청산 (CDNS 2026-02 case).",
-    )
-
     run_btn = st.button("Run Strategy", type="primary", use_container_width=True)
 
 
@@ -323,14 +301,12 @@ strategy = WedgepopStrategy(
     atr_period=int(atr_period),
     extension_atr_mult=extension_atr_mult,
     climax_atr_mult=climax_atr_mult,
-    max_entry_chase_ratio=(max_entry_chase_ratio if enable_chase_filter else float("inf")),
     max_entry_ema_extension_atr=(max_entry_ema_extension_atr if enable_entry_ema_filter else None),
     max_ema_slope_decline=None,  # superseded by min/max_ema_slow_slope
     min_ema_slow_slope=(min_ema_slow_slope_ui if enable_min_slope else None),
     max_ema_slow_slope=(max_ema_slow_slope_ui if enable_max_slope else None),
-    trail_after_profit=trail_after_profit,
-    arm_breakeven_after_profit=arm_breakeven,
     require_gap_up=require_gap_up,
+    use_smart_trail=use_smart_trail,
 )
 
 with st.spinner("Running strategy..."):
@@ -425,10 +401,80 @@ for t in perf.trades:
             col=1,
         )
 
+    # Smart Trail (Chandelier) line — only when enabled
+    if use_smart_trail and len(trade_slice) > 0:
+        entry_p = t.entry_price
+        init_risk = entry_p - t.stop_loss
+        if init_risk > 0:
+            highs = trade_slice["High"]
+            highest = highs.expanding().max()
+            closes = trade_slice["Close"]
+            unrealized_r = (closes - entry_p) / init_risk
+            eff_mult = unrealized_r.apply(
+                lambda r: 5.0 if r >= 4.0 else (4.0 if r >= 2.0 else 3.0)
+            )
+            chandelier = highest - eff_mult * atr_s
+            # Only show from bar 3 onward (min_trail_bars)
+            chandelier = chandelier.iloc[3:] if len(chandelier) > 3 else chandelier.iloc[0:0]
+            if len(chandelier) > 0:
+                trade_fig.add_trace(
+                    go.Scatter(
+                        x=chandelier.index,
+                        y=chandelier,
+                        mode="lines",
+                        line=dict(color="#2196F3", width=1.5, dash="dashdot"),
+                        name="Smart Trail",
+                        showlegend=(t == perf.trades[0]),
+                        hoverinfo="skip",
+                    ),
+                    row=1,
+                    col=1,
+                )
+
 # Zoom the chart to the user's date range while keeping the warmup
 # bars accessible via scroll/pan (needed for converged 50/200 SMA).
 trade_fig.update_xaxes(range=[str(start_date), str(end_date)])
 st.plotly_chart(trade_fig, use_container_width=True)
+
+# --- Weekly & Yearly context charts ---
+st.subheader("주봉 / 연봉 컨텍스트")
+
+# Weekly: resample the already-fetched daily df (warmup + user range)
+# to weekly OHLCV. Same trade markers + volume + MAs as the daily
+# chart, zoomed to the user's date range.
+agg = {
+    "Open": "first",
+    "High": "max",
+    "Low": "min",
+    "Close": "last",
+    "Volume": "sum",
+}
+df_weekly = df.resample("W").agg(agg).dropna()
+w_fig = chart_builder.build_candlestick_with_trades(
+    df_weekly,
+    perf.trades,
+    title=f"{ticker} — Weekly",
+)
+w_fig.update_xaxes(range=[str(start_date), str(end_date)])
+st.plotly_chart(w_fig, use_container_width=True)
+
+# Yearly: needs a longer history (~10y) to have enough bars to be
+# meaningful. Plain candlestick — no trades/volume (one year per bar
+# makes intra-year trade markers meaningless).
+context_fetch_start = end_date - timedelta(days=365 * 10)
+with st.spinner(f"Fetching {ticker} long history for yearly chart..."):
+    try:
+        df_long = market_data.fetch_ohlcv(ticker, context_fetch_start, end_date)
+    except Exception as e:
+        st.warning(f"Long-history fetch failed: {e}")
+        df_long = df
+
+if df_long is not None and not df_long.empty:
+    df_yearly = df_long.resample("YE").agg(agg).dropna()
+    y_fig = chart_builder.build_simple_candlestick(
+        df_yearly, title=f"{ticker} — Yearly"
+    )
+    st.plotly_chart(y_fig, use_container_width=True)
 
 if not perf.trades:
     st.info("이 기간엔 Wedge Pop 신호가 발생하지 않았어.")

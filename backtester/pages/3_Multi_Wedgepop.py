@@ -169,23 +169,6 @@ with st.sidebar:
         value=False,
         help="다음날 시초가가 breakout 종가보다 높을 때만 진입.",
     )
-    enable_chase_filter = st.checkbox(
-        "Enable entry chase filter",
-        value=True,
-        help="Entry open이 signal bar high 위로 너무 멀리 gap-up하면 "
-        "'chasing' 거부. 끄면 gap-up 제한 없음.",
-    )
-    max_entry_chase_ratio = st.number_input(
-        "Max entry chase (× signal range)",
-        value=0.15,
-        min_value=0.0,
-        max_value=5.0,
-        step=0.05,
-        format="%.2f",
-        disabled=not enable_chase_filter,
-        help="Entry open이 signal bar high 위로 signal range의 몇 배 "
-        "초과하면 거부. 주의: 0 = 모든 gap-up 차단, 5 = off.",
-    )
     enable_entry_ema_filter = st.checkbox(
         "Enable EMA-extension entry filter",
         value=False,
@@ -235,6 +218,14 @@ with st.sidebar:
     )
 
     st.header("Exit Tuning")
+    use_smart_trail = st.checkbox(
+        "Smart Trail (Chandelier + Profit-tier)",
+        value=True,
+        help="기존 10 EMA trail 대신 Chandelier Exit 사용. "
+        "최고가에서 ATR 기반 trailing, 수익 커질수록 trail 넓힘. "
+        "**<2R → 3×ATR, 2~4R → 4×ATR, >4R → 5×ATR**. "
+        "진입 후 3봉 동안은 trail 비활성.",
+    )
     extension_atr_mult = st.number_input(
         "Exhaustion (× ATR above EMA)",
         value=1.5,
@@ -262,17 +253,6 @@ with st.sidebar:
         step=1,
         help="ATR(N) 윈도우.",
     )
-    trail_after_profit = st.checkbox(
-        "Arm EMA trail only after profit",
-        value=True,
-        help="꺼두면 첫 bar부터 EMA trail 발동 — 권장 안 함.",
-    )
-    arm_breakeven = st.checkbox(
-        "Ratchet stop to breakeven after profit",
-        value=True,
-        help="수익권 진입 시 stop을 entry price까지 올림 (CDNS 2026-02).",
-    )
-
     st.header("Fees (Toss Securities)")
     st.caption("토스증권 미국주식 기본 수수료. 매수/매도 각 0.1% + SEC fee 0.00229% (매도시).")
     buy_fee_pct = st.number_input(
@@ -334,14 +314,12 @@ per_ticker_strategy = WedgepopStrategy(
     atr_period=int(atr_period),
     extension_atr_mult=extension_atr_mult,
     climax_atr_mult=climax_atr_mult,
-    max_entry_chase_ratio=(max_entry_chase_ratio if enable_chase_filter else float("inf")),
     max_entry_ema_extension_atr=(max_entry_ema_extension_atr if enable_entry_ema_filter else None),
     max_ema_slope_decline=None,
     min_ema_slow_slope=(min_ema_slow_slope_ui if enable_min_slope else None),
     max_ema_slow_slope=(max_ema_slow_slope_ui if enable_max_slope else None),
-    trail_after_profit=trail_after_profit,
-    arm_breakeven_after_profit=arm_breakeven,
     require_gap_up=require_gap_up,
+    use_smart_trail=use_smart_trail,
 )
 runner = MultiWedgepopStrategy(
     market_data=market_data,

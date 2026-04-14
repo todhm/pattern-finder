@@ -257,8 +257,18 @@ class PlotlyChartBuilder(ChartBuilderPort):
             col=1,
         )
 
-        # Per-trade overlay: stop line, connector, then aggregated marker traces
+        # Per-trade overlay: stop line, connector, then aggregated marker traces.
+        # ``_resolve`` supports both daily charts (exact date match) and
+        # resampled charts (weekly/monthly — snap the trade date to the
+        # first bar whose period contains or follows it).
         date_map = {idx.date(): idx for idx in df.index}
+
+        def _resolve(d):
+            if d in date_map:
+                return date_map[d]
+            ts = pd.Timestamp(d)
+            after = df.index[df.index >= ts]
+            return after[0] if len(after) > 0 else None
 
         entry_x: list = []
         entry_y: list[float] = []
@@ -271,10 +281,10 @@ class PlotlyChartBuilder(ChartBuilderPort):
         stop_hover: list[str] = []
 
         for t in trades:
-            if t.entry_date not in date_map or t.exit_date not in date_map:
+            entry_ts = _resolve(t.entry_date)
+            exit_ts = _resolve(t.exit_date)
+            if entry_ts is None or exit_ts is None:
                 continue
-            entry_ts = date_map[t.entry_date]
-            exit_ts = date_map[t.exit_date]
 
             entry_value = t.entry_price * t.shares
             exit_value = t.exit_price * t.shares
@@ -414,6 +424,80 @@ class PlotlyChartBuilder(ChartBuilderPort):
         fig.update_yaxes(title_text="Price", row=1, col=1)
         fig.update_yaxes(title_text="Volume", row=2, col=1)
 
+        return fig
+
+    def build_simple_candlestick(
+        self,
+        df: pd.DataFrame,
+        title: str = "",
+        height: int = 400,
+        with_mas: bool = False,
+    ) -> go.Figure:
+        """Minimal candlestick chart for context.
+
+        Used to render higher-timeframe (weekly, yearly) context next
+        to the primary daily chart. Resampled dataframes often span
+        many years; we skip the `rangebreaks` logic that the daily
+        chart needs because non-trading days are irrelevant at the
+        weekly/yearly resolution.
+
+        ``with_mas=True`` overlays the same four moving averages as
+        the daily chart (10/20 EMA + 50/200 SMA), computed on the
+        resampled timeframe so the weekly "10 EMA" is 10 weeks etc.
+        """
+        if df.index.tz is not None:
+            df = df.copy()
+            df.index = df.index.tz_localize(None)
+
+        fig = go.Figure()
+        fig.add_trace(
+            go.Candlestick(
+                x=df.index,
+                open=df["Open"],
+                high=df["High"],
+                low=df["Low"],
+                close=df["Close"],
+                name="OHLC",
+                increasing=dict(
+                    line=dict(color="#26a69a", width=1), fillcolor="#26a69a"
+                ),
+                decreasing=dict(
+                    line=dict(color="#ef5350", width=1), fillcolor="#ef5350"
+                ),
+                whiskerwidth=0.8,
+            )
+        )
+
+        if with_mas:
+            ema10 = df["Close"].ewm(span=10, adjust=False).mean()
+            ema20 = df["Close"].ewm(span=20, adjust=False).mean()
+            sma50 = df["Close"].rolling(50).mean()
+            sma200 = df["Close"].rolling(200).mean()
+            for ma, name, color in [
+                (ema10, "10 EMA", "#ef5350"),
+                (ema20, "20 EMA", "#2196F3"),
+                (sma50, "50 SMA", "#9C27B0"),
+                (sma200, "200 SMA", "#00BCD4"),
+            ]:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df.index,
+                        y=ma,
+                        mode="lines",
+                        name=name,
+                        line=dict(color=color, width=1.2),
+                    )
+                )
+
+        fig.update_layout(
+            title=title,
+            xaxis_rangeslider_visible=False,
+            template="plotly_dark",
+            height=height,
+            margin=dict(l=50, r=50, t=50, b=30),
+            yaxis=dict(autorange=True, fixedrange=False),
+        )
+        fig.update_yaxes(title_text="Price")
         return fig
 
     @staticmethod

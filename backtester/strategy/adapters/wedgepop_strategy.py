@@ -45,68 +45,21 @@ class WedgepopStrategy(StrategyRunnerPort):
         - Fixed-fractional risk: ``shares = capital * risk_per_trade /
           (entry - stop)``. Caps downside at `risk_per_trade` per trade.
 
-    Entry filter (optional)
-        ``max_entry_chase_ratio`` rejects "chasing" entries where the
-        next-bar open has already pushed above the signal bar's high
-        by more than ``ratio × signal_bar_range``. Structural reason:
-        if the entry fill is already that far above the breakout
-        bar's top, the breakout has spent its move and we're buying
-        at an exhausted level. Real example — AMD 2020-06-09: signal
-        bar closes $56.39 with high $56.46, next bar opens $57.20,
-        20% of the signal bar's range above its high. The filter
-        rejects that signal instead of chasing a -14% loss.
+    Exit — two modes controlled by ``use_smart_trail``:
 
-    Exit (whichever fires first after entry)
-        1. Hard stop:    LOW-based limit-order model, symmetric to
-                         the exhaustion exit below. The bar's Low
-                         touching the stop line fills at
-                         ``min(open, stop)`` — a normal intraday
-                         pierce fills at the stop; a gap-down that
-                         opens below the stop fills at the open
-                         (realistic slippage). The stop starts at
-                         the consolidation low (``signal.stop_loss``).
-                         When ``arm_breakeven_after_profit=True``
-                         and the trade has closed above
-                         ``entry_price`` at least once, the stop
-                         **ratchets up to ``entry_price``
-                         (breakeven)** and stays there for the rest
-                         of the trade. This is the stateful 손절
-                         mechanism: a trade that briefly went green
-                         and then collapsed exits at breakeven
-                         instead of giving back the entire
-                         unrealized gain.
-        2. Exhaustion:   HIGH-based limit-order model using ATR.
-                         Each bar a single trigger line is computed:
-                             line = ref_ema + ATR × extension_atr_mult
-                         where ref_ema = max(ema_fast, ema_slow).
-                         As soon as the bar's ``High`` touches the
-                         line, the order fills **at the line**, not at
-                         the high. A bar that gaps through the line
-                         fills at ``max(open, line)`` (the gap favours
-                         the seller). The trigger must sit above
-                         ``entry_price`` to count — otherwise the line
-                         would be a loss-taking level, not a
-                         profit-take.
-        3. Climax bar:   HIGH-based limit-order model anchored at
-                         yesterday's close. Each bar compute
-                             climax_line = prev_close + climax_atr_mult × ATR
-                         As soon as the bar's ``High`` touches that
-                         line — AND the bar's own range exceeds the
-                         same ``climax_atr_mult × ATR`` threshold
-                         (i.e. it's a genuinely wide bar, not a
-                         one-tick wick) — the trade fills at the
-                         line (or at ``open`` on a gap-up).
-        4. EMA trail:    close < 10 EMA -> exit at close. The doc
-                         warns that the breakout candle often
-                         retests the EMAs, so we only arm the trail
-                         while the trade is in profit
-                         (``trail_after_profit=True``). The check is
-                         intentionally per-bar (not sticky): the
-                         trail only fires when *this* bar's close is
-                         above entry — preserving the original 익절
-                         behaviour. The 손절 side is handled by the
-                         breakeven stop above.
-        5. Time stop:    held >= max_holding_days  -> exit at close.
+        **Smart Trail mode** (``use_smart_trail=True``):
+            1. Hard stop     consolidation low → ``min(open, stop)``
+            2. Smart trail   Chandelier exit: ``highest_high - N × ATR``
+                             N widens with R-profit: <2R→3, 2-4R→4, >4R→5.
+                             Arms after 3 bars. LOW-based (wick-proof).
+            3. Time stop     held >= max_holding_days → exit at close.
+
+        **Legacy mode** (``use_smart_trail=False``):
+            1. Hard stop     consolidation low → ``min(open, stop)``
+            2. Exhaustion    ``ref_ema + ATR × extension_atr_mult``
+            3. Climax bar    ``prev_close + climax_atr_mult × ATR``
+            4. EMA trail     close < fast EMA → exit at close
+            5. Time stop     held >= max_holding_days → exit at close.
 
     The strategy's exit logic is tied to the wedge-pop lifecycle (Wedge
     Pop -> EMA Crossback -> Base n' Break -> Exhaustion Extension), so the
@@ -125,14 +78,12 @@ class WedgepopStrategy(StrategyRunnerPort):
         atr_period: int = 14,
         extension_atr_mult: float = 2.5,
         climax_atr_mult: float = 1.5,
-        max_entry_chase_ratio: float = 0.15,
         max_entry_ema_extension_atr: float | None = None,
         max_ema_slope_decline: float | None = 0.01,
         min_ema_slow_slope: float | None = None,
         max_ema_slow_slope: float | None = None,
-        trail_after_profit: bool = True,
-        arm_breakeven_after_profit: bool = True,
         require_gap_up: bool = False,
+        use_smart_trail: bool = False,
     ):
         self._market_data = market_data
         self._detector = detector
@@ -141,7 +92,6 @@ class WedgepopStrategy(StrategyRunnerPort):
         self.atr_period = atr_period
         self.extension_atr_mult = extension_atr_mult
         self.climax_atr_mult = climax_atr_mult
-        self.max_entry_chase_ratio = max_entry_chase_ratio
         self.max_entry_ema_extension_atr = max_entry_ema_extension_atr
         # Slope entry filter as a RANGE ``[min, max]``. The legacy
         # ``max_ema_slope_decline`` param still works as a
@@ -158,9 +108,8 @@ class WedgepopStrategy(StrategyRunnerPort):
             min_ema_slow_slope = -max_ema_slope_decline
         self.min_ema_slow_slope = min_ema_slow_slope
         self.max_ema_slow_slope = max_ema_slow_slope
-        self.trail_after_profit = trail_after_profit
-        self.arm_breakeven_after_profit = arm_breakeven_after_profit
         self.require_gap_up = require_gap_up
+        self.use_smart_trail = use_smart_trail
 
     # ---- public API ----
 
@@ -289,22 +238,6 @@ class WedgepopStrategy(StrategyRunnerPort):
             if entry_price <= prev_close:
                 return None, entry_idx
 
-        # "Chase-entry" filter: measure how far the entry-bar open has
-        # pushed above the SIGNAL bar's high relative to that bar's
-        # range. If the next-bar open is already more than
-        # ``max_entry_chase_ratio`` of the signal range above its high,
-        # the breakout has "spent" its move and we're buying at an
-        # exhausted level. Set ``max_entry_chase_ratio`` very high to
-        # disable. (AMD 2020-06-09 case.)
-        if self.max_entry_chase_ratio < float("inf") and entry_idx > 0:
-            sig_high = float(df["High"].iloc[entry_idx - 1])
-            sig_low = float(df["Low"].iloc[entry_idx - 1])
-            sig_range = sig_high - sig_low
-            if sig_range > 0:
-                chase_ratio = (entry_price - sig_high) / sig_range
-                if chase_ratio > self.max_entry_chase_ratio:
-                    return None, entry_idx
-
         # "EMA-extension" entry filter (ATR-scaled): reject entries
         # where the entry-bar open is more than
         # ``max_entry_ema_extension_atr × ATR`` above
@@ -384,11 +317,10 @@ class WedgepopStrategy(StrategyRunnerPort):
         max_holding_days: int,
     ) -> tuple[float, int]:
         last_idx = min(entry_idx + max_holding_days, len(df) - 1)
-        # `armed_stop` is the stateful 손절 mechanism. It starts at the
-        # consolidation-low stop and ratchets up to `entry_price`
-        # (breakeven) the first time the trade closes above entry.
-        # Only goes up, never down.
-        armed_stop = stop
+
+        # Smart trail state — Chandelier exit with profit-tier widening.
+        highest_high = 0.0
+        initial_risk = entry_price - stop  # 1R
 
         # The loop starts at ``entry_idx`` (NOT ``entry_idx + 1``) so
         # the entry bar itself is checked for same-day exits. A bar
@@ -398,7 +330,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         # end-of-bar then correctly flows into the next bar's hard
         # stop check (AMD 2019-08-22 case is still handled — arming
         # happens at the end of the 08-22 iteration, before 08-23's
-        # hard-stop check sees ``armed_stop = entry_price``).
+        # hard-stop check sees ``stop = entry_price``).
         for i in range(entry_idx, last_idx + 1):
             open_bar = float(df["Open"].iloc[i])
             high_bar = float(df["High"].iloc[i])
@@ -409,80 +341,56 @@ class WedgepopStrategy(StrategyRunnerPort):
             ema_slow = float(df["ema_slow"].iloc[i])
             atr = float(df["atr"].iloc[i]) if not pd.isna(df["atr"].iloc[i]) else 0.0
 
-            # 1. Hard stop — LOW-based limit-order model. Symmetric
-            #    to the exhaustion exit:
-            #      - exhaustion: bar's High touches the profit line
-            #        → fill at ``max(open, line)``. Gap-up favours
-            #        the seller and fills at the higher open.
-            #      - hard stop: bar's Low touches the stop line
-            #        → fill at ``min(open, stop)``. Gap-down hurts
-            #        the seller and fills at the lower open.
-            #    When the bar opened ABOVE the stop and then the
-            #    intraday low pierces it, the stop order is hit
-            #    during the bar and fills at the stop line. When
-            #    the bar opened BELOW the stop (gap-down through
-            #    the level), the sell executes at market open
-            #    (realistic slippage). Covers both the original
-            #    consolidation-low stop and the breakeven ratchet.
-            if low <= armed_stop:
-                return min(open_bar, armed_stop), i
+            if high_bar > highest_high:
+                highest_high = high_bar
 
-            # 2. Exhaustion Extension — HIGH-based, ATR-scaled.
-            #    A single trigger line is computed each bar:
-            #        trigger = ref_ema + ATR × extension_atr_mult
-            #    where ref_ema = max(ema_fast, ema_slow). Using ATR
-            #    instead of a fixed % means the exhaustion line
-            #    automatically adapts to the stock's volatility —
-            #    "2.5 ATR above EMA" is a comparable visual distance
-            #    on a quiet $500 name and a jumpy $20 name.
-            #
-            #    The trigger must sit above ``entry_price`` to count;
-            #    right after entry the ref_ema is typically below
-            #    entry, so the line would be a loss-taking level.
-            #    This guard lets the EMAs catch up before the rule arms.
-            ref_ema = max(ema_fast, ema_slow)
-            if ref_ema > 0 and atr > 0:
-                trigger = ref_ema + atr * self.extension_atr_mult
-                if trigger > entry_price and high_bar >= trigger:
-                    return max(open_bar, trigger), i
+            # 1. Hard stop — consolidation low.
+            #    LOW-based limit-order model: intraday pierce fills
+            #    at the stop line, gap-down fills at the open.
+            if low <= stop:
+                return min(open_bar, stop), i
 
-            # 3. Climax bar — HIGH-based limit-order model.
-            #    Triggers on a "parabolic pop" bar: the bar's HIGH
-            #    prints more than ``climax_atr_mult × atr`` above
-            #    yesterday's close, AND the bar's range itself
-            #    exceeds the same multiple (wide bar, not a tiny
-            #    wick). Fills at the climax line
-            #    ``prev_close + climax_atr_mult × atr`` (gap-up
-            #    fills at open). The line is recomputed each bar
-            #    so it works as an adaptive "N-ATR pop from
-            #    yesterday's close" profit target that tracks the
-            #    trade without caring whether ``close`` is near the
-            #    bar high — AMD 2019-03-19 still fires, and bars
-            #    like ALL 2025-05-08 that spike intraday but close
-            #    back down also fire.
-            if atr > 0 and i > 0:
-                prev_close = float(df["Close"].iloc[i - 1])
-                climax_line = prev_close + self.climax_atr_mult * atr
-                bar_range = high_bar - low_bar
-                if (
-                    climax_line > entry_price
-                    and bar_range > self.climax_atr_mult * atr
-                    and high_bar >= climax_line
-                ):
-                    return max(open_bar, climax_line), i
+            if self.use_smart_trail:
+                # ── Smart Trail mode ──
+                # Exit conditions: hard stop (above) + smart trail + time stop only.
+                # Exhaustion / climax / EMA trail are all disabled.
+                bars_held = i - entry_idx
+                if bars_held >= 3 and atr > 0 and initial_risk > 0:
+                    unrealized_r = (close - entry_price) / initial_risk
+                    if unrealized_r >= 4.0:
+                        eff_mult = 5.0
+                    elif unrealized_r >= 2.0:
+                        eff_mult = 4.0
+                    else:
+                        eff_mult = 3.0
+                    trail_level = highest_high - eff_mult * atr
+                    if trail_level > entry_price and low <= trail_level:
+                        return min(open_bar, trail_level), i
+            else:
+                # ── Legacy mode ──
+                # Exhaustion + climax + EMA trail all active.
 
-            # Ratchet the stop up to entry on the first profit-close.
-            # Sticky: never relaxes back down. Only the 손절 leg is
-            # stateful — the EMA trail below stays per-bar so the
-            # 익절 path keeps its original (recoverable) semantics.
-            if self.arm_breakeven_after_profit and close > entry_price and armed_stop < entry_price:
-                armed_stop = entry_price
+                # 2. Exhaustion Extension — HIGH-based, ATR-scaled.
+                ref_ema = max(ema_fast, ema_slow)
+                if ref_ema > 0 and atr > 0:
+                    trigger = ref_ema + atr * self.extension_atr_mult
+                    if trigger > entry_price and high_bar >= trigger:
+                        return max(open_bar, trigger), i
 
-            # 4. EMA trail — Wedge Drop / failed EMA Crossback.
-            #    Per-bar check (intentionally NOT sticky), so the
-            #    profit-side trail keeps its original behaviour.
-            if close < ema_fast:
-                if not self.trail_after_profit or close > entry_price:
+                # 3. Climax bar — HIGH-based limit-order model.
+                if atr > 0 and i > 0:
+                    prev_close = float(df["Close"].iloc[i - 1])
+                    climax_line = prev_close + self.climax_atr_mult * atr
+                    bar_range = high_bar - low_bar
+                    if (
+                        climax_line > entry_price
+                        and bar_range > self.climax_atr_mult * atr
+                        and high_bar >= climax_line
+                    ):
+                        return max(open_bar, climax_line), i
+
+                # 4. EMA trail — close < fast EMA → exit at close.
+                if close < ema_fast:
                     return close, i
 
         # 5. Time stop
