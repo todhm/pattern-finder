@@ -195,7 +195,7 @@ with st.sidebar:
     )
     min_ema_slow_slope_ui = st.number_input(
         "Min EMA slow slope",
-        value=-0.01,
+        value=0.05,
         min_value=-1.0,
         max_value=1.0,
         step=0.01,
@@ -442,24 +442,19 @@ st.dataframe(rows, use_container_width=True)
 
 # --- Per-trade candlestick charts ---
 st.subheader("Trade Charts")
-CONTEXT_BEFORE_DAYS = 60   # calendar days before entry to show
-CONTEXT_AFTER_DAYS = 30    # calendar days after exit to show
+CONTEXT_BEFORE_DAYS = 60  # calendar days before entry to show
+CONTEXT_AFTER_DAYS = 30  # calendar days after exit to show
 
 for i, t in enumerate(result.trades):
     pnl_sign = "+" if t.pnl >= 0 else ""
-    label = (
-        f"{t.ticker} — {t.entry_date} → {t.exit_date}  "
-        f"({pnl_sign}{t.pnl_pct:.2%})"
-    )
+    label = f"{t.ticker} — {t.entry_date} → {t.exit_date}  " f"({pnl_sign}{t.pnl_pct:.2%})"
     with st.expander(label, expanded=(i < 3)):
         chart_start = t.entry_date - timedelta(days=CONTEXT_BEFORE_DAYS)
         chart_end = t.exit_date + timedelta(days=CONTEXT_AFTER_DAYS)
         # Extra warmup so 50/200 SMA lines are converged
         fetch_start = chart_start - timedelta(days=400)
         try:
-            ticker_df = market_data.fetch_ohlcv(
-                t.ticker, fetch_start, chart_end
-            )
+            ticker_df = market_data.fetch_ohlcv(t.ticker, fetch_start, chart_end)
         except Exception:
             st.warning(f"Failed to fetch data for {t.ticker}")
             continue
@@ -472,9 +467,7 @@ for i, t in enumerate(result.trades):
             [t],
             title=f"{t.ticker} — {t.entry_date} → {t.exit_date}",
         )
-        trade_fig.update_xaxes(
-            range=[str(chart_start), str(chart_end)]
-        )
+        trade_fig.update_xaxes(range=[str(chart_start), str(chart_end)])
         st.plotly_chart(trade_fig, use_container_width=True)
 
 if result.failed_tickers:

@@ -184,7 +184,7 @@ with st.sidebar:
     )
     min_ema_slow_slope_ui = st.number_input(
         "Min EMA slow slope",
-        value=-0.01,
+        value=0.05,
         min_value=-1.0,
         max_value=1.0,
         step=0.01,
