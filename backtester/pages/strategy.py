@@ -410,9 +410,7 @@ for t in perf.trades:
             highest = highs.expanding().max()
             closes = trade_slice["Close"]
             unrealized_r = (closes - entry_p) / init_risk
-            eff_mult = unrealized_r.apply(
-                lambda r: 5.0 if r >= 4.0 else (4.0 if r >= 2.0 else 3.0)
-            )
+            eff_mult = unrealized_r.apply(lambda r: 5.0 if r >= 4.0 else (4.0 if r >= 2.0 else 3.0))
             chandelier = highest - eff_mult * atr_s
             # Only show from bar 3 onward (min_trail_bars)
             chandelier = chandelier.iloc[3:] if len(chandelier) > 3 else chandelier.iloc[0:0]
@@ -471,9 +469,7 @@ with st.spinner(f"Fetching {ticker} long history for yearly chart..."):
 
 if df_long is not None and not df_long.empty:
     df_yearly = df_long.resample("YE").agg(agg).dropna()
-    y_fig = chart_builder.build_simple_candlestick(
-        df_yearly, title=f"{ticker} — Yearly"
-    )
+    y_fig = chart_builder.build_simple_candlestick(df_yearly, title=f"{ticker} — Yearly")
     st.plotly_chart(y_fig, use_container_width=True)
 
 if not perf.trades:
