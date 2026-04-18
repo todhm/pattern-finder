@@ -1,3 +1,5 @@
+from datetime import date
+
 import pandas as pd
 
 from data.domain.ports import MarketDataPort
@@ -61,6 +63,23 @@ class WedgepopStrategy(StrategyRunnerPort):
             4. EMA trail     close < fast EMA → exit at close
             5. Time stop     held >= max_holding_days → exit at close.
 
+    **Pattern-based exit** (opt-in via ``exit_detector``)
+        When any `PatternDetector` is injected, any bar inside the
+        holding period that fires a signal from that detector triggers
+        an immediate exit at that bar's close. Typical use: inject an
+        `ExhaustionExtensionTopDetector` so that a long exits once the
+        market prints a euphoric blow-off top. All conditions those
+        detectors check (extensions, slopes, candle shapes, rolling
+        volume ratios) are end-of-bar quantities, so exiting at the
+        signal bar's close uses no future data — every input to the
+        decision is known by the time the bar finishes. Signals are
+        pre-computed once on the full dataframe in ``execute()``;
+        pandas' EWM/rolling indicators are causal, so each signal's
+        date maps to a bar whose detection used only data up to and
+        including that bar. The entry bar itself is skipped
+        regardless of whether it fires — a same-bar exit against our
+        own entry is nonsensical.
+
     The strategy's exit logic is tied to the wedge-pop lifecycle (Wedge
     Pop -> EMA Crossback -> Base n' Break -> Exhaustion Extension), so the
     injected detector must be a wedge-pop detector for the rules to make
@@ -84,9 +103,11 @@ class WedgepopStrategy(StrategyRunnerPort):
         max_ema_slow_slope: float | None = None,
         require_gap_up: bool = False,
         use_smart_trail: bool = False,
+        exit_detector: PatternDetector | None = None,
     ):
         self._market_data = market_data
         self._detector = detector
+        self._exit_detector = exit_detector
         self.ema_trail = ema_trail
         self.ema_slow = ema_slow
         self.atr_period = atr_period
@@ -140,7 +161,19 @@ class WedgepopStrategy(StrategyRunnerPort):
             if config.start_date <= s.date <= config.end_date
         ]
 
-        performance, equity_curve = self._run_signals(df, signals, config)
+        # Pre-compute pattern-based exit dates once. Safe against
+        # look-ahead: the detector's conditions (extensions, slopes,
+        # candle shapes, rolling volume) are all causal — EWM/rolling
+        # indicators only read past+current values — so each signal's
+        # date corresponds to a bar that could have been detected at
+        # its own close in real time.
+        exit_dates: set[date] = set()
+        if self._exit_detector is not None:
+            exit_dates = {s.date for s in self._exit_detector.detect(df)}
+
+        performance, equity_curve = self._run_signals(
+            df, signals, config, exit_dates
+        )
 
         return StrategyResult(
             config=config,
@@ -177,6 +210,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         df: pd.DataFrame,
         signals: list[PatternSignal],
         config: StrategyConfig,
+        exit_dates: set[date],
     ) -> tuple[StrategyPerformance, list[EquityPoint]]:
         capital = config.initial_capital
         peak = capital
@@ -190,7 +224,9 @@ class WedgepopStrategy(StrategyRunnerPort):
             if entry_idx is None or entry_idx < next_open_idx:
                 continue
 
-            trade, exit_idx = self._execute_trade(df, signal, entry_idx, capital, config)
+            trade, exit_idx = self._execute_trade(
+                df, signal, entry_idx, capital, config, exit_dates
+            )
             if trade is None:
                 continue
 
@@ -225,8 +261,22 @@ class WedgepopStrategy(StrategyRunnerPort):
         entry_idx: int,
         capital: float,
         config: StrategyConfig,
+        exit_dates: set[date] | None = None,
     ) -> tuple[Trade | None, int]:
+        if exit_dates is None:
+            exit_dates = set()
         entry_price = float(df["Open"].iloc[entry_idx])
+
+        # Reject entry when the open gaps BELOW both EMAs — if we're
+        # buying a long and the open is already under the 10 EMA and
+        # 20 EMA (computed at the signal bar, the last known values
+        # at market open), the breakout has failed overnight and
+        # entering is chasing a dead setup.
+        if entry_idx > 0:
+            sig_ema_fast = float(df["ema_trail"].iloc[entry_idx - 1])
+            sig_ema_slow = float(df["ema_slow"].iloc[entry_idx - 1])
+            if entry_price < sig_ema_fast and entry_price < sig_ema_slow:
+                return None, entry_idx
 
         # Optional gap-up confirmation (TraderLion: "Most Wedge Pops that
         # start new trends often include unfilled gaps with strong volume").
@@ -292,7 +342,14 @@ class WedgepopStrategy(StrategyRunnerPort):
         risk_amount = capital * config.risk_per_trade
         shares = max(1, int(risk_amount / risk_per_share))
 
-        exit_price, exit_idx = self._find_exit(df, entry_idx, entry_price, stop, config.max_holding_days)
+        exit_price, exit_idx = self._find_exit(
+            df,
+            entry_idx,
+            entry_price,
+            stop,
+            config.max_holding_days,
+            exit_dates,
+        )
 
         pnl = (exit_price - entry_price) * shares
         trade = Trade(
@@ -315,7 +372,10 @@ class WedgepopStrategy(StrategyRunnerPort):
         entry_price: float,
         stop: float,
         max_holding_days: int,
+        exit_dates: set[date] | None = None,
     ) -> tuple[float, int]:
+        if exit_dates is None:
+            exit_dates = set()
         last_idx = min(entry_idx + max_holding_days, len(df) - 1)
 
         # Smart trail state — Chandelier exit with profit-tier widening.
@@ -350,6 +410,18 @@ class WedgepopStrategy(StrategyRunnerPort):
             if low <= stop:
                 return min(open_bar, stop), i
 
+            # 1b. Pattern-based exit — fires when the injected
+            #     ``exit_detector`` signals on this bar. Typical use:
+            #     ``ExhaustionExtensionTopDetector`` so that a long
+            #     exits on a euphoric blow-off top. All conditions
+            #     those detectors check are end-of-bar quantities,
+            #     and the detection was pre-run in ``execute()`` with
+            #     causal indicators, so firing on this bar's close
+            #     uses no future data. Skip the entry bar itself —
+            #     a same-bar exit against our own entry is nonsense.
+            if i > entry_idx and df.index[i].date() in exit_dates:
+                return close, i
+
             if self.use_smart_trail:
                 # ── Smart Trail mode ──
                 # Exit conditions: hard stop (above) + smart trail + time stop only.
@@ -364,7 +436,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                     else:
                         eff_mult = 3.0
                     trail_level = highest_high - eff_mult * atr
-                    if trail_level > entry_price and low <= trail_level:
+                    if trail_level > stop and low <= trail_level:
                         return min(open_bar, trail_level), i
             else:
                 # ── Legacy mode ──

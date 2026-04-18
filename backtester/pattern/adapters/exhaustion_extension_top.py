@@ -68,7 +68,7 @@ class ExhaustionExtensionTopDetector(PatternDetector):
     def __init__(
         self,
         extension_atr_mult: float = 3.0,
-        min_slow_slope: float = 0.05,
+        min_slow_slope: float = 0.005,
         max_close_location: float = 0.5,
         min_sell_dominance: float = 1.5,
         pressure_lookback: int = 10,
@@ -108,7 +108,7 @@ class ExhaustionExtensionTopDetector(PatternDetector):
         df["ema_slow"] = self._add_ema(df, self.ema_slow)
         df["atr"] = self._compute_atr(df, self.atr_period)
         n = self.slope_lookback
-        df["ema_slow_slope"] = (df["ema_slow"] - df["ema_slow"].shift(n)) / df["ema_slow"].shift(n)
+        df["ema_slow_slope"] = self._regression_slope(df["ema_slow"], n)
 
         signals: list[PatternSignal] = []
         cooldown_until = -1

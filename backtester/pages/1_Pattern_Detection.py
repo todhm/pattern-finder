@@ -38,7 +38,7 @@ with st.sidebar:
     atr_period = st.number_input("ATR period", value=14, min_value=2, max_value=100, step=1)
     slope_lookback = st.number_input(
         "Slope lookback (days)",
-        value=20,
+        value=10,
         min_value=5,
         max_value=120,
         step=1,
@@ -69,7 +69,7 @@ with st.sidebar:
         )
         consolidation_pct = st.number_input(
             "Min consolidation %",
-            value=60.0,
+            value=30.0,
             min_value=0.0,
             max_value=100.0,
             step=5.0,
@@ -86,7 +86,7 @@ with st.sidebar:
         )
         breakout_atr_mult = st.number_input(
             "Min breakout strength (× ATR)",
-            value=0.01,
+            value=0.005,
             min_value=0.0,
             max_value=10.0,
             step=0.001,
@@ -106,6 +106,55 @@ with st.sidebar:
             "Require close above 50 & 200 SMA",
             value=True,
         )
+        late_entry_bars_wp = st.number_input(
+            "Late-entry bars (0 = strict fresh-cross)",
+            value=0,
+            min_value=0,
+            max_value=10,
+            step=1,
+            help="기본 0: 전일이 반드시 EMA 아래여야 함 (엄격한 첫 돌파). "
+            "N>0: 돌파가 N봉 이내에 일어났으면 continuation 봉도 "
+            "wedge pop으로 인정. 예: 2 = 첫 돌파일 포함 최대 3봉까지 "
+            "'여진' 봉 catch. metadata trigger 필드로 primary/late_entry "
+            "구분됨.",
+        )
+        st.caption(
+            "**EMA slow slope 범위 필터** — detector가 metadata로 내보내는 "
+            "`ema_slow_slope`를 post-filter함. strategy 페이지의 slope 범위 "
+            "필터와 동일한 로직."
+        )
+        enable_min_slope_wp = st.checkbox(
+            "Enforce min EMA slow slope",
+            value=False,
+            help="ema_slow_slope의 **하한**. 양수로 설정하면 '반드시 +N% "
+            "이상 올라가는 추세'만 통과 (예: 0.005 → slope_lookback 동안 "
+            "+0.5% 이상). 음수로 설정하면 dead-cat bounce를 걸러냄.",
+        )
+        min_ema_slow_slope_wp = st.number_input(
+            "Min EMA slow slope",
+            value=-0.01,
+            min_value=-1.0,
+            max_value=1.0,
+            step=0.001,
+            format="%.4f",
+            disabled=not enable_min_slope_wp,
+        )
+        enable_max_slope_wp = st.checkbox(
+            "Enforce max EMA slow slope",
+            value=False,
+            help="ema_slow_slope의 **상한**. 이미 너무 가파르게 오른 "
+            "(parabolic) 종목 제외. 예: 0.30 → slope_lookback 동안 +30% "
+            "이상 오른 종목 제외.",
+        )
+        max_ema_slow_slope_wp = st.number_input(
+            "Max EMA slow slope",
+            value=0.30,
+            min_value=-1.0,
+            max_value=5.0,
+            step=0.01,
+            format="%.3f",
+            disabled=not enable_max_slope_wp,
+        )
 
     elif pattern_name == "exhaustion_extension_top":
         st.header("Exhaustion Extension (Top)")
@@ -120,12 +169,14 @@ with st.sidebar:
         )
         min_slow_slope_top = st.number_input(
             "Min slow EMA slope",
-            value=0.05,
+            value=0.005,
             min_value=-1.0,
             max_value=1.0,
-            step=0.01,
-            format="%.3f",
-            help="상승 추세 확인용. 20일간 slow EMA가 +N% 이상 올라야 함.",
+            step=0.001,
+            format="%.4f",
+            help="상승 추세 확인용. slope_lookback 바 동안 slow EMA가 "
+            "+N% 이상 움직여야 함. 0.005 = 10봉 +0.5% (연 ~13% 속도). "
+            "0.05 = 10봉 +5% (연 ~340%, 파라볼릭).",
         )
         st.caption(
             "**Distribution 확증 신호** — 기본적으로 **OR**로 결합돼 "
@@ -199,7 +250,7 @@ with st.sidebar:
         )
         drop_consolidation_pct = st.number_input(
             "Min consolidation %",
-            value=60.0,
+            value=30.0,
             min_value=0.0,
             max_value=100.0,
             step=5.0,
@@ -331,6 +382,7 @@ if run_btn:
                     slope_lookback=int(slope_lookback),
                     cooldown_bars=int(cooldown_bars_ui),
                     require_above_long_smas=require_above_long_smas,
+                    late_entry_bars=int(late_entry_bars_wp),
                 )
             elif pattern_name == "reversal_extension":
                 detector = ReversalExtensionDetector()
@@ -388,6 +440,24 @@ if run_btn:
                 st.stop()
 
             signals = detector.detect(df)
+
+            # Post-filter: apply wedge_pop slope range. Detector reports
+            # ema_slow_slope in metadata; filtering here mirrors the
+            # strategy page's entry filter so the detection page and
+            # the strategy page see the same signal set.
+            if pattern_name == "wedge_pop":
+
+                def _passes_slope(s):
+                    slope = s.metadata.get("ema_slow_slope")
+                    if slope is None:
+                        return True
+                    if enable_min_slope_wp and slope < min_ema_slow_slope_wp:
+                        return False
+                    if enable_max_slope_wp and slope > max_ema_slow_slope_wp:
+                        return False
+                    return True
+
+                signals = [s for s in signals if _passes_slope(s)]
         except Exception as e:
             st.error(f"Error: {e}")
             st.stop()

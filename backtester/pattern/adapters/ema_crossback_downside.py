@@ -60,7 +60,7 @@ class EmaCrossbackDownsideDetector(PatternDetector):
         df["vol_avg"] = self._avg_volume(df)
         df["atr"] = self._compute_atr(df, self.atr_period)
         n = self.slope_lookback
-        df["ema_slow_slope"] = (df["ema_slow"] - df["ema_slow"].shift(n)) / df["ema_slow"].shift(n)
+        df["ema_slow_slope"] = self._regression_slope(df["ema_slow"], n)
 
         signals: list[PatternSignal] = []
         cooldown_until = -1

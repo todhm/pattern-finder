@@ -3,6 +3,7 @@ from datetime import date
 import pandas as pd
 
 from data.domain.ports import MarketDataPort
+from pattern.adapters.reversal_extension import ReversalExtensionDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
 from strategy.adapters.wedgepop_strategy import WedgepopStrategy
 from strategy.domain.models import StrategyConfig
@@ -653,8 +654,14 @@ def _force_entry(df: pd.DataFrame, entry_date: date, **strategy_overrides):
         risk_per_trade=0.02,
         max_holding_days=60,
     )
+    # Mirror ``execute()``'s end-to-end flow: pre-compute exit dates
+    # when the strategy has a detector wired up, so ``_force_entry``
+    # exercises the same exit path as the public API.
+    exit_dates: set[date] = set()
+    if strategy._exit_detector is not None:
+        exit_dates = {s.date for s in strategy._exit_detector.detect(df_ind)}
     trade, _ = strategy._execute_trade(
-        df_ind, signal, entry_idx, 100_000.0, config
+        df_ind, signal, entry_idx, 100_000.0, config, exit_dates
     )
     return trade
 
@@ -1297,3 +1304,137 @@ class TestLongSmaFilter:
             assert n_on <= n_off, (
                 f"{name}: filter is not monotone ({n_on} > {n_off})"
             )
+
+
+class TestPatternExitHook:
+    """Generic pattern-based exit hook.
+
+    Uses flat, stable bars so that NO other exit rule (hard stop,
+    smart trail, EMA trail, exhaustion, climax) fires during the
+    hold period. A fake detector that fires on a specific date is
+    injected; the tests verify the hook works correctly in
+    isolation.
+
+    Smart trail stays disarmed because ``trail_level > stop``
+    is satisfied BUT ``low > trail_level`` — the flat bars' lows
+    sit comfortably above the trail line.
+    """
+
+    @staticmethod
+    def _build_fixture():
+        """Flat bars with low just above the smart-trail level.
+
+          bars 0-24: flat at 100 (warmup)
+          bars 25-29: breakout to 105
+          bar 30: entry at open 104.5
+          bars 31-55: flat at 105 — high=105.5, low=104.5
+                      trail ≈ 105.5 - 3×0.5 = 104.0 < low(104.5)
+                      so trail never triggers.
+        """
+        rows = []
+        for _ in range(25):
+            rows.append((100.0, 100.5, 99.5, 100.0, 1_000_000))
+        for p in (101.0, 102.0, 103.0, 104.0, 105.0):
+            rows.append((p - 0.5, p + 0.3, p - 0.8, p, 2_000_000))
+        rows.append((104.5, 105.5, 104.2, 105.0, 2_000_000))
+        for _ in range(25):
+            rows.append((104.8, 105.5, 104.5, 105.0, 1_500_000))
+
+        idx = pd.date_range("2023-01-02", periods=len(rows), freq="B")
+        return pd.DataFrame(
+            {
+                "Open":   [r[0] for r in rows],
+                "High":   [r[1] for r in rows],
+                "Low":    [r[2] for r in rows],
+                "Close":  [r[3] for r in rows],
+                "Volume": [r[4] for r in rows],
+            },
+            index=idx,
+        )
+
+    @staticmethod
+    def _fake_detector(target_date):
+        """Detector that fires on exactly one date."""
+        class _Det(ReversalExtensionDetector):
+            name = "fake_exit"
+
+            def detect(self, df, weekly_df=None, monthly_df=None):
+                return [
+                    PatternSignal(
+                        date=target_date,
+                        pattern_name=self.name,
+                        entry_price=0.0,
+                        stop_loss=0.0,
+                        confidence=1.0,
+                        metadata={},
+                    )
+                ]
+        return _Det()
+
+    def test_pattern_exit_fires_on_target_bar(self):
+        df = self._build_fixture()
+        entry_date = df.index[30].date()
+        target_date = df.index[40].date()
+
+        trade = _force_entry(
+            df,
+            entry_date,
+            use_smart_trail=True,
+            extension_atr_mult=99.0,
+            climax_atr_mult=99.0,
+            exit_detector=self._fake_detector(target_date),
+        )
+        assert trade is not None
+        assert trade.exit_date == target_date
+        assert trade.exit_price == round(float(df["Close"].iloc[40]), 2)
+
+    def test_without_exit_detector_no_early_exit(self):
+        df = self._build_fixture()
+        entry_date = df.index[30].date()
+        target_date = df.index[40].date()
+
+        trade = _force_entry(
+            df,
+            entry_date,
+            use_smart_trail=True,
+            extension_atr_mult=99.0,
+            climax_atr_mult=99.0,
+        )
+        assert trade is not None
+        assert trade.exit_date != target_date
+
+    def test_pattern_exit_uses_no_future_data(self):
+        df = self._build_fixture()
+        entry_date = df.index[30].date()
+        target_idx = 40
+
+        det = self._fake_detector(df.index[target_idx].date())
+
+        trade_full = _force_entry(
+            df, entry_date,
+            use_smart_trail=True, extension_atr_mult=99.0,
+            climax_atr_mult=99.0, exit_detector=det,
+        )
+        trade_trunc = _force_entry(
+            df.iloc[: target_idx + 1].copy(), entry_date,
+            use_smart_trail=True, extension_atr_mult=99.0,
+            climax_atr_mult=99.0, exit_detector=det,
+        )
+        assert trade_full is not None and trade_trunc is not None
+        assert trade_full.exit_date == trade_trunc.exit_date
+        assert trade_full.exit_price == trade_trunc.exit_price
+
+    def test_entry_bar_signal_is_ignored(self):
+        df = self._build_fixture()
+        entry_date = df.index[30].date()
+
+        trade = _force_entry(
+            df,
+            entry_date,
+            use_smart_trail=True,
+            extension_atr_mult=99.0,
+            climax_atr_mult=99.0,
+            exit_detector=self._fake_detector(entry_date),
+        )
+        assert trade is not None
+        assert trade.exit_date != entry_date

@@ -4,6 +4,7 @@ import streamlit as st
 
 from data.adapters.wikipedia_universe import WikipediaUniverseAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
+from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
 from strategy.adapters.multi_wedgepop_strategy import MultiWedgepopStrategy
 from strategy.adapters.wedgepop_strategy import WedgepopStrategy
@@ -69,7 +70,7 @@ with st.sidebar:
     st.header("Pattern Detection")
     consolidation_pct = st.number_input(
         "Min consolidation %",
-        value=60.0,
+        value=30.0,
         min_value=0.0,
         max_value=100.0,
         step=5.0,
@@ -90,7 +91,7 @@ with st.sidebar:
     )
     breakout_atr_mult = st.number_input(
         "Min breakout strength (× ATR)",
-        value=0.01,
+        value=0.005,
         min_value=0.0,
         max_value=10.0,
         step=0.001,
@@ -120,6 +121,17 @@ with st.sidebar:
         "때만 wedge pop으로 인정. 장기 추세 안에 있는 wedge pop만 "
         "필터링하고 싶을 때 켜세요.",
     )
+    late_entry_bars_wp = st.number_input(
+        "Late-entry bars (0 = strict fresh-cross)",
+        value=0,
+        min_value=0,
+        max_value=10,
+        step=1,
+        help="기본 0: 전일이 반드시 EMA 아래여야 함 (엄격한 첫 돌파). "
+        "N>0: 돌파가 N봉 이내에 일어났으면 continuation 봉도 wedge pop "
+        "으로 인정. 예: 2 = 첫 돌파일 포함 최대 3봉까지 '여진' 봉 catch. "
+        "metadata trigger 필드로 primary / late_entry 구분됨.",
+    )
     detect_lookback = st.number_input(
         "Consolidation lookback (days)",
         value=10,
@@ -130,7 +142,7 @@ with st.sidebar:
     )
     cooldown_bars_ui = st.number_input(
         "Cooldown bars (after a signal)",
-        value=15,
+        value=0,
         min_value=0,
         max_value=60,
         step=1,
@@ -155,7 +167,7 @@ with st.sidebar:
     )
     slope_lookback = st.number_input(
         "Slope lookback (days)",
-        value=20,
+        value=10,
         min_value=5,
         max_value=120,
         step=1,
@@ -195,7 +207,7 @@ with st.sidebar:
     )
     min_ema_slow_slope_ui = st.number_input(
         "Min EMA slow slope",
-        value=0.05,
+        value=0.005,
         min_value=-1.0,
         max_value=1.0,
         step=0.01,
@@ -226,33 +238,62 @@ with st.sidebar:
         "**<2R → 3×ATR, 2~4R → 4×ATR, >4R → 5×ATR**. "
         "진입 후 3봉 동안은 trail 비활성.",
     )
-    extension_atr_mult = st.number_input(
-        "Exhaustion (× ATR above EMA)",
-        value=1.5,
-        min_value=0.1,
-        max_value=50.0,
+    st.caption(
+        "**Exhaustion Extension Top exit** — 상승추세 꼭지에서 "
+        "10 EMA 위로 과도하게 벌어지는 블로우오프 캔들이 찍히면 "
+        "그 봉 종가에서 long 청산. 감지가 end-of-bar라 미래 데이터 "
+        "참조 없음."
+    )
+    enable_exh_exit = st.checkbox(
+        "Enable Exhaustion Extension Top exit",
+        value=True,
+        help="보유 중인 long에 대해, ExhaustionExtensionTopDetector가 해당 "
+        "봉에서 fire하면 그 봉 종가에서 청산. 진입 바 자체는 스킵.",
+    )
+    exh_exit_extension_atr = st.number_input(
+        "Exh exit — Min extension above EMA (× ATR)",
+        value=1.9,
+        min_value=0.5,
+        max_value=20.0,
         step=0.1,
-        help="Exit 룰: bar의 **High**가 max(fast,slow) EMA + ATR × 이 값 "
-        "선을 터치하면 해당 라인에서 체결 (limit order 모델). ATR 기반이라 "
-        "변동성에 자동 적응.",
+        disabled=not enable_exh_exit,
     )
-    climax_atr_mult = st.number_input(
-        "Climax bar ATR multiplier",
-        value=0.8,
-        min_value=0.1,
+    exh_exit_min_slope = st.number_input(
+        "Exh exit — Min slow EMA slope",
+        value=0.005,
+        min_value=-1.0,
+        max_value=1.0,
+        step=0.001,
+        format="%.4f",
+        disabled=not enable_exh_exit,
+        help="slope_lookback 바 동안 slow EMA가 이 비율 이상 상승. " "0.005 ≈ 연 13% 속도.",
+    )
+    exh_exit_max_close_loc = st.number_input(
+        "Exh exit — Max close location (0=low, 1=high)",
+        value=0.5,
+        min_value=0.0,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_exh_exit,
+        help="윗꼬리 거절 캔들 확증. 1.0 = off.",
+    )
+    exh_exit_min_sell_dom = st.number_input(
+        "Exh exit — Min sell dominance",
+        value=1.5,
+        min_value=0.0,
         max_value=10.0,
-        step=0.01,
-        help="단일봉 blow-off 감지. range 및 단일봉 move가 ATR × 이 값 "
-        "이상이면서 close가 상단 20%이면 익절 (AMD 2019-03-19).",
+        step=0.1,
+        disabled=not enable_exh_exit,
+        help="최근 봉에서 음봉 vol / 양봉 vol ≥ 이 값이면 통과. 0 = off.",
     )
-    atr_period = st.number_input(
-        "ATR period",
-        value=14,
-        min_value=2,
-        max_value=100,
-        step=1,
-        help="ATR(N) 윈도우.",
+    exh_exit_rejection_override = st.checkbox(
+        "Exh exit — Upper-wick rejection override",
+        value=True,
+        disabled=not enable_exh_exit,
+        help="close_location ≤ 0.25 강한 샹팅스타는 sell_dominance / " "cooldown 건너뛰고 fire.",
     )
+
     st.header("Fees (Toss Securities)")
     st.caption("토스증권 미국주식 기본 수수료. 매수/매도 각 0.1% + SEC fee 0.00229% (매도시).")
     buy_fee_pct = st.number_input(
@@ -305,21 +346,35 @@ detector = WedgePopDetector(
     slope_lookback=int(slope_lookback),
     cooldown_bars=int(cooldown_bars_ui),
     require_above_long_smas=require_above_long_smas,
+    late_entry_bars=int(late_entry_bars_wp),
 )
+exit_detector = (
+    ExhaustionExtensionTopDetector(
+        extension_atr_mult=exh_exit_extension_atr,
+        min_slow_slope=exh_exit_min_slope,
+        max_close_location=exh_exit_max_close_loc,
+        min_sell_dominance=exh_exit_min_sell_dom,
+        enable_rejection_override=exh_exit_rejection_override,
+        ema_fast=int(ema_fast),
+        ema_slow=int(ema_slow),
+        slope_lookback=int(slope_lookback),
+    )
+    if enable_exh_exit
+    else None
+)
+
 per_ticker_strategy = WedgepopStrategy(
     market_data=market_data,
     detector=detector,
     ema_trail=int(ema_fast),
     ema_slow=int(ema_slow),
-    atr_period=int(atr_period),
-    extension_atr_mult=extension_atr_mult,
-    climax_atr_mult=climax_atr_mult,
     max_entry_ema_extension_atr=(max_entry_ema_extension_atr if enable_entry_ema_filter else None),
     max_ema_slope_decline=None,
     min_ema_slow_slope=(min_ema_slow_slope_ui if enable_min_slope else None),
     max_ema_slow_slope=(max_ema_slow_slope_ui if enable_max_slope else None),
     require_gap_up=require_gap_up,
     use_smart_trail=use_smart_trail,
+    exit_detector=exit_detector,
 )
 runner = MultiWedgepopStrategy(
     market_data=market_data,

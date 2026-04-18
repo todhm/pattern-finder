@@ -155,7 +155,23 @@ class MultiWedgepopStrategy:
 
         df_ind = self._strategy._with_indicators(df)
         signals = self._detector.detect(df_ind)
-        return {"df": df_ind, "signals": signals}
+
+        # Pre-compute pattern-based exit dates for this ticker when
+        # the injected wedgepop strategy has an exit detector wired
+        # up. Safe against look-ahead: the detector's conditions are
+        # all end-of-bar, and pandas EWM/rolling indicators are
+        # causal — each signal's date corresponds to a bar whose
+        # detection used only data up to and including that bar.
+        exit_dates: set[date] = set()
+        exit_detector = getattr(self._strategy, "_exit_detector", None)
+        if exit_detector is not None:
+            exit_dates = {s.date for s in exit_detector.detect(df_ind)}
+
+        return {
+            "df": df_ind,
+            "signals": signals,
+            "exit_dates": exit_dates,
+        }
 
     # ---- phase 2a: collect signals across universe ----
 
@@ -267,6 +283,7 @@ class MultiWedgepopStrategy:
             )
             ticker = best["ticker"]
             df = ticker_state[ticker]["df"]
+            exit_dates = ticker_state[ticker].get("exit_dates", set())
             signal: PatternSignal = best["signal"]
 
             multi_trade, exit_date = self._execute_one(
@@ -276,6 +293,7 @@ class MultiWedgepopStrategy:
                 pressure=best,
                 capital=capital,
                 config=config,
+                exit_dates=exit_dates,
             )
             if multi_trade is None or exit_date is None:
                 continue
@@ -300,6 +318,7 @@ class MultiWedgepopStrategy:
         pressure: dict[str, float],
         capital: float,
         config: MultiStrategyConfig,
+        exit_dates: set[date] | None = None,
     ) -> tuple[MultiTrade | None, date | None]:
         entry_idx = self._strategy._next_open_index(df, signal.date)
         if entry_idx is None:
@@ -315,7 +334,8 @@ class MultiWedgepopStrategy:
             max_holding_days=config.max_holding_days,
         )
         trade, exit_idx = self._strategy._execute_trade(
-            df, signal, entry_idx, capital, per_config
+            df, signal, entry_idx, capital, per_config,
+            exit_dates or set(),
         )
         if trade is None:
             return None, None

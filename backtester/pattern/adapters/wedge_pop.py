@@ -21,6 +21,22 @@ class WedgePopDetector(PatternDetector):
     when the rolling average is skewed by prior spikes (e.g. earnings).
     Volume ratio is reported in `metadata.volume_ratio` as a confidence
     indicator instead.
+
+    **Late-entry path** (``late_entry_bars > 0``)
+        The primary path requires a *fresh* cross — the previous bar
+        must still sit below the fast EMA. That gates out continuation
+        bars on Day 2/3 of a breakout, which is usually the right
+        call, but some of the most decisive wedge-pop candles print
+        one or two bars *after* the first close-above-EMA (the Day-1
+        cross is often a marginal / indecisive bar, and the real
+        buying arrives on Day 2/3). Setting ``late_entry_bars`` to
+        ``N > 0`` adds a secondary path: if the fresh-cross check
+        fails but *any* bar within the last ``N + 1`` bars closed
+        below the fast EMA (i.e. the cross happened at most ``N``
+        bars ago), the signal still fires and is tagged
+        ``trigger=late_entry`` in metadata. The consolidation
+        ratio check still applies, so noise in sideways regimes
+        is still rejected.
     """
 
     name = "wedge_pop"
@@ -40,6 +56,7 @@ class WedgePopDetector(PatternDetector):
         require_above_long_smas: bool = True,
         sma_mid: int = 50,
         sma_long: int = 200,
+        late_entry_bars: int = 0,
     ):
         self.lookback = lookback
         self.ema_fast = ema_fast
@@ -77,6 +94,10 @@ class WedgePopDetector(PatternDetector):
         self.require_above_long_smas = require_above_long_smas
         self.sma_mid = sma_mid
         self.sma_long = sma_long
+        # Late-entry window (in bars). 0 = strict "fresh cross only"
+        # behaviour. When > 0, a continuation bar fires as long as the
+        # original cross-above-EMA happened within the last N bars.
+        self.late_entry_bars = late_entry_bars
 
     def detect(
         self,
@@ -91,16 +112,13 @@ class WedgePopDetector(PatternDetector):
         df["sma_long"] = df["Close"].rolling(self.sma_long).mean()
         df["vol_avg"] = self._avg_volume(df)
         df["atr"] = self._compute_atr(df, self.atr_period)
-        # Recent EMA slopes (percent change over ``slope_lookback``
-        # bars). Exposed purely as a signal-metadata variable so
-        # downstream strategies can filter out wedge pops where the
-        # medium-term trend is still rolling over. NOT used as a
-        # rejection condition inside the detector itself.
+        # Rolling linear-regression slope of each EMA over
+        # ``slope_lookback`` bars. Captures the *current direction*
+        # of the EMA, unlike endpoint percent-change which can be
+        # positive while the EMA is actually falling.
         n = self.slope_lookback
-        fast_prev = df["ema_fast"].shift(n)
-        slow_prev = df["ema_slow"].shift(n)
-        df["ema_fast_slope"] = (df["ema_fast"] - fast_prev) / fast_prev
-        df["ema_slow_slope"] = (df["ema_slow"] - slow_prev) / slow_prev
+        df["ema_fast_slope"] = self._regression_slope(df["ema_fast"], n)
+        df["ema_slow_slope"] = self._regression_slope(df["ema_slow"], n)
 
         min_idx = self.lookback
         signals: list[PatternSignal] = []
@@ -111,9 +129,10 @@ class WedgePopDetector(PatternDetector):
                 continue
             if not self._was_consolidated(df, i):
                 continue
-            if not self._is_breakout(df, i):
+            trigger = self._breakout_trigger(df, i)
+            if trigger is None:
                 continue
-            signals.append(self._build_signal(df, i))
+            signals.append(self._build_signal(df, i, trigger=trigger))
             cooldown_until = i + self.cooldown_bars
 
         return signals
@@ -138,10 +157,12 @@ class WedgePopDetector(PatternDetector):
             return False
         return True
 
-    def _is_breakout(self, df: pd.DataFrame, i: int) -> bool:
-        """Close above both EMAs with meaningful strength (ATR-scaled).
+    def _breakout_trigger(self, df: pd.DataFrame, i: int) -> str | None:
+        """Return the trigger label (``"primary"`` / ``"late_entry"``)
+        when bar ``i`` qualifies as a wedge-pop breakout, or ``None``
+        when it doesn't.
 
-        Passes if EITHER:
+        Passes the breakout-strength gate if EITHER:
         - EMA distance: (close - resistance) >= breakout_atr_mult × ATR, OR
         - Daily momentum: (close - prev_close) >= breakout_atr_mult × ATR.
         The second condition catches breakouts where the EMAs are close to
@@ -158,6 +179,12 @@ class WedgePopDetector(PatternDetector):
         - ``require_above_long_smas``: when True, the close must sit
           above BOTH the 50 SMA and 200 SMA. Structural filter for
           "wedge pop inside an established uptrend only".
+
+        **Fresh cross vs late entry**:
+        The primary path requires the previous bar to still be below
+        the fast EMA (fresh breakout). When that fails, the late-entry
+        path fires instead if the cross happened within the last
+        ``late_entry_bars`` bars (``late_entry_bars=0`` disables).
         """
         close = df["Close"].iloc[i]
         open_ = df["Open"].iloc[i]
@@ -165,35 +192,48 @@ class WedgePopDetector(PatternDetector):
         slow = df["ema_slow"].iloc[i]
 
         if close <= fast or close <= slow:
-            return False
+            return None
 
         # The breakout candle itself must be bullish (close > open).
         if close <= open_:
-            return False
+            return None
 
-        # The breakout must be a FRESH cross above the fast EMA. If
-        # the previous bar already closed above the fast EMA, today
-        # is a continuation — not a wedge pop.
+        # Decide primary vs late-entry based on where the cross sits.
         prev_close = df["Close"].iloc[i - 1]
         prev_ema_fast = df["ema_fast"].iloc[i - 1]
-        if prev_close >= prev_ema_fast:
-            return False
+        if prev_close < prev_ema_fast:
+            trigger = "primary"
+        else:
+            # Continuation bar. Allow only when the cross is still
+            # recent — i.e. some bar within the last
+            # ``late_entry_bars + 1`` closed below the fast EMA.
+            if self.late_entry_bars <= 0:
+                return None
+            recent_below = False
+            window = min(self.late_entry_bars + 1, i)
+            for k in range(1, window + 1):
+                if df["Close"].iloc[i - k] < df["ema_fast"].iloc[i - k]:
+                    recent_below = True
+                    break
+            if not recent_below:
+                return None
+            trigger = "late_entry"
 
         prev_open = df["Open"].iloc[i - 1]
         if close < prev_open:
-            return False
+            return None
 
         if self.require_above_long_smas:
             sma_mid = df["sma_mid"].iloc[i]
             sma_long = df["sma_long"].iloc[i]
             if pd.isna(sma_mid) or pd.isna(sma_long):
-                return False
+                return None
             if close <= sma_mid or close <= sma_long:
-                return False
+                return None
 
         atr = float(df["atr"].iloc[i]) if not pd.isna(df["atr"].iloc[i]) else 0.0
         if atr <= 0:
-            return False
+            return None
 
         resistance = max(fast, slow)
         ema_distance = (close - resistance) / atr
@@ -205,14 +245,16 @@ class WedgePopDetector(PatternDetector):
         # ``[breakout_atr_mult, max_breakout_atr_mult]``.
         strength = max(ema_distance, daily_move)
         if strength < self.breakout_atr_mult:
-            return False
+            return None
         if self.max_breakout_atr_mult is not None and strength > self.max_breakout_atr_mult:
-            return False
-        return True
+            return None
+        return trigger
 
     # ---- signal building ----
 
-    def _build_signal(self, df: pd.DataFrame, i: int) -> PatternSignal:
+    def _build_signal(
+        self, df: pd.DataFrame, i: int, trigger: str = "primary"
+    ) -> PatternSignal:
         lookback = min(self.lookback, i)
         consolidation_low = df["Low"].iloc[i - lookback : i].min()
 
@@ -245,6 +287,7 @@ class WedgePopDetector(PatternDetector):
             stop_loss=consolidation_low,
             confidence=min(1.0 + breakout_strength_atr * 2, 3.0),
             metadata={
+                "trigger": trigger,
                 "breakout_strength": breakout_strength_pct,
                 "breakout_strength_atr": breakout_strength_atr,
                 "volume_ratio": vol_ratio,
