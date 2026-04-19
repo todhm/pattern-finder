@@ -53,7 +53,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         - Fixed-fractional risk: ``shares = capital * risk_per_trade /
           (entry - stop)``. Caps downside at `risk_per_trade` per trade.
 
-    Exit — only three opt-in conditions, each independent:
+    Exit — only four opt-in conditions, each independent:
 
         1. ``exit_detector`` fires   — Exhaustion Extension Top exit
                                        (inject ``ExhaustionExtensionTopDetector``).
@@ -66,10 +66,15 @@ class WedgepopStrategy(StrategyRunnerPort):
                                        ``highest_high - N × ATR``, N widens with
                                        R-profit (<2R→3, 2-4R→4, >4R→5). Arms
                                        after 3 bars. LOW-based (wick-proof).
+        4. ``enable_resistance_break_exit`` — false-breakout rule. Entry-time
+                                       swing resistance is stored; once close
+                                       confirms above it, a subsequent low
+                                       piercing back below fires an exit at
+                                       the resistance line (gap-down → open).
 
-        If none of the three is active (or none fires), the position
-        is held to the last bar of the dataframe. There is no hard
-        stop, EMA trail, exhaustion-line, climax-bar, or time stop.
+        If none is active (or none fires), the position is held to the
+        last bar of the dataframe. There is no hard stop, EMA trail,
+        exhaustion-line, climax-bar, or time stop.
 
     **Pattern-based exit** (opt-in via ``exit_detector``)
         When any `PatternDetector` is injected, any bar inside the
@@ -120,6 +125,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         enable_trendline_exit: bool = False,
         trendline_max_pivots: int = 3,
         trendline_min_pivots: int = 2,
+        enable_resistance_break_exit: bool = False,
     ):
         self._market_data = market_data
         self._detector = detector
@@ -155,6 +161,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         self.enable_trendline_exit = enable_trendline_exit
         self.trendline_max_pivots = trendline_max_pivots
         self.trendline_min_pivots = trendline_min_pivots
+        self.enable_resistance_break_exit = enable_resistance_break_exit
 
     # ---- public API ----
 
@@ -212,7 +219,11 @@ class WedgepopStrategy(StrategyRunnerPort):
         df["ema_trail"] = df["Close"].ewm(span=self.ema_trail, adjust=False).mean()
         df["ema_slow"] = df["Close"].ewm(span=self.ema_slow, adjust=False).mean()
         df["atr"] = self._atr(df, self.atr_period)
-        if self.enable_swing_resistance_filter or self.enable_trendline_exit:
+        if (
+            self.enable_swing_resistance_filter
+            or self.enable_trendline_exit
+            or self.enable_resistance_break_exit
+        ):
             df["swing_high"] = find_swing_highs(
                 df, left=self.swing_pivot_left, right=self.swing_pivot_right
             )
@@ -401,6 +412,20 @@ class WedgepopStrategy(StrategyRunnerPort):
         risk_amount = capital * config.risk_per_trade
         shares = max(1, int(risk_amount / risk_per_share))
 
+        # Entry-time swing resistance — fed to the resistance-break
+        # exit rule. Computed here so the exit loop doesn't recompute
+        # per bar. ``None`` means no confirmable pivot was available.
+        entry_resistance: float | None = None
+        if self.enable_resistance_break_exit and entry_idx > 0 and "swing_high" in df.columns:
+            res = recent_swing_high(
+                df["swing_high"],
+                upto_idx=entry_idx - 1,
+                lookback=self.swing_pivot_lookback,
+                right=self.swing_pivot_right,
+            )
+            if res is not None:
+                _, entry_resistance = res
+
         exit_price, exit_idx, exit_reason = self._find_exit(
             df,
             entry_idx,
@@ -408,6 +433,7 @@ class WedgepopStrategy(StrategyRunnerPort):
             stop,
             config.max_holding_days,
             exit_dates,
+            entry_resistance,
         )
 
         pnl = (exit_price - entry_price) * shares
@@ -433,6 +459,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         stop: float,
         max_holding_days: int,
         exit_dates: set[date] | None = None,
+        entry_resistance: float | None = None,
     ) -> tuple[float, int, str]:
         if exit_dates is None:
             exit_dates = set()
@@ -445,6 +472,14 @@ class WedgepopStrategy(StrategyRunnerPort):
         # ``_execute_trade`` for position sizing.
         highest_high = 0.0
         initial_risk = entry_price - stop
+
+        # Resistance-break exit state. If the entry is already above
+        # the stored resistance (fresh-breakout entry), the breakout
+        # is considered confirmed immediately — a subsequent low
+        # piercing back through the line fires the exit.
+        resistance_confirmed = (
+            entry_resistance is not None and entry_price >= entry_resistance
+        )
 
         # Only three exit paths are active:
         #   (1) ``exit_detector`` firing (Exhaustion Extension Top)
@@ -502,6 +537,26 @@ class WedgepopStrategy(StrategyRunnerPort):
                                 i,
                                 "trendline_break",
                             )
+
+            # (4) Resistance-break (false-breakout) exit. Once the
+            #     close has confirmed above the entry-time swing
+            #     resistance, a later low piercing back through the
+            #     line fires a LOW-based limit-order exit. Skip the
+            #     entry bar itself — confirmation and break on the
+            #     same bar is a no-op round trip.
+            if (
+                self.enable_resistance_break_exit
+                and entry_resistance is not None
+                and i > entry_idx
+            ):
+                if not resistance_confirmed and close >= entry_resistance:
+                    resistance_confirmed = True
+                elif resistance_confirmed and low_bar <= entry_resistance:
+                    return (
+                        min(open_bar, entry_resistance),
+                        i,
+                        "resistance_break",
+                    )
 
             # (3) Smart Trail (Chandelier with profit-tier widening).
             if self.use_smart_trail:

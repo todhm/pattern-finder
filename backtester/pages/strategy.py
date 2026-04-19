@@ -273,8 +273,17 @@ with st.sidebar:
         "Enable higher-low trendline exit",
         value=False,
         help="최근 swing low들을 이어 만든 상승 추세선 아래로 "
-        "close가 이탈하면 청산. slope ≤ 0이면 비활성 "
-        "(higher-low 구조 없음).",
+        "low가 침투하면 추세선 가격에 체결 (limit 모델). "
+        "slope ≤ 0이면 비활성 (higher-low 구조 없음).",
+    )
+    enable_resistance_break_exit = st.checkbox(
+        "Enable resistance-break exit (false-breakout)",
+        value=False,
+        help="진입 시점 swing resistance를 저장. 이후 close가 한 번 "
+        "그 선 위로 확정 돌파한 뒤, bar의 low가 다시 선 아래로 "
+        "침투하면 저항선 가격에 체결 (limit 모델, gap-down은 open). "
+        "entry가 이미 저항선 위라면 돌파 확정은 진입 즉시. "
+        "Entry 필터와 독립 — 이건 exit 전용.",
     )
     trendline_max_pivots_ui = st.number_input(
         "Trendline — max pivots",
@@ -441,6 +450,7 @@ strategy = WedgepopStrategy(
     swing_resistance_tolerance_atr=float(swing_resistance_tol_atr),
     enable_trendline_exit=enable_trendline_exit,
     trendline_max_pivots=int(trendline_max_pivots_ui),
+    enable_resistance_break_exit=enable_resistance_break_exit,
 )
 
 with st.spinner("Running strategy..."):
@@ -546,10 +556,11 @@ for t in perf.trades:
                 col=1,
             )
 
-        # Resistance line at the level the filter would have used
-        # at signal time (entry_loc - 1). Drawn across the holding
-        # period for reference even when the filter is off.
-        if enable_swing_resistance and entry_loc > 0:
+        # Resistance line at the level the filter / exit would have
+        # used at signal time (entry_loc - 1). Drawn across the
+        # holding period so the user can see where the resistance
+        # sat relative to price action.
+        if (enable_swing_resistance or enable_resistance_break_exit) and entry_loc > 0:
             res = recent_swing_high(
                 df_ind["swing_high"],
                 upto_idx=entry_loc - 1,
@@ -694,6 +705,7 @@ EXIT_REASON_LABELS = {
     "exhaustion_exit": "Exhaustion Extension Top",
     "trendline_break": "Higher-Low Trendline Break",
     "smart_trail": "Smart Trail (Chandelier)",
+    "resistance_break": "Resistance Break (false breakout)",
     "end_of_data": "End of Data (no exit fired)",
 }
 

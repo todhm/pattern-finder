@@ -270,7 +270,8 @@ with st.sidebar:
     enable_trendline_exit = st.checkbox(
         "Enable higher-low trendline exit",
         value=False,
-        help="최근 swing low 추세선 아래로 close 이탈 시 청산.",
+        help="최근 swing low 추세선 아래로 low 침투 시 청산 "
+        "(limit 모델).",
     )
     trendline_max_pivots_ui = st.number_input(
         "Trendline — max pivots",
@@ -279,6 +280,13 @@ with st.sidebar:
         max_value=10,
         step=1,
         disabled=not enable_trendline_exit,
+    )
+    enable_resistance_break_exit = st.checkbox(
+        "Enable resistance-break exit (false-breakout)",
+        value=False,
+        help="진입 시점 swing resistance 저장. close가 그 선 위로 "
+        "확정 돌파한 뒤 low가 다시 아래로 침투하면 저항선 가격에 "
+        "체결. Entry 필터와 독립.",
     )
 
     st.header("Exit Tuning")
@@ -434,6 +442,7 @@ per_ticker_strategy = WedgepopStrategy(
     swing_resistance_tolerance_atr=float(swing_resistance_tol_atr),
     enable_trendline_exit=enable_trendline_exit,
     trendline_max_pivots=int(trendline_max_pivots_ui),
+    enable_resistance_break_exit=enable_resistance_break_exit,
 )
 runner = MultiWedgepopStrategy(
     market_data=market_data,
@@ -536,6 +545,7 @@ EXIT_REASON_LABELS = {
     "exhaustion_exit": "Exhaustion Extension Top",
     "trendline_break": "Higher-Low Trendline Break",
     "smart_trail": "Smart Trail (Chandelier)",
+    "resistance_break": "Resistance Break (false breakout)",
     "end_of_data": "End of Data (no exit fired)",
 }
 

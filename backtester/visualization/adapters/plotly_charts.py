@@ -274,6 +274,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             "exhaustion_exit": "Exhaustion Extension Top",
             "trendline_break": "Higher-Low Trendline Break",
             "smart_trail": "Smart Trail (Chandelier)",
+            "resistance_break": "Resistance Break (false breakout)",
             "end_of_data": "End of Data (no exit fired)",
         }
 
