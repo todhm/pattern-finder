@@ -54,6 +54,11 @@ def _build_strategy(df: pd.DataFrame, **overrides) -> WedgepopStrategy:
     # trips the production-default slope filter. Tests that *want* to
     # exercise the filter pass ``max_ema_slope_decline`` explicitly.
     overrides.setdefault("max_ema_slope_decline", None)
+    # Exit model is now limited to three opt-in conditions; without
+    # one, trades run to the end of the dataframe. Default tests to
+    # ``use_smart_trail=True`` so trades close normally unless a test
+    # specifically opts out.
+    overrides.setdefault("use_smart_trail", True)
     return WedgepopStrategy(
         market_data=FakeMarketData(df),
         detector=detector,
@@ -176,25 +181,6 @@ class TestWedgepopStrategyExitPaths:
             index=dates,
         )
 
-    def test_hard_stop_exit_at_consolidation_low(self):
-        # Post-breakout: collapses through the consolidation low.
-        # Entry bar closes BELOW entry (75.5 < 76.0) so the
-        # breakeven-after-profit stop is never armed; the consolidation
-        # low is the only protection — and day 22 pierces it.
-        post = [
-            (76.0, 76.5, 75.5, 75.5),  # entry bar (idx 21, no arming)
-            (76.0, 76.0, 60.0, 60.5),  # day 22 — Low pierces stop
-        ]
-        df = self._consolidation_then_breakout(post)
-        strategy = _build_strategy(df)
-        result = strategy.run(_config(max_holding_days=10))
-
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-        # Hard stop fills at the stop_loss level exactly.
-        assert trade.exit_price == trade.stop_loss
-        assert trade.pnl < 0
-
     def test_exhaustion_extension_exit_into_strength(self):
         # Post-breakout: rallies hard, stretching > 15% above 10-EMA.
         post = [
@@ -240,30 +226,6 @@ class TestWedgepopStrategyExitPaths:
         assert trade.exit_price > trade.stop_loss
         # Should still be net profitable (we trailed a winning trade).
         assert trade.pnl > 0
-
-    def test_time_stop_exit_at_max_holding(self):
-        # Post-breakout: drifts sideways above the EMA → no other
-        # exit fires. Open == close keeps the close from triggering
-        # the breakeven arm (`close > entry` is strict), so the
-        # only remaining exit is the time stop.
-        post = [(76.1, 76.5, 75.8, 76.1) for _ in range(8)]
-        df = self._consolidation_then_breakout(post)
-        strategy = _build_strategy(
-            df,
-            extension_atr_mult=99.0,  # disable exhaustion exit
-
-        )
-        result = strategy.run(_config(max_holding_days=5))
-
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-        # Time stop: held exactly max_holding_days bars from entry.
-        held = (
-            df.index.get_loc(pd.Timestamp(trade.exit_date))
-            - df.index.get_loc(pd.Timestamp(trade.entry_date))
-        )
-        assert held == 5
-
 
 class TestWedgepopStrategyGapUp:
     """Optional `require_gap_up` filter — TraderLion's "unfilled gap"
@@ -440,51 +402,12 @@ class TestWedgepopStrategyAMDCases:
             )
         )
 
-    # ---- Case 1 ----
-
-    def test_case1_ema_trail_exits_on_2019_03_14(self):
-        """Without trail_after_profit gating, the EMA trail fires
-        unconditionally when close < fast EMA. On 03-14 the close
-        dips below the 10 EMA → exit. The trade never reaches the
-        climax bar on 03-19.
-        """
-        result = self._run(AMD_2019_CASE1)
-
-        assert result.performance.total_trades == 1
-        trade = result.performance.trades[0]
-
-        assert trade.entry_date == date(2019, 3, 13)
-        assert trade.entry_price == 23.66
-        assert trade.exit_date == date(2019, 3, 14)
-
-    # ---- Case 2 ----
-
     @staticmethod
     def _trade_by_entry_date(result, entry_date: date):
         for t in result.performance.trades:
             if t.entry_date == entry_date:
                 return t
         return None
-
-    # ---- Case 3 ----
-
-    def test_case3_2019_10_11_signal_still_produces_winner(self):
-        """The 10-14 entry still runs to a clear winner. Under the
-        old close-based exhaustion check this trade coasted all the
-        way to 2019-11-19 for +38.98%. The new HIGH-based
-        limit-order model exits earlier — as soon as a bar's high
-        touches the ``ref_ema + atr × 2.5`` line — which in this
-        fixture lands on 2019-11-05. The trade is still a solid
-        +24% winner, just not the full +39% run.
-        """
-        result = self._run(AMD_2019_CASE2_3)
-
-        winner = self._trade_by_entry_date(result, date(2019, 10, 14))
-        assert winner is not None
-        assert winner.entry_price == 29.71
-        assert winner.exit_date == date(2019, 11, 5)
-        assert winner.pnl_pct > 0.20
-
 
 
 class TestWedgepopStrategySlopeFilter:
@@ -664,110 +587,6 @@ def _force_entry(df: pd.DataFrame, entry_date: date, **strategy_overrides):
         df_ind, signal, entry_idx, 100_000.0, config, exit_dates
     )
     return trade
-
-
-class TestAllstate20250506Exhaustion:
-    """The ALL (Allstate) 2025-05-06 case the user brought up as the
-    canonical reason to make exhaustion HIGH-based.
-
-    Trade context (driven by ``_force_entry`` so the detector's
-    cooldown machinery doesn't get in the way):
-
-        entry bar 2025-05-06 open ~$196.14, consolidation low stop
-        pulls from the April sell-off ($181.06).
-
-    Under the OLD close-based exhaustion rule neither 05-07 nor
-    05-08 fired — both bars' closes were only ~2.5% above the 10
-    EMA, far below the default 2.5 ATR threshold. The new
-    HIGH-based limit-order model lets the user tune ``extension_atr_mult``
-    so the sell limit fills at the line when the bar's *high*
-    touches it, regardless of where the close ends up.
-
-    05-07: H=200.61, max(ema10, ema20) ≈ 195.28 → +2.73% high
-    05-08: H=202.13, max(ema10, ema20) ≈ 195.90 → +3.18% high
-    """
-
-    def test_default_exhaustion_does_not_exit_on_05_07_or_05_08(self):
-        """With production defaults (2.5 ATR / climax 1.5),
-        neither day fires any exit rule. The trade holds through.
-        """
-        trade = _force_entry(
-            ALL_2025_05_06, date(2025, 5, 6)
-        )
-        assert trade is not None
-        assert trade.entry_date == date(2025, 5, 6)
-        # Exit date must be AFTER 05-08 — neither day fires anything.
-        assert trade.exit_date > date(2025, 5, 8)
-
-    def test_tuned_exhaustion_tight_atr_exits_on_05_07_at_the_line(self):
-        """Setting ``extension_atr_mult=1.0`` puts the ATR trigger line
-        at ``ref_ema + ATR × 1.0`` ≈ $199.88 — above the entry bar's
-        high ($198.68) so it doesn't fire same-day, but the 05-07
-        bar's high ($200.61) crosses it, filling at the line.
-        """
-        trade = _force_entry(
-            ALL_2025_05_06,
-            date(2025, 5, 6),
-            extension_atr_mult=1.0,
-            climax_atr_mult=99.0,       # isolate exhaustion from climax
-        )
-        assert trade.exit_date == date(2025, 5, 7)
-        # Fill is at the ATR line, strictly below the bar's high ($200.61).
-        assert 199.00 <= trade.exit_price <= 200.50
-        assert trade.exit_price < 200.61
-        assert trade.pnl_pct > 0.0
-
-    def test_tuned_exhaustion_slightly_higher_atr_exits_on_05_07(self):
-        """Setting ``extension_atr_mult=1.1`` raises the trigger line
-        to ``ref_ema + ATR × 1.1`` ≈ $200.34. The 05-07 bar's high
-        ($200.61) still crosses it, filling at the line.
-        """
-        trade = _force_entry(
-            ALL_2025_05_06,
-            date(2025, 5, 6),
-            extension_atr_mult=1.1,
-            climax_atr_mult=99.0,
-        )
-        assert trade.exit_date == date(2025, 5, 7)
-        # Fill is at the ATR line, strictly below the bar's high ($200.61).
-        assert 199.50 <= trade.exit_price <= 200.61
-        assert trade.pnl_pct > 0.0
-
-    def test_atr_leg_can_also_fire_on_05_07(self):
-        """A tighter ``extension_atr_mult`` arms the HIGH-based
-        exit on 05-07 via the ATR-based exhaustion line.
-        """
-        trade = _force_entry(
-            ALL_2025_05_06,
-            date(2025, 5, 6),
-            extension_atr_mult=1.0,       # tight ATR mult
-            climax_atr_mult=99.0,
-        )
-        # 05-07: ref_ema ≈ 195.28, atr ≈ 4.6, line ≈ 199.88.
-        # High 200.61 > line → fires at the line (approximate range
-        # because ATR is EWMA-smoothed, not a pinned value).
-        assert trade.exit_date == date(2025, 5, 7)
-        assert 199.50 <= trade.exit_price <= 200.10
-
-    def test_climax_atr_mult_can_fire_on_05_07_via_high(self):
-        """The climax rule is now HIGH-based too: ``prev_close +
-        climax_atr_mult × ATR``. For 05-07 with
-        ``climax_atr_mult=0.5``:
-            prev_close = 198.16, ATR ≈ 4.39 → line ≈ 200.36.
-        The bar's high $200.61 touches it and range 2.43 > 2.20
-        (0.5 × ATR), so climax fires at the line. Exhaustion is
-        disabled to isolate the climax leg.
-        """
-        trade = _force_entry(
-            ALL_2025_05_06,
-            date(2025, 5, 6),
-            extension_atr_mult=99.0,      # disable exhaustion
-            climax_atr_mult=0.5,
-        )
-        assert trade.exit_date == date(2025, 5, 7)
-        assert 200.20 <= trade.exit_price <= 200.70
-        assert trade.exit_price < 200.61   # not the raw high
-        assert trade.pnl_pct > 0.0
 
 
 class TestEntryEmaExtensionFilter:
@@ -984,265 +803,6 @@ class TestSlopeRangeFilter:
         # Upper cap can only ever shrink the trade set.
         assert on_result.performance.total_trades <= \
             off_result.performance.total_trades
-
-
-class TestSameDayExit:
-    """``_find_exit`` now iterates from ``entry_idx`` (not
-    ``entry_idx + 1``), so the entry bar itself is evaluated for
-    exit rules. The entry bar's intraday high can fire the
-    exhaustion / climax lines and the bar's intraday low can fire
-    the hard stop, all on the same trading day as the entry.
-
-    The canonical case is ADBE 2021-12-10 → 2021-12-13:
-        entry @ $652.77
-        intraday high 675.21 (+3.44% from open in a single day)
-        close 658.30 (near the open — spike faded)
-
-    Under the old ``entry_idx + 1`` loop the trade was anchored
-    to the breakeven stop for the rest of the lifecycle and the
-    intraday spike was invisible. Under the new same-day logic,
-    tuned exhaustion lines fire on 12-13 itself at the line price.
-    """
-
-    def test_default_exhaustion_does_not_fire_same_day_on_adbe_12_13(self):
-        """Production defaults are too loose to fire on the 12-13
-        entry bar. On 12-14 the low pierces the consolidation-low
-        stop ($604.30). The LOW-based stop-fill model fills at
-        ``min(open, stop)`` — since the open ($635.36) is above the
-        stop, the fill is at the stop line.
-        """
-        strategy = WedgepopStrategy(
-            market_data=FakeMarketData(ADBE_2021_12_13),
-            detector=WedgePopDetector(consolidation_pct=0.10, require_above_long_smas=False),
-            max_ema_slope_decline=None,
-
-        )
-        result = strategy.execute(
-            ADBE_2021_12_13,
-            StrategyConfig(
-                ticker="ADBE",
-                start_date=ADBE_2021_12_13.index[0].date(),
-                end_date=ADBE_2021_12_13.index[-1].date(),
-                pattern_name="wedge_pop",
-                max_holding_days=60,
-            ),
-        )
-        trade = next(
-            t
-            for t in result.performance.trades
-            if t.entry_date == date(2021, 12, 13)
-        )
-        assert trade.entry_price == 652.77
-        assert trade.exit_date == date(2021, 12, 14)
-        # Fills at the consolidation-low stop, not the open.
-        assert trade.exit_price == trade.stop_loss
-        assert trade.pnl < 0
-
-    def test_tuned_exhaustion_tight_atr_exits_same_day_on_entry_bar(self):
-        """With ``extension_atr_mult=0.3``, the ATR trigger line sits
-        at ``ref_ema + ATR × 0.3``. The bar's high $675.21 easily
-        touches that line intraday, so the HIGH-based limit-order
-        fires on the SAME BAR as the entry.
-        """
-        strategy = WedgepopStrategy(
-            market_data=FakeMarketData(ADBE_2021_12_13),
-            detector=WedgePopDetector(consolidation_pct=0.10, require_above_long_smas=False),
-            max_ema_slope_decline=None,
-
-            extension_atr_mult=0.3,     # tight ATR mult
-            climax_atr_mult=99.0,       # isolate from climax
-        )
-        result = strategy.execute(
-            ADBE_2021_12_13,
-            StrategyConfig(
-                ticker="ADBE",
-                start_date=ADBE_2021_12_13.index[0].date(),
-                end_date=ADBE_2021_12_13.index[-1].date(),
-                pattern_name="wedge_pop",
-                max_holding_days=60,
-            ),
-        )
-        trade = next(
-            t
-            for t in result.performance.trades
-            if t.entry_date == date(2021, 12, 13)
-        )
-        # Same-day exit: entry_date == exit_date.
-        assert trade.exit_date == date(2021, 12, 13)
-        # Fill is at the ATR line, NOT the bar's high ($675.21).
-        assert trade.exit_price < 675.21
-        assert trade.exit_price > trade.entry_price
-        assert trade.pnl > 0
-
-    def test_tuned_exhaustion_higher_atr_exits_same_day_at_higher_line(self):
-        """Raising ``extension_atr_mult`` to 0.8 pushes the ATR line
-        higher. The bar's high $675.21 still crosses it, so the
-        exit is still same-day — just at the higher line, capturing
-        more of the intraday pop.
-        """
-        strategy = WedgepopStrategy(
-            market_data=FakeMarketData(ADBE_2021_12_13),
-            detector=WedgePopDetector(consolidation_pct=0.10, require_above_long_smas=False),
-            max_ema_slope_decline=None,
-
-            extension_atr_mult=0.8,
-            climax_atr_mult=99.0,
-        )
-        result = strategy.execute(
-            ADBE_2021_12_13,
-            StrategyConfig(
-                ticker="ADBE",
-                start_date=ADBE_2021_12_13.index[0].date(),
-                end_date=ADBE_2021_12_13.index[-1].date(),
-                pattern_name="wedge_pop",
-                max_holding_days=60,
-            ),
-        )
-        trade = next(
-            t
-            for t in result.performance.trades
-            if t.entry_date == date(2021, 12, 13)
-        )
-        assert trade.exit_date == date(2021, 12, 13)
-        assert trade.exit_price < 675.21
-        assert trade.exit_price > trade.entry_price
-        assert trade.pnl_pct > 0.0
-
-    def test_intraday_stop_pierce_fills_at_the_line_not_the_low(self):
-        """LOW-based stop symmetry: if the bar OPENS above the stop
-        and the intraday low pierces it, the fill is at the stop
-        line (limit-order model), not at the bar's low.
-        """
-        rows = []
-        for i in range(25):
-            rows.append(
-                ("2023-01-{:02d}".format(i + 2), 100.0, 100.5, 99.5, 100.0, 1_000_000)
-            )
-        # Breakout bar @ 104 (signal)
-        rows.append(("2023-02-06", 100.5, 104.5, 99.0, 104.0, 2_000_000))
-        # Entry bar: opens 104, closes 104.2 (no arming on close).
-        rows.append(("2023-02-07", 104.0, 104.8, 103.5, 104.2, 2_000_000))
-        # Next bar opens ABOVE the cons_low stop (~99.5) but
-        # intraday low pierces it at 98.5. Stop fill must be 99.5
-        # (the line), not 98.5 (the low).
-        rows.append(("2023-02-08", 103.0, 103.5, 98.5, 99.0, 3_000_000))
-        # Filler bar so the loop can iterate.
-        rows.append(("2023-02-09", 99.0, 100.0, 98.5, 99.5, 1_000_000))
-
-        df = pd.DataFrame(
-            {
-                "Open": [r[1] for r in rows],
-                "High": [r[2] for r in rows],
-                "Low": [r[3] for r in rows],
-                "Close": [r[4] for r in rows],
-                "Volume": [r[5] for r in rows],
-            },
-            index=pd.to_datetime([r[0] for r in rows]),
-        )
-        trade = _force_entry(
-            df,
-            date(2023, 2, 7),
-            extension_atr_mult=99.0,    # disable exhaustion
-            climax_atr_mult=99.0,
-        )
-        # Stop fires 02-08 at the cons_low line (99.5), not the
-        # bar's low (98.5).
-        assert trade is not None
-        assert trade.exit_date == date(2023, 2, 8)
-        # cons_low from 15 bars before 02-06 ≈ 99.5 (flat consolidation).
-        assert trade.exit_price == trade.stop_loss
-        assert trade.exit_price > 98.5   # above the intraday low
-        assert trade.pnl_pct < 0
-
-    def test_gap_down_open_below_stop_fills_at_open_not_the_line(self):
-        """LOW-based stop symmetry: if the bar OPENS below the
-        stop (gap-down through the line), the fill is at the OPEN
-        (realistic slippage), not at the stop line. Symmetric to
-        the exhaustion rule where gap-ups fill at the (favourable)
-        open.
-        """
-        rows = []
-        for i in range(25):
-            rows.append(
-                ("2023-01-{:02d}".format(i + 2), 100.0, 100.5, 99.5, 100.0, 1_000_000)
-            )
-        # Breakout bar.
-        rows.append(("2023-02-06", 100.5, 104.5, 99.0, 104.0, 2_000_000))
-        # Entry bar, closes within range.
-        rows.append(("2023-02-07", 104.0, 104.8, 103.5, 104.2, 2_000_000))
-        # GAP DOWN through the stop. Open 95 is already below
-        # cons_low (~99.5) — no intraday pierce needed.
-        rows.append(("2023-02-08", 95.0, 95.5, 93.0, 94.0, 3_000_000))
-
-        df = pd.DataFrame(
-            {
-                "Open": [r[1] for r in rows],
-                "High": [r[2] for r in rows],
-                "Low": [r[3] for r in rows],
-                "Close": [r[4] for r in rows],
-                "Volume": [r[5] for r in rows],
-            },
-            index=pd.to_datetime([r[0] for r in rows]),
-        )
-        trade = _force_entry(
-            df,
-            date(2023, 2, 7),
-            extension_atr_mult=99.0,    # disable exhaustion
-            climax_atr_mult=99.0,
-        )
-        assert trade is not None
-        assert trade.exit_date == date(2023, 2, 8)
-        # Fills at the gap-down open (95), NOT at the stop line
-        # (~99.5). A stop order sitting at 99.5 cannot fill above
-        # the open when the whole bar is below the stop.
-        assert trade.exit_price == 95.0
-        assert trade.exit_price < trade.stop_loss
-        assert trade.pnl_pct < 0
-
-    def test_same_day_hard_stop_fires_when_low_pierces_cons_low(self):
-        """Structural guarantee: if the entry bar's intraday low
-        drops to the consolidation-low stop, the hard stop fires
-        on the same bar at the stop price. Uses a forced entry so
-        we control the exact stop level.
-        """
-        # Build a minimal synthetic fixture where the entry bar
-        # drops from its open straight through a contrived stop.
-        rows = []
-        # 25 flat bars around $100 for EMA convergence.
-        for i in range(25):
-            rows.append(
-                ("2023-01-{:02d}".format(i + 2), 100.0, 100.5, 99.5, 100.0, 1_000_000)
-            )
-        # Breakout bar at $104 (signal).
-        rows.append(("2023-02-06", 100.5, 104.5, 99.0, 104.0, 2_000_000))
-        # Entry bar: opens $104, drops intraday to $95 before
-        # closing at $100. cons_low over last 15 bars is $99.5.
-        rows.append(("2023-02-07", 104.0, 104.5, 95.0, 100.0, 2_000_000))
-        # A few more bars so the loop has something to iterate.
-        rows.append(("2023-02-08", 100.0, 100.5, 99.5, 100.0, 1_000_000))
-
-        df = pd.DataFrame(
-            {
-                "Open": [r[1] for r in rows],
-                "High": [r[2] for r in rows],
-                "Low": [r[3] for r in rows],
-                "Close": [r[4] for r in rows],
-                "Volume": [r[5] for r in rows],
-            },
-            index=pd.to_datetime([r[0] for r in rows]),
-        )
-        trade = _force_entry(
-            df,
-            date(2023, 2, 7),
-            extension_atr_mult=99.0,  # disable exhaustion
-            climax_atr_mult=99.0,
-        )
-        # Entry bar's low ($95) pierces the cons_low stop ($99.5)
-        # intraday → hard stop fires on 2023-02-07 at the stop.
-        assert trade is not None
-        assert trade.exit_date == date(2023, 2, 7)
-        assert trade.exit_price == trade.stop_loss
-        assert trade.pnl_pct < 0
 
 
 class TestLongSmaFilter:

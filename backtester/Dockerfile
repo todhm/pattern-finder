@@ -7,9 +7,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+COPY pyproject.toml ./
+# Scaffold empty package dirs so editable install succeeds with only
+# pyproject.toml present. Editable mode writes an egg-link pointing at
+# /app, so the real source copied below becomes live immediately —
+# no re-install needed when only source changes.
+RUN mkdir -p data pattern backtest visualization strategy pages \
+    && touch data/__init__.py pattern/__init__.py backtest/__init__.py \
+             visualization/__init__.py strategy/__init__.py pages/__init__.py \
+    && pip install --no-cache-dir -e ".[test]"
+
 COPY . .
-RUN pip install --no-cache-dir -e ".[test]"
 
 ENV PYTHONPATH=/app
 

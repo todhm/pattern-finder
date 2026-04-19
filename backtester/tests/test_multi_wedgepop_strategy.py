@@ -65,6 +65,10 @@ def _build_runner(
         market_data=market_data,
         detector=detector,
         max_ema_slope_decline=None,
+        # Exit model now limits to three opt-in conditions; enable
+        # smart trail so tests that assert multi-trade entry sets
+        # still see positions close and free up capital.
+        use_smart_trail=True,
     )
     return MultiWedgepopStrategy(
         market_data=market_data,

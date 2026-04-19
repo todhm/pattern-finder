@@ -270,15 +270,19 @@ class PlotlyChartBuilder(ChartBuilderPort):
             after = df.index[df.index >= ts]
             return after[0] if len(after) > 0 else None
 
+        exit_reason_labels = {
+            "exhaustion_exit": "Exhaustion Extension Top",
+            "trendline_break": "Higher-Low Trendline Break",
+            "smart_trail": "Smart Trail (Chandelier)",
+            "end_of_data": "End of Data (no exit fired)",
+        }
+
         entry_x: list = []
         entry_y: list[float] = []
         entry_hover: list[str] = []
         sell_x: list = []
         sell_y: list[float] = []
         sell_hover: list[str] = []
-        stop_x: list = []
-        stop_y: list[float] = []
-        stop_hover: list[str] = []
 
         for t in trades:
             entry_ts = _resolve(t.entry_date)
@@ -289,7 +293,8 @@ class PlotlyChartBuilder(ChartBuilderPort):
             entry_value = t.entry_price * t.shares
             exit_value = t.exit_price * t.shares
             pnl_sign = "+" if t.pnl >= 0 else ""
-            is_stop = abs(t.exit_price - t.stop_loss) < 1e-6
+            exit_reason = getattr(t, "exit_reason", "end_of_data")
+            reason_label = exit_reason_labels.get(exit_reason, exit_reason)
 
             entry_x.append(entry_ts)
             entry_y.append(t.entry_price)
@@ -302,24 +307,18 @@ class PlotlyChartBuilder(ChartBuilderPort):
                 f"Stop: ${t.stop_loss:,.2f}"
             )
 
-            exit_label = "STOP" if is_stop else "SELL"
-            exit_hover_text = (
-                f"<b>{exit_label}</b><br>"
+            sell_x.append(exit_ts)
+            sell_y.append(t.exit_price)
+            sell_hover.append(
+                "<b>SELL</b><br>"
                 f"Date: {t.exit_date}<br>"
                 f"Price: ${t.exit_price:,.2f}<br>"
                 f"Shares: {t.shares}<br>"
                 f"Value: ${exit_value:,.0f}<br>"
                 f"P&L: {pnl_sign}${t.pnl:,.2f} "
-                f"({pnl_sign}{t.pnl_pct:.2%})"
+                f"({pnl_sign}{t.pnl_pct:.2%})<br>"
+                f"Exit: {reason_label}"
             )
-            if is_stop:
-                stop_x.append(exit_ts)
-                stop_y.append(t.exit_price)
-                stop_hover.append(exit_hover_text)
-            else:
-                sell_x.append(exit_ts)
-                sell_y.append(t.exit_price)
-                sell_hover.append(exit_hover_text)
 
             # Stop-loss envelope segment
             fig.add_trace(
@@ -389,26 +388,6 @@ class PlotlyChartBuilder(ChartBuilderPort):
                 row=1,
                 col=1,
             )
-        if stop_x:
-            fig.add_trace(
-                go.Scatter(
-                    x=stop_x,
-                    y=stop_y,
-                    mode="markers",
-                    marker=dict(
-                        symbol="x",
-                        size=14,
-                        color="#F44336",
-                        line=dict(width=2, color="white"),
-                    ),
-                    name="Stop",
-                    hovertext=stop_hover,
-                    hoverinfo="text",
-                ),
-                row=1,
-                col=1,
-            )
-
         fig.update_layout(
             title=title,
             xaxis_rangeslider_visible=False,

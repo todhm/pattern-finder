@@ -5,6 +5,12 @@ import pandas as pd
 from data.domain.ports import MarketDataPort
 from pattern.domain.models import PatternSignal
 from pattern.domain.ports import PatternDetector
+from pattern.helpers.pivots import (
+    find_swing_highs,
+    find_swing_lows,
+    fit_lower_trendline,
+    recent_swing_high,
+)
 from strategy.domain.models import (
     EquityPoint,
     StrategyConfig,
@@ -47,21 +53,23 @@ class WedgepopStrategy(StrategyRunnerPort):
         - Fixed-fractional risk: ``shares = capital * risk_per_trade /
           (entry - stop)``. Caps downside at `risk_per_trade` per trade.
 
-    Exit — two modes controlled by ``use_smart_trail``:
+    Exit — only three opt-in conditions, each independent:
 
-        **Smart Trail mode** (``use_smart_trail=True``):
-            1. Hard stop     consolidation low → ``min(open, stop)``
-            2. Smart trail   Chandelier exit: ``highest_high - N × ATR``
-                             N widens with R-profit: <2R→3, 2-4R→4, >4R→5.
-                             Arms after 3 bars. LOW-based (wick-proof).
-            3. Time stop     held >= max_holding_days → exit at close.
+        1. ``exit_detector`` fires   — Exhaustion Extension Top exit
+                                       (inject ``ExhaustionExtensionTopDetector``).
+        2. ``enable_trendline_exit`` — bar's LOW pierces the higher-low
+                                       trendline fitted through recent swing
+                                       lows. LOW-based limit-order fill: the
+                                       sell fills at the line (or at the open
+                                       on a gap-down).
+        3. ``use_smart_trail``       — Chandelier exit:
+                                       ``highest_high - N × ATR``, N widens with
+                                       R-profit (<2R→3, 2-4R→4, >4R→5). Arms
+                                       after 3 bars. LOW-based (wick-proof).
 
-        **Legacy mode** (``use_smart_trail=False``):
-            1. Hard stop     consolidation low → ``min(open, stop)``
-            2. Exhaustion    ``ref_ema + ATR × extension_atr_mult``
-            3. Climax bar    ``prev_close + climax_atr_mult × ATR``
-            4. EMA trail     close < fast EMA → exit at close
-            5. Time stop     held >= max_holding_days → exit at close.
+        If none of the three is active (or none fires), the position
+        is held to the last bar of the dataframe. There is no hard
+        stop, EMA trail, exhaustion-line, climax-bar, or time stop.
 
     **Pattern-based exit** (opt-in via ``exit_detector``)
         When any `PatternDetector` is injected, any bar inside the
@@ -104,6 +112,14 @@ class WedgepopStrategy(StrategyRunnerPort):
         require_gap_up: bool = False,
         use_smart_trail: bool = False,
         exit_detector: PatternDetector | None = None,
+        enable_swing_resistance_filter: bool = False,
+        swing_pivot_left: int = 2,
+        swing_pivot_right: int = 2,
+        swing_pivot_lookback: int = 60,
+        swing_resistance_tolerance_atr: float = 0.5,
+        enable_trendline_exit: bool = False,
+        trendline_max_pivots: int = 3,
+        trendline_min_pivots: int = 2,
     ):
         self._market_data = market_data
         self._detector = detector
@@ -131,6 +147,14 @@ class WedgepopStrategy(StrategyRunnerPort):
         self.max_ema_slow_slope = max_ema_slow_slope
         self.require_gap_up = require_gap_up
         self.use_smart_trail = use_smart_trail
+        self.enable_swing_resistance_filter = enable_swing_resistance_filter
+        self.swing_pivot_left = swing_pivot_left
+        self.swing_pivot_right = swing_pivot_right
+        self.swing_pivot_lookback = swing_pivot_lookback
+        self.swing_resistance_tolerance_atr = swing_resistance_tolerance_atr
+        self.enable_trendline_exit = enable_trendline_exit
+        self.trendline_max_pivots = trendline_max_pivots
+        self.trendline_min_pivots = trendline_min_pivots
 
     # ---- public API ----
 
@@ -188,6 +212,13 @@ class WedgepopStrategy(StrategyRunnerPort):
         df["ema_trail"] = df["Close"].ewm(span=self.ema_trail, adjust=False).mean()
         df["ema_slow"] = df["Close"].ewm(span=self.ema_slow, adjust=False).mean()
         df["atr"] = self._atr(df, self.atr_period)
+        if self.enable_swing_resistance_filter or self.enable_trendline_exit:
+            df["swing_high"] = find_swing_highs(
+                df, left=self.swing_pivot_left, right=self.swing_pivot_right
+            )
+            df["swing_low"] = find_swing_lows(
+                df, left=self.swing_pivot_left, right=self.swing_pivot_right
+            )
         return df
 
     @staticmethod
@@ -334,6 +365,34 @@ class WedgepopStrategy(StrategyRunnerPort):
             ):
                 return None, entry_idx
 
+        # Swing-high resistance filter: reject if the entry-bar open
+        # sits just beneath a recent confirmed swing high (the entry
+        # would be buying directly into supply). Passing overhead
+        # resistance entirely is fine — we only reject entries that
+        # are close enough that the pivot blocks further upside.
+        if (
+            self.enable_swing_resistance_filter
+            and entry_idx > 0
+            and "swing_high" in df.columns
+        ):
+            signal_idx = entry_idx - 1
+            res = recent_swing_high(
+                df["swing_high"],
+                upto_idx=signal_idx,
+                lookback=self.swing_pivot_lookback,
+                right=self.swing_pivot_right,
+            )
+            if res is not None:
+                _, pivot_price = res
+                atr_at_signal = float(df["atr"].iloc[signal_idx])
+                if atr_at_signal > 0:
+                    gap = pivot_price - entry_price
+                    if (
+                        gap > 0
+                        and gap < self.swing_resistance_tolerance_atr * atr_at_signal
+                    ):
+                        return None, entry_idx
+
         stop = float(signal.stop_loss)
         risk_per_share = entry_price - stop
         if risk_per_share <= 0:
@@ -342,7 +401,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         risk_amount = capital * config.risk_per_trade
         shares = max(1, int(risk_amount / risk_per_share))
 
-        exit_price, exit_idx = self._find_exit(
+        exit_price, exit_idx, exit_reason = self._find_exit(
             df,
             entry_idx,
             entry_price,
@@ -362,6 +421,7 @@ class WedgepopStrategy(StrategyRunnerPort):
             shares=shares,
             pnl=round(pnl, 2),
             pnl_pct=round((exit_price - entry_price) / entry_price, 4),
+            exit_reason=exit_reason,
         )
         return trade, exit_idx
 
@@ -373,59 +433,78 @@ class WedgepopStrategy(StrategyRunnerPort):
         stop: float,
         max_holding_days: int,
         exit_dates: set[date] | None = None,
-    ) -> tuple[float, int]:
+    ) -> tuple[float, int, str]:
         if exit_dates is None:
             exit_dates = set()
-        last_idx = min(entry_idx + max_holding_days, len(df) - 1)
+        last_idx = len(df) - 1
 
         # Smart trail state — Chandelier exit with profit-tier widening.
+        # ``initial_risk`` is the 1R unit for R-based trail widening.
+        # ``stop`` is no longer checked as a hard stop (removed per
+        # spec), but it still defines the risk basis computed by
+        # ``_execute_trade`` for position sizing.
         highest_high = 0.0
-        initial_risk = entry_price - stop  # 1R
+        initial_risk = entry_price - stop
 
-        # The loop starts at ``entry_idx`` (NOT ``entry_idx + 1``) so
-        # the entry bar itself is checked for same-day exits. A bar
-        # that spikes intraday past the exhaustion line, or an
-        # entry-day reversal that pierces the consolidation-low stop,
-        # both fire on the very first iteration. Breakeven arming at
-        # end-of-bar then correctly flows into the next bar's hard
-        # stop check (AMD 2019-08-22 case is still handled — arming
-        # happens at the end of the 08-22 iteration, before 08-23's
-        # hard-stop check sees ``stop = entry_price``).
+        # Only three exit paths are active:
+        #   (1) ``exit_detector`` firing (Exhaustion Extension Top)
+        #   (2) higher-low trendline break
+        #   (3) Smart Trail (Chandelier)
+        # The entry bar itself is skipped for (1) and (2) — a same-bar
+        # exit against our own entry is nonsense. (3) also effectively
+        # waits ≥ 3 bars via its arming guard. If no condition fires,
+        # the position holds until the final bar of the dataframe.
         for i in range(entry_idx, last_idx + 1):
             open_bar = float(df["Open"].iloc[i])
             high_bar = float(df["High"].iloc[i])
             low_bar = float(df["Low"].iloc[i])
-            low = low_bar
             close = float(df["Close"].iloc[i])
-            ema_fast = float(df["ema_trail"].iloc[i])
-            ema_slow = float(df["ema_slow"].iloc[i])
             atr = float(df["atr"].iloc[i]) if not pd.isna(df["atr"].iloc[i]) else 0.0
 
             if high_bar > highest_high:
                 highest_high = high_bar
 
-            # 1. Hard stop — consolidation low.
-            #    LOW-based limit-order model: intraday pierce fills
-            #    at the stop line, gap-down fills at the open.
-            if low <= stop:
-                return min(open_bar, stop), i
-
-            # 1b. Pattern-based exit — fires when the injected
-            #     ``exit_detector`` signals on this bar. Typical use:
-            #     ``ExhaustionExtensionTopDetector`` so that a long
-            #     exits on a euphoric blow-off top. All conditions
-            #     those detectors check are end-of-bar quantities,
-            #     and the detection was pre-run in ``execute()`` with
-            #     causal indicators, so firing on this bar's close
-            #     uses no future data. Skip the entry bar itself —
-            #     a same-bar exit against our own entry is nonsense.
+            # (1) Exhaustion Extension Top exit — fires when the
+            #     injected ``exit_detector`` signals on this bar.
+            #     Detection was pre-run causally, so firing on this
+            #     bar's close uses no future data.
             if i > entry_idx and df.index[i].date() in exit_dates:
-                return close, i
+                return close, i, "exhaustion_exit"
 
+            # (2) Higher-low trendline break — LOW-based limit-order
+            #     model. The instant the bar's low pierces the trendline
+            #     fit through recent confirmable swing lows, the sell
+            #     limit at the line fills. Gap-downs fill at the open
+            #     (realistic slippage) — symmetric to the smart-trail
+            #     fill model. Causality: only pivots with
+            #     ``idx ≤ i - right`` contribute, so the trendline at
+            #     bar i uses no future data.
+            if (
+                self.enable_trendline_exit
+                and i > entry_idx
+                and "swing_low" in df.columns
+            ):
+                tl = fit_lower_trendline(
+                    df["swing_low"],
+                    upto_idx=i,
+                    lookback=self.swing_pivot_lookback,
+                    right=self.swing_pivot_right,
+                    max_points=self.trendline_max_pivots,
+                    min_points=self.trendline_min_pivots,
+                )
+                if tl is not None:
+                    slope, intercept, _ = tl
+                    if slope > 0:
+                        trendline_y = slope * i + intercept
+                        if low_bar <= trendline_y:
+                            return (
+                                min(open_bar, trendline_y),
+                                i,
+                                "trendline_break",
+                            )
+
+            # (3) Smart Trail (Chandelier with profit-tier widening).
             if self.use_smart_trail:
-                # ── Smart Trail mode ──
-                # Exit conditions: hard stop (above) + smart trail + time stop only.
-                # Exhaustion / climax / EMA trail are all disabled.
                 bars_held = i - entry_idx
                 if bars_held >= 3 and atr > 0 and initial_risk > 0:
                     unrealized_r = (close - entry_price) / initial_risk
@@ -436,37 +515,11 @@ class WedgepopStrategy(StrategyRunnerPort):
                     else:
                         eff_mult = 3.0
                     trail_level = highest_high - eff_mult * atr
-                    if trail_level > stop and low <= trail_level:
-                        return min(open_bar, trail_level), i
-            else:
-                # ── Legacy mode ──
-                # Exhaustion + climax + EMA trail all active.
+                    if low_bar <= trail_level:
+                        return min(open_bar, trail_level), i, "smart_trail"
 
-                # 2. Exhaustion Extension — HIGH-based, ATR-scaled.
-                ref_ema = max(ema_fast, ema_slow)
-                if ref_ema > 0 and atr > 0:
-                    trigger = ref_ema + atr * self.extension_atr_mult
-                    if trigger > entry_price and high_bar >= trigger:
-                        return max(open_bar, trigger), i
-
-                # 3. Climax bar — HIGH-based limit-order model.
-                if atr > 0 and i > 0:
-                    prev_close = float(df["Close"].iloc[i - 1])
-                    climax_line = prev_close + self.climax_atr_mult * atr
-                    bar_range = high_bar - low_bar
-                    if (
-                        climax_line > entry_price
-                        and bar_range > self.climax_atr_mult * atr
-                        and high_bar >= climax_line
-                    ):
-                        return max(open_bar, climax_line), i
-
-                # 4. EMA trail — close < fast EMA → exit at close.
-                if close < ema_fast:
-                    return close, i
-
-        # 5. Time stop
-        return float(df["Close"].iloc[last_idx]), last_idx
+        # Fallback — no exit fired. Hold to the last bar of data.
+        return float(df["Close"].iloc[last_idx]), last_idx, "end_of_data"
 
     # ---- performance builder ----
 
@@ -491,3 +544,4 @@ class WedgepopStrategy(StrategyRunnerPort):
             max_drawdown_pct=round(max_drawdown, 4),
             trades=trades,
         )
+# cache probe 1776581108

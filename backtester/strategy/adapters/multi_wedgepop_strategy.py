@@ -371,6 +371,7 @@ class MultiWedgepopStrategy:
             shares=trade.shares,
             pnl=net_pnl,
             pnl_pct=net_pnl_pct,
+            exit_reason=trade.exit_reason,
         )
         return multi_trade, trade.exit_date
 

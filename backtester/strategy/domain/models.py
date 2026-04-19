@@ -25,6 +25,12 @@ class Trade(BaseModel):
     shares: int
     pnl: float
     pnl_pct: float
+    # Which of the three exit conditions closed this trade:
+    #   "exhaustion_exit"  — injected ``exit_detector`` fired
+    #   "trendline_break"  — higher-low trendline exit
+    #   "smart_trail"      — Chandelier trail
+    #   "end_of_data"      — no rule fired; held to the last bar
+    exit_reason: str = "end_of_data"
 
 
 class StrategyPerformance(BaseModel):

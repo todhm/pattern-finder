@@ -229,6 +229,58 @@ with st.sidebar:
         disabled=not enable_max_slope,
     )
 
+    st.header("Swing Pivot (S/R + Trendline)")
+    swing_pivot_left_ui = st.number_input(
+        "Pivot window — left bars",
+        value=2,
+        min_value=1,
+        max_value=10,
+        step=1,
+    )
+    swing_pivot_right_ui = st.number_input(
+        "Pivot window — right bars",
+        value=2,
+        min_value=1,
+        max_value=10,
+        step=1,
+        help="pivot은 이만큼 뒤에 확정 (lag).",
+    )
+    swing_pivot_lookback_ui = st.number_input(
+        "Pivot lookback (bars)",
+        value=60,
+        min_value=10,
+        max_value=500,
+        step=5,
+    )
+    enable_swing_resistance = st.checkbox(
+        "Enable swing-high resistance filter (Entry)",
+        value=False,
+        help="Entry open이 직전 swing high 바로 아래 "
+        "tolerance × ATR 이내면 거부.",
+    )
+    swing_resistance_tol_atr = st.number_input(
+        "Resistance tolerance (× ATR)",
+        value=0.5,
+        min_value=0.0,
+        max_value=5.0,
+        step=0.1,
+        format="%.2f",
+        disabled=not enable_swing_resistance,
+    )
+    enable_trendline_exit = st.checkbox(
+        "Enable higher-low trendline exit",
+        value=False,
+        help="최근 swing low 추세선 아래로 close 이탈 시 청산.",
+    )
+    trendline_max_pivots_ui = st.number_input(
+        "Trendline — max pivots",
+        value=3,
+        min_value=2,
+        max_value=10,
+        step=1,
+        disabled=not enable_trendline_exit,
+    )
+
     st.header("Exit Tuning")
     use_smart_trail = st.checkbox(
         "Smart Trail (Chandelier + Profit-tier)",
@@ -375,6 +427,13 @@ per_ticker_strategy = WedgepopStrategy(
     require_gap_up=require_gap_up,
     use_smart_trail=use_smart_trail,
     exit_detector=exit_detector,
+    enable_swing_resistance_filter=enable_swing_resistance,
+    swing_pivot_left=int(swing_pivot_left_ui),
+    swing_pivot_right=int(swing_pivot_right_ui),
+    swing_pivot_lookback=int(swing_pivot_lookback_ui),
+    swing_resistance_tolerance_atr=float(swing_resistance_tol_atr),
+    enable_trendline_exit=enable_trendline_exit,
+    trendline_max_pivots=int(trendline_max_pivots_ui),
 )
 runner = MultiWedgepopStrategy(
     market_data=market_data,
@@ -473,11 +532,19 @@ st.plotly_chart(contrib_fig, use_container_width=True)
 
 # --- Trade table ---
 st.subheader("Trades — Details")
+EXIT_REASON_LABELS = {
+    "exhaustion_exit": "Exhaustion Extension Top",
+    "trendline_break": "Higher-Low Trendline Break",
+    "smart_trail": "Smart Trail (Chandelier)",
+    "end_of_data": "End of Data (no exit fired)",
+}
+
 rows = [
     {
         "Ticker": t.ticker,
         "Entry Date": t.entry_date,
         "Exit Date": t.exit_date,
+        "Exit Reason": EXIT_REASON_LABELS.get(t.exit_reason, t.exit_reason),
         "Entry": f"${t.entry_price:,.2f}",
         "Exit": f"${t.exit_price:,.2f}",
         "Stop": f"${t.stop_loss:,.2f}",
