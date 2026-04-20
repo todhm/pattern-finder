@@ -221,16 +221,48 @@ if __name__ == "__main__":
     # entries. Batched form avoids paying docker-exec startup overhead per variant.
     arg = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
     if isinstance(arg, list):
+        import time as _t
+
         out = []
-        for entry in arg:
+        total = len(arg)
+        t0 = _t.time()
+        for idx, entry in enumerate(arg, 1):
             label = entry.get("label", "")
             knobs = entry.get("knobs", {})
+            t_start = _t.time()
+            print(
+                f"[{idx}/{total}] running: {label} "
+                f"(elapsed {_t.time()-t0:.0f}s)",
+                file=sys.stderr,
+                flush=True,
+            )
             try:
                 r = run(knobs)
                 r["label"] = label
             except Exception as e:
                 r = {"label": label, "error": str(e)}
+            elapsed = _t.time() - t_start
+            summary = (
+                f"ret={r.get('total_return_pct','?')}% "
+                f"n={r.get('trades_taken','?')} "
+                f"wr={r.get('win_rate_pct','?')}%"
+                if "error" not in r
+                else f"ERROR: {r['error']}"
+            )
+            print(
+                f"[{idx}/{total}] done: {label} in {elapsed:.0f}s — {summary}",
+                file=sys.stderr,
+                flush=True,
+            )
             out.append(r)
+            # Incremental dump so partial progress is recoverable if the
+            # process is killed mid-batch. Last dump replaces all.
+            partial_path = "/tmp/batch_partial.json"
+            try:
+                with open(partial_path, "w") as f:
+                    json.dump(out, f, default=str)
+            except Exception:
+                pass
         print(json.dumps(out, default=str))
     else:
         print(json.dumps(run(arg), default=str))
