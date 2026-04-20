@@ -79,6 +79,10 @@ SQLAlchemy session 사용. `save`는 `session.merge()`로 UPSERT. 연결 pool은
 2. Streamlit page composition root에서 `st.session_state.signal_repo` 교체
 3. UI 코드 수정 없음
 
-**새 패턴 스캐너** (예: 하락 패턴):
-1. `SignalScannerPort` 새 구현체 작성 — 다른 detector + 다른 필터 조합
-2. 새 페이지 또는 기존 페이지에 추가
+**새 전략 스캐너** (예: base-n-break, downside reversal):
+1. `signals/adapters/<name>_scanner.py` 에 `SignalScannerPort` 구현체 작성 — 다른 detector + 다른 필터 조합
+2. 해당 전략용 페이지 생성 (`pages/<N>_<Strategy>_Signals.py`) — 사이드바 knob은 그 전략의 백테스트 페이지와 대응, composition root에서 새 scanner 주입
+3. watchlist 저장소는 공용이므로 `buy_signals` 테이블에 여러 전략의 신호가 섞여 저장됨. `pattern_name` 컬럼으로 구분 가능, 또는 필요 시 `status filter` 외에 `pattern_name` 필터 UI 추가
+4. 백테스트 페이지와 Signals 페이지 사이에 `st.page_link`로 네비게이션 링크 — 같은 전략 묶어서 보기
+
+현재 wire-up 예시: `pages/3_Multi_Wedgepop.py` ↔ `pages/4_Multi_Wedgepop_Signals.py`.

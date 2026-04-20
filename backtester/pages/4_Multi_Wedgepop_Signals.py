@@ -1,11 +1,15 @@
-"""Current buy-signal scanner + watchlist management.
+"""Live signals view for the Multi Wedgepop strategy.
 
-Mirrors the filter knobs of ``3_Multi_Wedgepop.py`` so the scanner
-surfaces exactly the signals the backtest would have considered —
-just restricted to recent bars (i.e. actionable *now*). Signals can
-be saved to a repository (in-memory stub today; a Postgres adapter
-will plug into the same port later) with notes, status transitions,
-and removal — so this page doubles as a watchlist management view.
+Companion to ``3_Multi_Wedgepop.py`` — same detector / filter /
+sizing knobs, but applied to the **most recent bars** to surface
+actionable buy setups right now. Signals persist in Postgres
+(``buy_signals`` table) with notes, status transitions, deletion.
+
+Future strategies (base-n-break, downside reversal, etc.) each get
+their own numbered signals page that reuses the same
+``SignalScannerPort`` + ``SignalRepositoryPort`` seams + shared UI
+patterns. The watchlist table is strategy-agnostic so cross-strategy
+holdings live in one place.
 """
 
 from datetime import date, datetime, timedelta
@@ -23,13 +27,23 @@ from signals.adapters.universe_scanner import UniverseBuySignalScanner
 from signals.domain.models import BuySignal, SignalStatus
 from strategy.adapters.wedgepop_strategy import WedgepopStrategy
 
-st.set_page_config(page_title="Buy Signals", layout="wide")
-st.title("Active Buy Signals")
+st.set_page_config(page_title="Multi Wedgepop Signals", layout="wide")
+st.title("Multi Wedgepop Signals")
 st.caption(
-    "현재 필터 조건으로 최근 N일간 발생한 Wedge Pop 매수 신호를 스캔. "
-    "watchlist는 Postgres DB에 영속 저장 (table `buy_signals`). "
-    "DB 연결 불가 시 in-memory fallback."
+    "**3_Multi_Wedgepop** 백테스트 페이지와 동일한 detector / 필터 / 사이징 "
+    "설정으로, 지금 시점의 실매수 후보를 스캔. 관심 종목은 watchlist로 저장 "
+    "(Postgres `buy_signals` 테이블, DB 불가 시 in-memory fallback). "
+    "향후 다른 전략 추가 시 각 전략별 Signals 페이지를 별도로 생성 — "
+    "watchlist 저장소는 전략 간 공유."
 )
+try:
+    st.page_link(
+        "pages/3_Multi_Wedgepop.py",
+        label="📉 Multi Wedgepop — 같은 전략의 백테스트 튜닝",
+        icon="⬅️",
+    )
+except Exception:
+    pass
 
 
 # --- Repository: Postgres by default, fall back to in-memory if the

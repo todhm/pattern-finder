@@ -16,8 +16,18 @@ st.set_page_config(page_title="Multi Wedge Pop Scan", layout="wide")
 st.title("Multi-Ticker Wedge Pop Strategy")
 st.caption(
     "S&P 500 / Nasdaq-100 전체에서 매일 발생한 Wedge Pop signal 중 거래량이 "
-    "가장 큰 종목 하나를 매수. 한 포지션이 청산될 때까지 다른 종목은 사지 않음."
+    "가장 큰 종목 하나를 매수. 한 포지션이 청산될 때까지 다른 종목은 사지 않음. "
+    "👉 실매수 후보(live)는 **Multi Wedgepop Signals** 페이지에서 확인."
 )
+try:
+    st.page_link(
+        "pages/4_Multi_Wedgepop_Signals.py",
+        label="📡 Multi Wedgepop Signals — 현재 매수 후보 + watchlist",
+        icon="➡️",
+    )
+except Exception:
+    # st.page_link requires Streamlit ≥ 1.31; silently skip on older.
+    pass
 
 # --- Sidebar inputs ---
 with st.sidebar:

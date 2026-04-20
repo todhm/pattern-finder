@@ -208,9 +208,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                 m.index = m.index.tz_localize(None)
             sma200 = m["Close"].rolling(window=200, min_periods=200).mean()
             ok = (m["Close"] > sma200).fillna(False)
-            self._market_regime_lookup = {
-                idx.date(): bool(val) for idx, val in ok.items()
-            }
+            self._market_regime_lookup = {idx.date(): bool(val) for idx, val in ok.items()}
         self.enable_breakeven_stop = enable_breakeven_stop
         self.enable_gap_down_rejection = enable_gap_down_rejection
         # Signal-bar close-strength filter. Rejects entries whose
@@ -434,9 +432,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         # higher rates than in confirmed uptrends. Lookup is O(1).
         if self.enable_market_regime_filter:
             signal_date = df.index[entry_idx - 1].date() if entry_idx > 0 else None
-            if signal_date is not None and not self._market_regime_lookup.get(
-                signal_date, False
-            ):
+            if signal_date is not None and not self._market_regime_lookup.get(signal_date, False):
                 return None, entry_idx
 
         # (C) Gap-down open rejection — reject entries whose entry-bar
@@ -473,11 +469,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         # supply run into resistance almost immediately (the 7/7
         # trendline-break losses in the scan report all came from
         # entries where the wedge pop never cleared structure).
-        if (
-            self.enable_swing_breakout_filter
-            and entry_idx > 0
-            and "swing_high" in df.columns
-        ):
+        if self.enable_swing_breakout_filter and entry_idx > 0 and "swing_high" in df.columns:
             sig_idx = entry_idx - 1
             last = last_swing_high(
                 df["swing_high"],
@@ -489,11 +481,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                 _, pivot_price = last
                 sig_high = float(df["High"].iloc[sig_idx])
                 atr_at_signal = float(df["atr"].iloc[sig_idx])
-                buffer = (
-                    self.swing_breakout_buffer_atr * atr_at_signal
-                    if atr_at_signal > 0
-                    else 0.0
-                )
+                buffer = self.swing_breakout_buffer_atr * atr_at_signal if atr_at_signal > 0 else 0.0
                 if sig_high <= pivot_price + buffer:
                     return None, entry_idx
 
@@ -750,14 +738,8 @@ class WedgepopStrategy(StrategyRunnerPort):
             #     THIS bar's close, so same-bar arm + pierce cannot
             #     fire (analogous to resistance-break ordering).
             if self.enable_breakeven_stop:
-                breakeven_exit_price = (
-                    entry_price + self.breakeven_exit_offset_r * initial_risk
-                )
-                if (
-                    breakeven_armed
-                    and i > entry_idx
-                    and low_bar <= breakeven_exit_price
-                ):
+                breakeven_exit_price = entry_price + self.breakeven_exit_offset_r * initial_risk
+                if breakeven_armed and i > entry_idx and low_bar <= breakeven_exit_price:
                     return (
                         min(open_bar, breakeven_exit_price),
                         i,
@@ -766,9 +748,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                 if (
                     not breakeven_armed
                     and initial_risk > 0
-                    and close
-                    >= entry_price
-                    + self.breakeven_arm_r_multiple * initial_risk
+                    and close >= entry_price + self.breakeven_arm_r_multiple * initial_risk
                 ):
                     breakeven_armed = True
 
@@ -819,9 +799,7 @@ class WedgepopStrategy(StrategyRunnerPort):
                         )
                         if trigger_hit:
                             fill = (
-                                close
-                                if self.structural_exit_close_confirm
-                                else min(open_bar, trendline_y)
+                                close if self.structural_exit_close_confirm else min(open_bar, trendline_y)
                             )
                             return (fill, i, "trendline_break")
 
@@ -852,18 +830,14 @@ class WedgepopStrategy(StrategyRunnerPort):
                     for k, r in enumerate(entry_resistances):
                         trigger = r - pierce_buffer
                         pierce_hit = (
-                            close <= trigger
-                            if self.structural_exit_close_confirm
-                            else low_bar <= trigger
+                            close <= trigger if self.structural_exit_close_confirm else low_bar <= trigger
                         )
                         if confirmed_levels[k] and pierce_hit:
                             if pierced_trigger is None or trigger > pierced_trigger:
                                 pierced_trigger = trigger
                     if pierced_trigger is not None:
                         fill = (
-                            close
-                            if self.structural_exit_close_confirm
-                            else min(open_bar, pierced_trigger)
+                            close if self.structural_exit_close_confirm else min(open_bar, pierced_trigger)
                         )
                         return (fill, i, "resistance_break")
                 # Intraday confirmation — bar's HIGH touching the

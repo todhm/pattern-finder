@@ -28,7 +28,7 @@ docker compose down
 | `2_Backtest_Results` | 단일 종목 백테스트 결과 |
 | `strategy` | 단일 종목 Wedge Pop 전략 튜닝 |
 | `3_Multi_Wedgepop` | S&P 500 / Nasdaq-100 universe 백테스트 |
-| `4_Buy_Signals` | 실시간 매수 신호 스캔 + **DB 영속 watchlist 관리** |
+| `4_Multi_Wedgepop_Signals` | Multi Wedgepop 전략의 실시간 매수 후보 + **DB 영속 watchlist 관리** (향후 전략마다 개별 Signals 페이지 추가) |
 
 ## 아키텍처 (Hexagonal / Ports & Adapters)
 
@@ -105,9 +105,9 @@ docker compose exec backtester alembic history
 
 `DATABASE_URL`은 docker-compose가 주입. 컨테이너 재시작 시 자동으로 `upgrade head` 실행 — 빠진 마이그레이션 없이 항상 최신 스키마.
 
-## Buy Signals 페이지 기능
+## Multi Wedgepop Signals 페이지 기능
 
-`pages/4_Buy_Signals.py` — universe 스캔 + 영속 watchlist.
+`pages/4_Multi_Wedgepop_Signals.py` — `3_Multi_Wedgepop` 백테스트와 동일한 설정으로 **지금 시점의 실매수 후보** 스캔 + 영속 watchlist 관리. 향후 전략마다 별도 Signals 페이지(`5_<strategy>_Signals.py`, `6_..._Signals.py` …) 추가 예정이며, watchlist 저장소(`buy_signals` 테이블)는 전략 간 공유.
 
 - **스캔**: 현재 필터로 최근 N일간 발생한 wedge pop signal 추출. Multi Wedgepop과 동일한 선정 규칙 (일자별 buy/sell ratio 내림차순, `volume_ratio ≥ 1.0` 하드 필터)
 - **손절·익절 라인**: 실제 `WedgepopStrategy._find_exit`가 발동하는 가격만 표시 (HL Trendline, Resistance supports/hurdles, Exhaustion Top 임계치, Next resistance)

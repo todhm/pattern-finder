@@ -50,7 +50,7 @@ docker compose down
   - `streamlit_app.py` + `pages/` — Streamlit UI
     - `pages/1_Pattern_Detection.py`, `pages/2_Backtest_Results.py`, `pages/strategy.py`
     - `pages/3_Multi_Wedgepop.py`: universe 전체 백테스트
-    - `pages/4_Buy_Signals.py`: **실시간 매수 신호 + watchlist 관리** (DB 영속, 최신 데이터 자동 리프레시, 수동 추가)
+    - `pages/4_Multi_Wedgepop_Signals.py`: **Multi Wedgepop 실매수 후보 + watchlist 관리** — `3_Multi_Wedgepop` 백테스트와 동일 설정으로 현재 시점 signal 스캔. DB 영속 (`buy_signals` 테이블, 전략 간 공유), 최신 데이터 자동 리프레시, 수동 추가. 향후 전략마다 별도 `<N>_<strategy>_Signals.py` 페이지 추가 (scanner만 `SignalScannerPort` 구현체로 추가하면 됨).
   - `main.py` — FastAPI (uvicorn)
   - `scan_cli.py` — 배치 스캔 CLI. JSON config(single or list) → JSON 결과. progress 로그 stderr + `/tmp/batch_partial.json` incremental dump
   - `tests/` — pytest 테스트
