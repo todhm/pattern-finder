@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from pattern.domain.models import PatternSignal
@@ -120,20 +121,111 @@ class WedgePopDetector(PatternDetector):
         df["ema_fast_slope"] = self._regression_slope(df["ema_fast"], n)
         df["ema_slow_slope"] = self._regression_slope(df["ema_slow"], n)
 
-        min_idx = self.lookback
+        # Vectorized candidate mask — equivalent to running the per-bar
+        # ``_was_consolidated`` + ``_breakout_trigger`` checks via numpy
+        # array ops. Cooldown is still applied sequentially because it
+        # has stateful dependency on prior fires. Preserves the exact
+        # semantics of the loop-based implementation, including the
+        # late-entry path, the NaN-resilient SMA gate, and the ATR
+        # strength bounds.
+        n = len(df)
+        close = df["Close"].to_numpy(dtype=float)
+        open_ = df["Open"].to_numpy(dtype=float)
+        fast = df["ema_fast"].to_numpy(dtype=float)
+        slow = df["ema_slow"].to_numpy(dtype=float)
+        atr = df["atr"].to_numpy(dtype=float)
+        sma_mid = df["sma_mid"].to_numpy(dtype=float)
+        sma_long = df["sma_long"].to_numpy(dtype=float)
+
+        # Consolidation ratio — prior ``lookback`` bars where
+        # ``close < ema_fast``. Rolling sum over the boolean, shifted
+        # one bar so it's strictly prior (matches the original
+        # ``for j in range(1, lookback+1)`` semantics).
+        below_mask = close < fast
+        prior_below = (
+            pd.Series(below_mask.astype(np.float64))
+            .rolling(self.lookback)
+            .sum()
+            .shift(1)
+            .to_numpy()
+        )
+        cons_ratio = prior_below / self.lookback
+        cons_ok = np.where(
+            np.isnan(cons_ratio), False, cons_ratio >= self.consolidation_pct
+        )
+        if self.max_consolidation_pct is not None:
+            cons_ok = cons_ok & np.where(
+                np.isnan(cons_ratio), False, cons_ratio <= self.max_consolidation_pct
+            )
+
+        # Prior-bar values for primary/late-entry trigger + gap gate.
+        prev_close = np.roll(close, 1)
+        prev_open = np.roll(open_, 1)
+        prev_ema_fast = np.roll(fast, 1)
+        # Index 0 has no valid prior; will be masked out via min_idx.
+
+        primary_mask = prev_close < prev_ema_fast
+        if self.late_entry_bars > 0:
+            recent_below = (
+                pd.Series(below_mask.astype(np.float64))
+                .rolling(self.late_entry_bars + 1)
+                .sum()
+                .shift(1)
+                .to_numpy()
+                > 0
+            )
+            late_mask = (~primary_mask) & recent_below
+        else:
+            late_mask = np.zeros(n, dtype=bool)
+        trigger_ok = primary_mask | late_mask
+
+        # ATR strength (max of ema-distance and daily-move in ATR
+        # units). Matches the loop's ``max(ema_distance, daily_move)``.
+        atr_valid = atr > 0
+        resistance = np.maximum(fast, slow)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ema_distance = np.where(
+                atr_valid, (close - resistance) / atr, -np.inf
+            )
+            daily_move = np.where(
+                atr_valid, (close - prev_close) / atr, -np.inf
+            )
+        strength = np.maximum(ema_distance, daily_move)
+        strength_ok = atr_valid & (strength >= self.breakout_atr_mult)
+        if self.max_breakout_atr_mult is not None:
+            strength_ok = strength_ok & (strength <= self.max_breakout_atr_mult)
+
+        # Long-term SMA gate — NaNs resolve to False (matches
+        # ``pd.isna`` short-circuit in the loop).
+        if self.require_above_long_smas:
+            sma_valid = ~(np.isnan(sma_mid) | np.isnan(sma_long))
+            above_sma = sma_valid & (close > sma_mid) & (close > sma_long)
+        else:
+            above_sma = np.ones(n, dtype=bool)
+
+        # Composite candidate mask. Early bars (< lookback) are
+        # excluded to match ``for i in range(min_idx, len(df))``.
+        candidate_mask = (
+            cons_ok
+            & (close > fast)
+            & (close > slow)
+            & (close > open_)
+            & trigger_ok
+            & (close >= prev_open)  # loop returns None when close < prev_open
+            & strength_ok
+            & above_sma
+        )
+        candidate_mask[: self.lookback] = False
+
+        # Cooldown is sequential (prior fires gate future candidates).
         signals: list[PatternSignal] = []
         cooldown_until = -1
-
-        for i in range(min_idx, len(df)):
+        for i in np.flatnonzero(candidate_mask):
             if i <= cooldown_until:
                 continue
-            if not self._was_consolidated(df, i):
-                continue
-            trigger = self._breakout_trigger(df, i)
-            if trigger is None:
-                continue
-            signals.append(self._build_signal(df, i, trigger=trigger))
-            cooldown_until = i + self.cooldown_bars
+            trigger = "primary" if primary_mask[i] else "late_entry"
+            signals.append(self._build_signal(df, int(i), trigger=trigger))
+            cooldown_until = int(i) + self.cooldown_bars
 
         return signals
 

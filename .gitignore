@@ -20,3 +20,4 @@ venv
 Downtrends.docx
 Downtrends/
 .DS_Store
+pattern-finder-cache/

@@ -1,12 +1,17 @@
 from datetime import date, timedelta
 
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
-from pattern.helpers.pivots import fit_lower_trendline, recent_swing_high
+from pattern.helpers.pivots import (
+    fit_lower_trendline,
+    last_swing_high,
+    recent_swing_high,
+)
 from strategy.adapters.wedgepop_strategy import WedgepopStrategy
 from strategy.domain.models import StrategyConfig
 from visualization.adapters.plotly_charts import PlotlyChartBuilder
@@ -34,7 +39,7 @@ with st.sidebar:
     )
     risk_pct = st.number_input(
         "Risk per Trade (%)",
-        value=2.0,
+        value=5.0,
         min_value=0.1,
         max_value=100.0,
         step=0.5,
@@ -233,8 +238,7 @@ with st.sidebar:
         min_value=1,
         max_value=10,
         step=1,
-        help="swing high/low 검출용 좌측 비교 봉 수. 2면 "
-        "`High[i] > High[i-1], High[i-2]` 둘 다 필요.",
+        help="swing high/low 검출용 좌측 비교 봉 수. 2면 " "`High[i] > High[i-1], High[i-2]` 둘 다 필요.",
     )
     swing_pivot_right_ui = st.number_input(
         "Pivot window — right bars",
@@ -279,11 +283,33 @@ with st.sidebar:
     enable_resistance_break_exit = st.checkbox(
         "Enable resistance-break exit (false-breakout)",
         value=False,
-        help="진입 시점 swing resistance를 저장. 이후 close가 한 번 "
-        "그 선 위로 확정 돌파한 뒤, bar의 low가 다시 선 아래로 "
-        "침투하면 저항선 가격에 체결 (limit 모델, gap-down은 open). "
-        "entry가 이미 저항선 위라면 돌파 확정은 진입 즉시. "
-        "Entry 필터와 독립 — 이건 exit 전용.",
+        help="진입 시점 window 내 모든 swing high를 독립 stop level로 "
+        "관리. 각 level별로: close가 (level + confirm_buffer × ATR) "
+        "위로 올라가면 confirmed. 이후 low가 (level - pierce_buffer × ATR) "
+        "아래로 내려가면 해당 가격에 체결. entry가 이미 level 위라면 "
+        "즉시 confirmed. Entry 필터와 독립.",
+    )
+    resistance_break_pierce_buffer_atr = st.number_input(
+        "Pierce buffer (× ATR below level)",
+        value=0.5,
+        min_value=0.0,
+        max_value=3.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_resistance_break_exit,
+        help="level - 이값×ATR 밑으로 low 가 내려가야 fire. 0 이면 "
+        "level 정확히 tag해도 trigger (노이즈 많음). 0.3~0.5면 의미있는 "
+        "이탈만 잡아줌.",
+    )
+    resistance_break_confirm_buffer_atr = st.number_input(
+        "Confirm buffer (× ATR above level)",
+        value=0.1,
+        min_value=0.0,
+        max_value=3.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_resistance_break_exit,
+        help="close가 level + 이값×ATR 위로 가야 confirmed. 약한 " "돌파 거르는 용.",
     )
     trendline_max_pivots_ui = st.number_input(
         "Trendline — max pivots",
@@ -292,8 +318,7 @@ with st.sidebar:
         max_value=10,
         step=1,
         disabled=not enable_trendline_exit,
-        help="최근 N개 swing low까지 써서 선형회귀. 2면 정확히 "
-        "최근 두 점을 잇는 선.",
+        help="최근 N개 swing low까지 써서 선형회귀. 2면 정확히 " "최근 두 점을 잇는 선.",
     )
     show_swing_overlay = st.checkbox(
         "Show swing pivots / lines on trade chart",
@@ -301,10 +326,34 @@ with st.sidebar:
         help="per-trade 차트에 swing high/low 마커와 저항선/추세선을 오버레이.",
     )
 
+    st.header("Extras (no tuning — toggle only)")
+    enable_market_regime_filter = st.checkbox(
+        "Market regime filter — SPY > 200 SMA (Entry)",
+        value=False,
+        help="진입 시점에 SPY 종가가 SPY 200일 SMA 위에 있을 때만 "
+        "entry 허용. 약세장 wedge pop의 높은 실패율을 차단. "
+        "파라미터 없음 (SPY, 200 SMA 하드코딩).",
+    )
+    enable_breakeven_stop = st.checkbox(
+        "Break-even stop after ≥ 1R profit (Exit)",
+        value=False,
+        help="보유 중 close가 entry + (entry - stop_loss) 이상에 "
+        "한 번이라도 도달하면, 이후 low가 entry 이하로 내려올 때 "
+        "entry 가격에 청산 (손실 0). -3~-10% 꼬리 손실 제거. "
+        "파라미터 없음 (1R 하드코딩).",
+    )
+    enable_gap_down_rejection = st.checkbox(
+        "Gap-down open rejection (Entry)",
+        value=False,
+        help="진입봉의 open이 signal bar의 low 아래로 갭다운하면 "
+        "entry 거부. 큰 꼬리 손실(-20%대)의 주범인 structural 파괴 "
+        "케이스를 차단. 파라미터 없음.",
+    )
+
     st.header("Exit Tuning")
     use_smart_trail = st.checkbox(
         "Smart Trail (Chandelier + Profit-tier)",
-        value=True,
+        value=False,
         help="기존 10 EMA trail 대신 고수들이 쓰는 Chandelier Exit 사용. "
         "진입 후 최고가에서 ATR 기반으로 trailing하며, 수익이 커질수록 "
         "(R배수 기준) trail을 넓혀서 큰 수익은 더 달리게 함. "
@@ -393,6 +442,17 @@ if df is None or df.empty:
     st.warning("No data returned for that range.")
     st.stop()
 
+market_regime_df = None
+if enable_market_regime_filter:
+    # Fetch SPY once; strategy needs 200 trading days of history
+    # before start_date for the 200 SMA to converge on day 1.
+    with st.spinner("Fetching SPY for market-regime filter..."):
+        try:
+            market_regime_df = market_data.fetch_ohlcv("SPY", fetch_start, end_date)
+        except Exception as e:
+            st.error(f"Failed to fetch SPY: {e}")
+            st.stop()
+
 config = StrategyConfig(
     ticker=ticker,
     start_date=start_date,
@@ -451,6 +511,12 @@ strategy = WedgepopStrategy(
     enable_trendline_exit=enable_trendline_exit,
     trendline_max_pivots=int(trendline_max_pivots_ui),
     enable_resistance_break_exit=enable_resistance_break_exit,
+    resistance_break_pierce_buffer_atr=float(resistance_break_pierce_buffer_atr),
+    resistance_break_confirm_buffer_atr=float(resistance_break_confirm_buffer_atr),
+    enable_market_regime_filter=enable_market_regime_filter,
+    market_regime_df=market_regime_df,
+    enable_breakeven_stop=enable_breakeven_stop,
+    enable_gap_down_rejection=enable_gap_down_rejection,
 )
 
 with st.spinner("Running strategy..."):
@@ -506,6 +572,180 @@ if df_ind.index.tz is not None:
     df_ind.index = df_ind.index.tz_localize(None)
 date_map = {idx.date(): idx for idx in df_ind.index}
 
+# Pre-compute exhaustion-detector fire dates once (causal per the
+# detector's docstring) so each trade can highlight them in O(1).
+exit_fire_dates: set = set()
+if enable_exh_exit:
+    try:
+        exit_fire_dates = {s.date for s in exit_detector.detect(df_ind)}
+    except Exception:
+        exit_fire_dates = set()
+
+# ------------------------------------------------------------
+# Global overlays — drawn once across the entire chart,
+# independent of any trade window. These represent "what the
+# strategy sees at every bar" (pivots, rolling filter-resistance,
+# all potential resistance stops, exhaustion fires) so the user
+# can evaluate the signal landscape even outside actual trades.
+# ------------------------------------------------------------
+if show_swing_overlay and "swing_high" in df_ind.columns:
+    sh_all = df_ind["swing_high"].dropna()
+    if len(sh_all) > 0:
+        trade_fig.add_trace(
+            go.Scatter(
+                x=sh_all.index,
+                y=sh_all.values,
+                mode="markers",
+                marker=dict(symbol="triangle-down", color="#E53935", size=9),
+                name="Swing High",
+                hoverinfo="skip",
+            ),
+            row=1,
+            col=1,
+        )
+    sl_all = df_ind["swing_low"].dropna()
+    if len(sl_all) > 0:
+        trade_fig.add_trace(
+            go.Scatter(
+                x=sl_all.index,
+                y=sl_all.values,
+                mode="markers",
+                marker=dict(symbol="triangle-up", color="#43A047", size=9),
+                name="Swing Low",
+                hoverinfo="skip",
+            ),
+            row=1,
+            col=1,
+        )
+
+    # Resistance Stop lines — every confirmed swing high extends
+    # rightward for ``lookback + right`` bars (the window in which
+    # it remains a valid stop level), independent of trades.
+    if enable_resistance_break_exit:
+        lookback_total = int(swing_pivot_lookback_ui) + int(swing_pivot_right_ui)
+        n = len(df_ind)
+        first = True
+        for ts, level in sh_all.items():
+            pivot_loc = df_ind.index.get_loc(ts)
+            end_loc = min(n - 1, pivot_loc + lookback_total)
+            trade_fig.add_trace(
+                go.Scatter(
+                    x=[ts, df_ind.index[end_loc]],
+                    y=[level, level],
+                    mode="lines",
+                    line=dict(color="#FB8C00", width=1.2, dash="dashdot"),
+                    name="Resistance Stop",
+                    showlegend=first,
+                    legendgroup="res_stops",
+                    opacity=0.55,
+                    hoverinfo="skip",
+                ),
+                row=1,
+                col=1,
+            )
+            first = False
+
+    # Swing Resistance (filter) — rolling MAX of confirmable swing
+    # highs. Plotted as a step-line across the whole chart so the
+    # user can see where the filter would have blocked entries at
+    # any moment in time.
+    if enable_swing_resistance:
+        filter_xs = []
+        filter_ys = []
+        for i in range(len(df_ind)):
+            res = recent_swing_high(
+                df_ind["swing_high"],
+                upto_idx=i,
+                lookback=int(swing_pivot_lookback_ui),
+                right=int(swing_pivot_right_ui),
+            )
+            if res is not None:
+                _, pivot_price = res
+                filter_xs.append(df_ind.index[i])
+                filter_ys.append(pivot_price)
+        if filter_xs:
+            trade_fig.add_trace(
+                go.Scatter(
+                    x=filter_xs,
+                    y=filter_ys,
+                    mode="lines",
+                    line=dict(color="#E53935", width=1.4, dash="dot"),
+                    name="Swing Resistance (filter)",
+                    hoverinfo="skip",
+                ),
+                row=1,
+                col=1,
+            )
+
+# HL trendline — global rolling fit. At every bar, compute the
+# trendline that the trendline-exit rule would use, then plot as
+# a continuous line across the whole chart. A gap in the line
+# means the fit is unavailable at that bar (< 2 pivots) or slope
+# ≤ 0 (no higher-low structure to defend).
+if enable_trendline_exit and "swing_low" in df_ind.columns:
+    tl_x = []
+    tl_y = []
+    for i in range(len(df_ind)):
+        tl = fit_lower_trendline(
+            df_ind["swing_low"],
+            upto_idx=i,
+            lookback=int(swing_pivot_lookback_ui),
+            right=int(swing_pivot_right_ui),
+            max_points=int(trendline_max_pivots_ui),
+        )
+        if tl is None:
+            continue
+        slope, intercept, _ = tl
+        if slope <= 0:
+            continue
+        tl_x.append(df_ind.index[i])
+        tl_y.append(slope * i + intercept)
+    if tl_x:
+        trade_fig.add_trace(
+            go.Scatter(
+                x=tl_x,
+                y=tl_y,
+                mode="lines+markers",
+                line=dict(color="#FF1744", width=4.5, dash="solid"),
+                marker=dict(size=4, color="#FF1744"),
+                name="HL Trendline",
+                hoverinfo="skip",
+            ),
+            row=1,
+            col=1,
+        )
+
+# Exhaustion Extension Top — every bar the detector fires, across
+# the whole chart. Rendered as a yellow-red star slightly above
+# each bar's high.
+if enable_exh_exit and exit_fire_dates:
+    exh_x = []
+    exh_y = []
+    for d in sorted(exit_fire_dates):
+        ts = date_map.get(d)
+        if ts is None:
+            continue
+        exh_x.append(ts)
+        exh_y.append(float(df_ind.loc[ts, "High"]) * 1.005)
+    if exh_x:
+        trade_fig.add_trace(
+            go.Scatter(
+                x=exh_x,
+                y=exh_y,
+                mode="markers",
+                marker=dict(
+                    symbol="star",
+                    size=18,
+                    color="#FFEB3B",
+                    line=dict(width=2, color="#B71C1C"),
+                ),
+                name="Exhaustion Fire",
+                hoverinfo="skip",
+            ),
+            row=1,
+            col=1,
+        )
+
 for t in perf.trades:
     if t.entry_date not in date_map or t.exit_date not in date_map:
         continue
@@ -516,108 +756,6 @@ for t in perf.trades:
     trade_slice = df_ind.iloc[entry_loc : exit_loc + 1]
 
     atr_s = trade_slice["atr"]
-
-    # Swing pivots — markers + resistance line + trendline.
-    # ``df_ind`` already carries ``swing_high`` / ``swing_low``
-    # columns when either swing option was enabled upstream.
-    if show_swing_overlay and "swing_high" in df_ind.columns:
-        context_start_loc = max(0, entry_loc - int(swing_pivot_lookback_ui))
-        context_slice = df_ind.iloc[context_start_loc : exit_loc + 1]
-
-        sh_pts = context_slice["swing_high"].dropna()
-        if len(sh_pts) > 0:
-            trade_fig.add_trace(
-                go.Scatter(
-                    x=sh_pts.index,
-                    y=sh_pts.values,
-                    mode="markers",
-                    marker=dict(symbol="triangle-down", color="#E53935", size=9),
-                    name="Swing High",
-                    showlegend=(t == perf.trades[0]),
-                    hoverinfo="skip",
-                ),
-                row=1,
-                col=1,
-            )
-
-        sl_pts = context_slice["swing_low"].dropna()
-        if len(sl_pts) > 0:
-            trade_fig.add_trace(
-                go.Scatter(
-                    x=sl_pts.index,
-                    y=sl_pts.values,
-                    mode="markers",
-                    marker=dict(symbol="triangle-up", color="#43A047", size=9),
-                    name="Swing Low",
-                    showlegend=(t == perf.trades[0]),
-                    hoverinfo="skip",
-                ),
-                row=1,
-                col=1,
-            )
-
-        # Resistance line at the level the filter / exit would have
-        # used at signal time (entry_loc - 1). Drawn across the
-        # holding period so the user can see where the resistance
-        # sat relative to price action.
-        if (enable_swing_resistance or enable_resistance_break_exit) and entry_loc > 0:
-            res = recent_swing_high(
-                df_ind["swing_high"],
-                upto_idx=entry_loc - 1,
-                lookback=int(swing_pivot_lookback_ui),
-                right=int(swing_pivot_right_ui),
-            )
-            if res is not None:
-                _, pivot_price = res
-                trade_fig.add_trace(
-                    go.Scatter(
-                        x=[trade_slice.index[0], trade_slice.index[-1]],
-                        y=[pivot_price, pivot_price],
-                        mode="lines",
-                        line=dict(color="#E53935", width=1.2, dash="dot"),
-                        name="Swing Resistance",
-                        showlegend=(t == perf.trades[0]),
-                        hoverinfo="skip",
-                    ),
-                    row=1,
-                    col=1,
-                )
-
-        # Higher-low trendline — evaluated per bar against the pivots
-        # confirmable at that bar, matching the exit logic. A flat or
-        # downward fit is skipped (no higher-low structure to break).
-        if enable_trendline_exit:
-            xs, ys = [], []
-            for offset in range(len(trade_slice)):
-                bar_idx = entry_loc + offset
-                tl = fit_lower_trendline(
-                    df_ind["swing_low"],
-                    upto_idx=bar_idx,
-                    lookback=int(swing_pivot_lookback_ui),
-                    right=int(swing_pivot_right_ui),
-                    max_points=int(trendline_max_pivots_ui),
-                )
-                if tl is None:
-                    continue
-                slope, intercept, _ = tl
-                if slope <= 0:
-                    continue
-                xs.append(trade_slice.index[offset])
-                ys.append(slope * bar_idx + intercept)
-            if xs:
-                trade_fig.add_trace(
-                    go.Scatter(
-                        x=xs,
-                        y=ys,
-                        mode="lines",
-                        line=dict(color="#8E24AA", width=1.5, dash="dash"),
-                        name="HL Trendline",
-                        showlegend=(t == perf.trades[0]),
-                        hoverinfo="skip",
-                    ),
-                    row=1,
-                    col=1,
-                )
 
     # Smart Trail (Chandelier) line — only when enabled
     if use_smart_trail and len(trade_slice) > 0:
@@ -706,6 +844,7 @@ EXIT_REASON_LABELS = {
     "trendline_break": "Higher-Low Trendline Break",
     "smart_trail": "Smart Trail (Chandelier)",
     "resistance_break": "Resistance Break (false breakout)",
+    "breakeven_stop": "Break-even Stop (≥1R unrealized)",
     "end_of_data": "End of Data (no exit fired)",
 }
 
