@@ -114,7 +114,7 @@ def run(knobs: dict) -> dict:
         enable_trendline_exit=bool(knobs.get("enable_trendline_exit", True)),
         trendline_max_pivots=int(knobs.get("trendline_max_pivots", 3)),
         enable_resistance_break_exit=bool(
-            knobs.get("enable_resistance_break_exit", True)
+            knobs.get("enable_resistance_break_exit", False)
         ),
         resistance_break_pierce_buffer_atr=float(
             knobs.get("resistance_break_pierce_buffer_atr", 0.5)

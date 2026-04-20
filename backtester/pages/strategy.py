@@ -27,8 +27,18 @@ st.caption(
 with st.sidebar:
     st.header("Market")
     ticker = st.text_input("Ticker", value="AAPL")
-    start_date = st.date_input("Start Date", value=date.today() - timedelta(days=365))
-    end_date = st.date_input("End Date", value=date.today())
+    start_date = st.date_input(
+        "Start Date",
+        value=date.today() - timedelta(days=365),
+        min_value=date(2000, 1, 1),
+        max_value=date.today(),
+    )
+    end_date = st.date_input(
+        "End Date",
+        value=date.today(),
+        min_value=date(2000, 1, 1),
+        max_value=date.today(),
+    )
 
     st.header("Risk")
     initial_capital = st.number_input(
@@ -177,7 +187,7 @@ with st.sidebar:
     )
     enable_entry_ema_filter = st.checkbox(
         "Enable EMA-extension entry filter",
-        value=False,
+        value=True,
         help="Entry open이 signal bar의 max(10EMA, 20EMA) 위로 N × ATR "
         "이상 초과하면 진입 거부. ATR 기반이라 변동성에 자동 적응.",
     )
@@ -258,7 +268,7 @@ with st.sidebar:
     )
     enable_swing_resistance = st.checkbox(
         "Enable swing-high resistance filter (Entry)",
-        value=False,
+        value=True,
         help="Entry open이 직전 swing high 바로 아래 "
         "`tolerance × ATR` 이내면 거부 (저항선 충돌). "
         "저항선을 돌파한 상태면 통과 — 이미 깨고 올라간 경우는 OK.",
@@ -275,7 +285,7 @@ with st.sidebar:
     )
     enable_trendline_exit = st.checkbox(
         "Enable higher-low trendline exit",
-        value=False,
+        value=True,
         help="최근 swing low들을 이어 만든 상승 추세선 아래로 "
         "low가 침투하면 추세선 가격에 체결 (limit 모델). "
         "slope ≤ 0이면 비활성 (higher-low 구조 없음).",
@@ -329,25 +339,114 @@ with st.sidebar:
     st.header("Extras (no tuning — toggle only)")
     enable_market_regime_filter = st.checkbox(
         "Market regime filter — SPY > 200 SMA (Entry)",
-        value=False,
-        help="진입 시점에 SPY 종가가 SPY 200일 SMA 위에 있을 때만 "
-        "entry 허용. 약세장 wedge pop의 높은 실패율을 차단. "
-        "파라미터 없음 (SPY, 200 SMA 하드코딩).",
+        value=True,
+        help="진입 시점 SPY 종가가 SPY 200 SMA 위일 때만 허용. "
+        "약세장 wedge pop 실패율이 높은 문제를 차단.",
     )
     enable_breakeven_stop = st.checkbox(
         "Break-even stop after ≥ 1R profit (Exit)",
+        value=True,
+        help="close가 entry+1R 이상 한번이라도 도달한 뒤 " "low가 entry 아래로 가면 entry 가격에 청산.",
+    )
+    breakeven_arm_r_multiple_ui = st.number_input(
+        "Break-even arm R multiple",
+        value=1.0,
+        min_value=0.5,
+        max_value=5.0,
+        step=0.1,
+        format="%.2f",
+        disabled=not enable_breakeven_stop,
+        help="close가 entry + N×(entry-stop) 이상 도달해야 arm. "
+        "1.0 = 기존(진입 후 +1R 즉시 arm). 1.5~2.0으로 올리면 더 증명된 "
+        "뒤 arm하지만, +1R~+1.5R 사이에서 반등했다 빠지는 트레이드들이 "
+        "원 stop까지 가서 손실 커질 수 있음 — 실측상 악화 확인됨.",
+    )
+    structural_exit_grace_bars_ui = st.number_input(
+        "Structural-exit grace bars (Exit)",
+        value=0,
+        min_value=0,
+        max_value=20,
+        step=1,
+        help="진입 후 N 바까지 trendline break + resistance break "
+        "exit 억제. 0 = 기존. N>0으로 올리면 초기 chop 통과하지만, "
+        "dud 신호에서 빠르게 털지 못해 손실 커지는 부작용 관찰됨.",
+    )
+    breakeven_exit_offset_r_ui = st.number_input(
+        "Break-even exit offset (× R)",
+        value=0.0,
+        min_value=0.0,
+        max_value=2.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_breakeven_stop,
+        help="Breakeven armed 이후 low가 entry+offset×R 닿으면 "
+        "exit. 0 = entry 가격(기존). 작은 universe에서는 0.3 정도가 "
+        "도움되지만, max_tickers=0 전체 유니버스에선 rotation을 줄여 "
+        "오히려 역효과였음. 기본값은 0으로 유지.",
+    )
+    enable_structural_close_confirm = st.checkbox(
+        "Structural-exit CLOSE confirmation",
         value=False,
-        help="보유 중 close가 entry + (entry - stop_loss) 이상에 "
-        "한 번이라도 도달하면, 이후 low가 entry 이하로 내려올 때 "
-        "entry 가격에 청산 (손실 0). -3~-10% 꼬리 손실 제거. "
-        "파라미터 없음 (1R 하드코딩).",
+        help="trendline/resistance break을 LOW 기반(기존) 대신 "
+        "CLOSE 기반으로. 작은 universe(~150 tickers)에선 1일 wick "
+        "탈출 차단해 큰 개선이나, 전체 universe에선 포지션이 "
+        "오래 남아 다음 winner 신호 놓치므로 기본 OFF.",
     )
     enable_gap_down_rejection = st.checkbox(
         "Gap-down open rejection (Entry)",
+        value=True,
+        help="entry open이 signal bar low 아래로 갭다운 시 거부.",
+    )
+    enable_signal_close_strength = st.checkbox(
+        "Signal close-strength filter (Entry)",
         value=False,
-        help="진입봉의 open이 signal bar의 low 아래로 갭다운하면 "
-        "entry 거부. 큰 꼬리 손실(-20%대)의 주범인 structural 파괴 "
-        "케이스를 차단. 파라미터 없음.",
+        help="signal 봉의 close가 당일 range의 상단 N% 이상일 때만 진입. "
+        "close_location = (close - low) / (high - low). 윗꼬리 큰 pump-and-fade "
+        "캔들을 차단. 켜면 샘플 수가 줄어드는 경향.",
+    )
+    min_signal_close_location_ui = st.number_input(
+        "Min signal close location (0=low, 1=high)",
+        value=0.5,
+        min_value=0.0,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_signal_close_strength,
+        help="0.5 = 하단 절반 close 거부. 0.7 = 상단 30%만 통과 (더 보수적).",
+    )
+    enable_swing_breakout = st.checkbox(
+        "Swing-breakout filter (Entry)",
+        value=False,
+        help="signal 봉의 high가 직전 swing high를 buffer×ATR 이상 "
+        "돌파해야 진입. 구조적 돌파 확증. buffer=0에서도 상당히 제한적.",
+    )
+    swing_breakout_buffer_atr_ui = st.number_input(
+        "Swing-breakout buffer (× ATR)",
+        value=0.0,
+        min_value=0.0,
+        max_value=3.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_swing_breakout,
+        help="0 = 단순 돌파만 요구. 0.3 = 0.3×ATR 이상 확실히 돌파해야.",
+    )
+    enable_euphoria_cap = st.checkbox(
+        "Signal bar euphoria cap (Entry)",
+        value=True,
+        help="signal 봉의 당일 상승폭(close-open)이 ATR의 N배를 초과하면 "
+        "거부. 다종목 스캔에서 buy/sell ratio 랭킹이 euphoric 급등 후보를 "
+        "선호하는 adverse selection을 방지. 이미 한계 돌파한 pump 캔들은 "
+        "다음날 mean revert 확률이 높음.",
+    )
+    max_signal_bar_gain_atr_ui = st.number_input(
+        "Max signal bar gain (× ATR)",
+        value=2.5,
+        min_value=0.5,
+        max_value=10.0,
+        step=0.1,
+        format="%.2f",
+        disabled=not enable_euphoria_cap,
+        help="일봉 (close-open)/ATR 상한. 2.5 = 일반적 breakout 허용, " "극단 pump 제거. 낮출수록 보수적.",
     )
 
     st.header("Exit Tuning")
@@ -517,6 +616,15 @@ strategy = WedgepopStrategy(
     market_regime_df=market_regime_df,
     enable_breakeven_stop=enable_breakeven_stop,
     enable_gap_down_rejection=enable_gap_down_rejection,
+    enable_signal_close_strength_filter=enable_signal_close_strength,
+    min_signal_close_location=float(min_signal_close_location_ui),
+    enable_swing_breakout_filter=enable_swing_breakout,
+    swing_breakout_buffer_atr=float(swing_breakout_buffer_atr_ui),
+    max_signal_bar_gain_atr=(float(max_signal_bar_gain_atr_ui) if enable_euphoria_cap else None),
+    breakeven_arm_r_multiple=float(breakeven_arm_r_multiple_ui),
+    structural_exit_grace_bars=int(structural_exit_grace_bars_ui),
+    breakeven_exit_offset_r=float(breakeven_exit_offset_r_ui),
+    structural_exit_close_confirm=enable_structural_close_confirm,
 )
 
 with st.spinner("Running strategy..."):

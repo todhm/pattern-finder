@@ -1,0 +1,545 @@
+[
+  {
+    "tickers_scanned": 503,
+    "total_signals": 12836,
+    "trades_taken": 52,
+    "total_return_pct": 65.1,
+    "win_rate_pct": 61.54,
+    "max_dd_pct": 27.16,
+    "final_capital": 165103.37,
+    "gross_pnl": 77096.17,
+    "net_pnl": 65103.37,
+    "commission": 11992.8,
+    "wins": 32,
+    "losses": 20,
+    "avg_win_pct": 6.01,
+    "avg_loss_pct": -5.6,
+    "exit_reasons": {
+      "exhaustion_exit": 42,
+      "breakeven_stop": 10
+    },
+    "trades": [
+      {
+        "ticker": "TMUS",
+        "entry": "2017-01-11",
+        "exit": "2017-01-27",
+        "days": 16,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 6.42,
+        "gross_pnl": 6625.45,
+        "net_pnl": 6416.44
+      },
+      {
+        "ticker": "TRGP",
+        "entry": "2017-02-02",
+        "exit": "2017-07-17",
+        "days": 165,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -21.26,
+        "gross_pnl": -22426.72,
+        "net_pnl": -22618.98
+      },
+      {
+        "ticker": "IBKR",
+        "entry": "2017-07-24",
+        "exit": "2017-08-04",
+        "days": 11,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 4.85,
+        "gross_pnl": 3461.54,
+        "net_pnl": 3319.42
+      },
+      {
+        "ticker": "TDG",
+        "entry": "2017-08-08",
+        "exit": "2017-11-03",
+        "days": 87,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 7.49,
+        "gross_pnl": 6700.24,
+        "net_pnl": 6517.33
+      },
+      {
+        "ticker": "NEE",
+        "entry": "2017-11-08",
+        "exit": "2018-03-22",
+        "days": 134,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 5.66,
+        "gross_pnl": 5491.59,
+        "net_pnl": 5296.6
+      },
+      {
+        "ticker": "INTC",
+        "entry": "2018-04-02",
+        "exit": "2018-04-27",
+        "days": 25,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 1.81,
+        "gross_pnl": 1918.86,
+        "net_pnl": 1723.96
+      },
+      {
+        "ticker": "CNC",
+        "entry": "2018-05-03",
+        "exit": "2018-06-13",
+        "days": 41,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 8.78,
+        "gross_pnl": 6966.33,
+        "net_pnl": 6802.57
+      },
+      {
+        "ticker": "EPAM",
+        "entry": "2018-06-19",
+        "exit": "2018-07-10",
+        "days": 21,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 3.34,
+        "gross_pnl": 3809.81,
+        "net_pnl": 3588.59
+      },
+      {
+        "ticker": "DPZ",
+        "entry": "2018-07-12",
+        "exit": "2018-08-29",
+        "days": 48,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 6.91,
+        "gross_pnl": 7905.23,
+        "net_pnl": 7672.63
+      },
+      {
+        "ticker": "ES",
+        "entry": "2018-08-31",
+        "exit": "2018-09-19",
+        "days": 19,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -240.06
+      },
+      {
+        "ticker": "FISV",
+        "entry": "2018-09-24",
+        "exit": "2018-10-04",
+        "days": 10,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -239.65
+      },
+      {
+        "ticker": "STZ",
+        "entry": "2018-10-15",
+        "exit": "2019-04-09",
+        "days": 176,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -14.41,
+        "gross_pnl": -13656.74,
+        "net_pnl": -13837.01
+      },
+      {
+        "ticker": "JCI",
+        "entry": "2019-04-29",
+        "exit": "2019-05-01",
+        "days": 2,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 5.41,
+        "gross_pnl": 5863.94,
+        "net_pnl": 5646.82
+      },
+      {
+        "ticker": "FSLR",
+        "entry": "2019-05-08",
+        "exit": "2019-06-11",
+        "days": 34,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 4.32,
+        "gross_pnl": 4976.2,
+        "net_pnl": 4748.53
+      },
+      {
+        "ticker": "EXC",
+        "entry": "2019-06-13",
+        "exit": "2019-09-06",
+        "days": 85,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -4.2,
+        "gross_pnl": -4074.08,
+        "net_pnl": -4275.73
+      },
+      {
+        "ticker": "BLDR",
+        "entry": "2019-09-10",
+        "exit": "2019-10-18",
+        "days": 38,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 17.65,
+        "gross_pnl": 19747.77,
+        "net_pnl": 19504.0
+      },
+      {
+        "ticker": "AVB",
+        "entry": "2019-10-31",
+        "exit": "2020-01-22",
+        "days": 83,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -0.64,
+        "gross_pnl": -570.4,
+        "net_pnl": -832.83
+      },
+      {
+        "ticker": "MAR",
+        "entry": "2020-02-20",
+        "exit": "2020-06-05",
+        "days": 106,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -26.7,
+        "gross_pnl": -34256.36,
+        "net_pnl": -34482.55
+      },
+      {
+        "ticker": "VRSN",
+        "entry": "2020-06-09",
+        "exit": "2020-10-13",
+        "days": 126,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 0.27,
+        "gross_pnl": 449.31,
+        "net_pnl": 257.28
+      },
+      {
+        "ticker": "CVNA",
+        "entry": "2020-10-16",
+        "exit": "2020-11-23",
+        "days": 38,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 6.97,
+        "gross_pnl": 4489.11,
+        "net_pnl": 4358.1
+      },
+      {
+        "ticker": "KO",
+        "entry": "2020-12-04",
+        "exit": "2021-01-04",
+        "days": 31,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -200.89
+      },
+      {
+        "ticker": "TSCO",
+        "entry": "2021-01-07",
+        "exit": "2021-01-15",
+        "days": 8,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 7.89,
+        "gross_pnl": 7756.06,
+        "net_pnl": 7554.42
+      },
+      {
+        "ticker": "IFF",
+        "entry": "2021-01-20",
+        "exit": "2021-02-04",
+        "days": 15,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 4.66,
+        "gross_pnl": 1833.48,
+        "net_pnl": 1755.38
+      },
+      {
+        "ticker": "CPT",
+        "entry": "2021-02-11",
+        "exit": "2021-04-22",
+        "days": 70,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 15.88,
+        "gross_pnl": 17439.41,
+        "net_pnl": 17202.39
+      },
+      {
+        "ticker": "CVNA",
+        "entry": "2021-04-26",
+        "exit": "2021-06-24",
+        "days": 59,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 8.81,
+        "gross_pnl": 6501.6,
+        "net_pnl": 6349.18
+      },
+      {
+        "ticker": "VTR",
+        "entry": "2021-07-07",
+        "exit": "2021-07-19",
+        "days": 12,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -266.92
+      },
+      {
+        "ticker": "EBAY",
+        "entry": "2021-07-21",
+        "exit": "2021-07-26",
+        "days": 5,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 5.34,
+        "gross_pnl": 7302.85,
+        "net_pnl": 7029.04
+      },
+      {
+        "ticker": "LRCX",
+        "entry": "2021-08-02",
+        "exit": "2021-11-08",
+        "days": 98,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -5.71,
+        "gross_pnl": -3486.67,
+        "net_pnl": -3611.01
+      },
+      {
+        "ticker": "MCO",
+        "entry": "2021-11-10",
+        "exit": "2021-11-17",
+        "days": 7,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -273.2
+      },
+      {
+        "ticker": "APA",
+        "entry": "2021-11-24",
+        "exit": "2022-01-05",
+        "days": 42,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 1.33,
+        "gross_pnl": 1249.81,
+        "net_pnl": 1084.08
+      },
+      {
+        "ticker": "CNP",
+        "entry": "2022-01-07",
+        "exit": "2022-02-04",
+        "days": 28,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -274.99
+      },
+      {
+        "ticker": "TDG",
+        "entry": "2022-02-16",
+        "exit": "2022-07-22",
+        "days": 156,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -11.83,
+        "gross_pnl": -10687.42,
+        "net_pnl": -10862.25
+      },
+      {
+        "ticker": "BAC",
+        "entry": "2022-12-01",
+        "exit": "2023-07-25",
+        "days": 236,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -13.21,
+        "gross_pnl": -16252.39,
+        "net_pnl": -16488.25
+      },
+      {
+        "ticker": "NRG",
+        "entry": "2023-08-01",
+        "exit": "2023-09-19",
+        "days": 49,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 3.12,
+        "gross_pnl": 3170.63,
+        "net_pnl": 2974.29
+      },
+      {
+        "ticker": "AZO",
+        "entry": "2023-09-21",
+        "exit": "2023-11-08",
+        "days": 48,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 2.77,
+        "gross_pnl": 2757.96,
+        "net_pnl": 2567.53
+      },
+      {
+        "ticker": "PANW",
+        "entry": "2023-11-21",
+        "exit": "2023-12-14",
+        "days": 23,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 15.54,
+        "gross_pnl": 9036.69,
+        "net_pnl": 8911.41
+      },
+      {
+        "ticker": "CL",
+        "entry": "2023-12-22",
+        "exit": "2024-01-03",
+        "days": 12,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 2.04,
+        "gross_pnl": 2748.37,
+        "net_pnl": 2497.31
+      },
+      {
+        "ticker": "JKHY",
+        "entry": "2024-01-05",
+        "exit": "2024-02-12",
+        "days": 38,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 5.6,
+        "gross_pnl": 7278.28,
+        "net_pnl": 7017.48
+      },
+      {
+        "ticker": "ORLY",
+        "entry": "2024-02-14",
+        "exit": "2024-03-18",
+        "days": 33,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 7.41,
+        "gross_pnl": 10074.47,
+        "net_pnl": 9796.58
+      },
+      {
+        "ticker": "HD",
+        "entry": "2024-03-20",
+        "exit": "2024-03-21",
+        "days": 1,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 3.95,
+        "gross_pnl": 5901.91,
+        "net_pnl": 5608.81
+      },
+      {
+        "ticker": "AIZ",
+        "entry": "2024-03-26",
+        "exit": "2024-03-28",
+        "days": 2,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 3.61,
+        "gross_pnl": 5630.27,
+        "net_pnl": 5326.07
+      },
+      {
+        "ticker": "NFLX",
+        "entry": "2024-04-04",
+        "exit": "2024-07-19",
+        "days": 106,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -309.47
+      },
+      {
+        "ticker": "TT",
+        "entry": "2024-07-23",
+        "exit": "2024-09-18",
+        "days": 57,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 9.92,
+        "gross_pnl": 15438.67,
+        "net_pnl": 15114.57
+      },
+      {
+        "ticker": "TDY",
+        "entry": "2024-09-20",
+        "exit": "2024-10-15",
+        "days": 25,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 3.44,
+        "gross_pnl": 6118.09,
+        "net_pnl": 5772.6
+      },
+      {
+        "ticker": "C",
+        "entry": "2024-10-23",
+        "exit": "2024-11-04",
+        "days": 12,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -351.08
+      },
+      {
+        "ticker": "WRB",
+        "entry": "2024-11-18",
+        "exit": "2024-11-25",
+        "days": 7,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 4.08,
+        "gross_pnl": 6737.41,
+        "net_pnl": 6412.35
+      },
+      {
+        "ticker": "PRU",
+        "entry": "2024-12-06",
+        "exit": "2025-03-26",
+        "days": 110,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -8.39,
+        "gross_pnl": -14713.05,
+        "net_pnl": -15061.2
+      },
+      {
+        "ticker": "TDG",
+        "entry": "2025-05-13",
+        "exit": "2025-08-05",
+        "days": 84,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -330.78
+      },
+      {
+        "ticker": "MA",
+        "entry": "2025-08-11",
+        "exit": "2025-09-10",
+        "days": 30,
+        "reason": "breakeven_stop",
+        "pnl_pct": -0.2,
+        "gross_pnl": 0.0,
+        "net_pnl": -331.16
+      },
+      {
+        "ticker": "OXY",
+        "entry": "2025-09-17",
+        "exit": "2026-01-29",
+        "days": 134,
+        "reason": "exhaustion_exit",
+        "pnl_pct": -3.7,
+        "gross_pnl": -4832.75,
+        "net_pnl": -5107.26
+      },
+      {
+        "ticker": "ANET",
+        "entry": "2026-02-09",
+        "exit": "2026-04-10",
+        "days": 60,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 6.35,
+        "gross_pnl": 5559.91,
+        "net_pnl": 5382.75
+      },
+      {
+        "ticker": "MGM",
+        "entry": "2026-04-16",
+        "exit": "2026-04-17",
+        "days": 1,
+        "reason": "exhaustion_exit",
+        "pnl_pct": 0.82,
+        "gross_pnl": 1111.5,
+        "net_pnl": 890.13
+      }
+    ],
+    "label": "trendline_off_resistance_off"
+  }
+]

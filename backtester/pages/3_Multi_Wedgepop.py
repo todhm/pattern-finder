@@ -47,8 +47,18 @@ with st.sidebar:
     )
 
     st.header("Period")
-    start_date = st.date_input("Start Date", value=date.today() - timedelta(days=365))
-    end_date = st.date_input("End Date", value=date.today())
+    start_date = st.date_input(
+        "Start Date",
+        value=date.today() - timedelta(days=365),
+        min_value=date(2000, 1, 1),
+        max_value=date.today(),
+    )
+    end_date = st.date_input(
+        "End Date",
+        value=date.today(),
+        min_value=date(2000, 1, 1),
+        max_value=date.today(),
+    )
 
     st.header("Risk")
     initial_capital = st.number_input(
@@ -282,7 +292,7 @@ with st.sidebar:
     )
     enable_resistance_break_exit = st.checkbox(
         "Enable resistance-break exit (false-breakout)",
-        value=True,
+        value=False,
         help="window 내 모든 swing high를 독립 stop으로. close가 "
         "level + confirm_buffer×ATR 넘으면 confirmed. 이후 low가 "
         "level - pierce_buffer×ATR 밑으로 가면 체결.",

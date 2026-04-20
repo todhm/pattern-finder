@@ -21,3 +21,9 @@ Downtrends.docx
 Downtrends/
 .DS_Store
 pattern-finder-cache/
+
+# Backtester parameter sweep artifacts
+backtester/sweep_batch.json
+backtester/sweep_run.py
+backtester/sweep_result.json
+backtester/sweep_progress.log
