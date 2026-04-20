@@ -38,6 +38,15 @@ class CachedMarketDataAdapter(MarketDataPort):
         start: date,
         end: date,
     ) -> pd.DataFrame:
+        # Requests that include today's bar must bypass the cache —
+        # the intraday/live bar updates through the session, and a
+        # cached snapshot from earlier today would serve stale
+        # OHLC/volume values. Historical windows (end < today) are
+        # stable and safe to cache.
+        today = date.today()
+        if end >= today:
+            return self._upstream.fetch_ohlcv(symbol, start, end)
+
         path = self._cache_path(symbol, start, end)
         if path.exists():
             try:

@@ -12,9 +12,10 @@ COPY pyproject.toml ./
 # pyproject.toml present. Editable mode writes an egg-link pointing at
 # /app, so the real source copied below becomes live immediately —
 # no re-install needed when only source changes.
-RUN mkdir -p data pattern backtest visualization strategy pages \
+RUN mkdir -p data pattern backtest visualization strategy pages signals db \
     && touch data/__init__.py pattern/__init__.py backtest/__init__.py \
              visualization/__init__.py strategy/__init__.py pages/__init__.py \
+             signals/__init__.py db/__init__.py \
     && pip install --no-cache-dir -e ".[test]"
 
 COPY . .

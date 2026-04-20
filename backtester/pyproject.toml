@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.2.0",
     "numpy>=1.26.0",
     "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
     "psycopg2-binary>=2.9.9",
     "ta>=0.11.0",
     "streamlit>=1.31.0",
@@ -45,4 +46,4 @@ line-length = 108
 max-line-length = 108
 
 [tool.setuptools.packages.find]
-include = ["data*", "pattern*", "backtest*", "visualization*", "strategy*", "pages*"]
+include = ["data*", "pattern*", "backtest*", "visualization*", "strategy*", "pages*", "signals*", "db*"]
