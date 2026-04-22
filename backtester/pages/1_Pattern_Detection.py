@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+import plotly.graph_objects as go
 import streamlit as st
 
 from data.adapters.yfinance_adapter import YFinanceAdapter
@@ -9,6 +10,7 @@ from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDete
 from pattern.adapters.reversal_extension import ReversalExtensionDetector
 from pattern.adapters.wedge_drop import WedgeDropDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
+from pattern.adapters.wick_play import WickPlayDetector
 from visualization.adapters.plotly_charts import PlotlyChartBuilder
 
 st.set_page_config(page_title="Pattern Detection", layout="wide")
@@ -16,6 +18,7 @@ st.title("Pattern Detection")
 
 PATTERN_OPTIONS = [
     "wedge_pop",
+    "wick_play",
     "reversal_extension",
     "exhaustion_extension_top",
     "wedge_drop",
@@ -154,6 +157,139 @@ with st.sidebar:
             step=0.01,
             format="%.3f",
             disabled=not enable_max_slope_wp,
+        )
+
+    elif pattern_name == "wick_play":
+        st.header("Wick Play")
+        st.caption(
+            "Oliver Kell의 3봉 리버설 셋업 — 윗꼬리 봉 → 거래량 말라붙은 "
+            "inside bar → wick high 돌파. "
+            "sellers → stalemate → buyers 전환을 micro 타임프레임에 압축."
+        )
+        min_upper_wick_ratio_wp_wk = st.number_input(
+            "Min upper wick / range",
+            value=0.5,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.05,
+            format="%.2f",
+            help="Wick 봉의 `(high - max(open,close)) / (high - low)` "
+            "최소값. 0.5 = 윗꼬리가 당일 range의 50% 이상 차지해야 함.",
+        )
+        max_volume_dryup_wk = st.number_input(
+            "Max inside-bar volume vs wick bar",
+            value=1.0,
+            min_value=0.1,
+            max_value=2.0,
+            step=0.05,
+            format="%.2f",
+            help="Inside bar 거래량 / wick bar 거래량 상한. "
+            "1.0 = 넘지만 않으면 OK, 0.7 = 엄격한 dry-up (30%+ 감소 요구).",
+        )
+        breakout_trigger_wk = st.selectbox(
+            "Breakout trigger",
+            options=["wick_high", "inside_high"],
+            index=0,
+            help="wick_high = 보수적 (Bar i-2 고점 돌파 요구). "
+            "inside_high = 공격적 (Bar i-1 고점만 돌파하면 OK, 더 타이트한 stop).",
+        )
+        stop_mode_wk = st.selectbox(
+            "Stop placement",
+            options=["inside_low", "wick_low"],
+            index=0,
+            help="inside_low = Bar i-1 저점 (타이트). " "wick_low = Bar i-2 저점 (여유).",
+        )
+        enable_max_wick_range_wk = st.checkbox(
+            "Cap wick-bar range (× ATR)",
+            value=True,
+            help="Oliver Kell: 'wick이 너무 크면 리스크가 커진다'. "
+            "Wick 봉의 total range가 ATR의 N배를 넘으면 거부.",
+        )
+        max_wick_range_atr_wk = st.number_input(
+            "Max wick-bar range (× ATR)",
+            value=2.5,
+            min_value=0.5,
+            max_value=10.0,
+            step=0.1,
+            format="%.2f",
+            disabled=not enable_max_wick_range_wk,
+        )
+        cooldown_bars_wk = st.number_input(
+            "Cooldown bars",
+            value=5,
+            min_value=0,
+            max_value=60,
+            step=1,
+            help="신호 발동 후 건너뛸 바 개수.",
+        )
+
+        st.subheader("Psychology score (4 checks)")
+        st.caption(
+            "Wick Play의 심리 3단계(sellers 탈진 → stalemate → buyers 장악)가 "
+            "실제 tape에서 뒷받침되는지 확인하는 4개 필터. "
+            "NVDA 2021-07-12처럼 **형태는 맞는데 심리가 비어있는** 셋업을 거름. "
+            "4개 중 `min_psych_score` 이상 통과해야 신호 발동 (기본 3 of 4)."
+        )
+        min_psych_score_wk = st.slider(
+            "Min psych score (0 = off)",
+            min_value=0,
+            max_value=4,
+            value=3,
+            step=1,
+            help="0 = 심리 필터 off (구조만 체크). "
+            "3 = 4개 중 3개 이상 통과 요구 (기본, 권장). "
+            "4 = 모두 통과 (엄격, 샘플 매우 적어짐).",
+        )
+        psych_vol_lookback_wk = st.number_input(
+            "Vol avg lookback (days)",
+            value=20,
+            min_value=5,
+            max_value=100,
+            step=5,
+            help="Check 1(wick-vol exhaustion)에 쓰는 이동평균 거래량 기간.",
+        )
+        psych_wick_vol_exhaustion_mult_wk = st.number_input(
+            "Check 1: wick vol ≤ avg × mult",
+            value=1.0,
+            min_value=0.1,
+            max_value=3.0,
+            step=0.05,
+            format="%.2f",
+            help="Wick bar 거래량이 ≤ (N-day 평균 × mult) 이어야 통과. "
+            "1.0 = 평균 이하 (탈진 시나리오). 거래량이 평균을 넘으면 "
+            "매도자가 힘을 다 쓴 게 아니라 **분산** 중 → fail.",
+        )
+        psych_breakout_vol_expansion_mult_wk = st.number_input(
+            "Check 2: breakout vol > wick vol × mult",
+            value=1.0,
+            min_value=0.1,
+            max_value=3.0,
+            step=0.05,
+            format="%.2f",
+            help="Breakout bar 거래량이 > (wick bar 거래량 × mult) 이어야 통과. "
+            "1.0 = wick bar 대비 *더 많이* 붙어야 (매수자 우세 거래량 확증). "
+            "1.5로 올리면 더 강한 확증 요구.",
+        )
+        psych_prior_red_streak_wk = st.number_input(
+            "Check 3: prior red streak bars (fail if all red)",
+            value=2,
+            min_value=0,
+            max_value=10,
+            step=1,
+            help="Wick bar 직전 N봉이 **전부** 음봉(close<open)이면 fail. "
+            "2 = 직전 2봉 연속 음봉이면 거절 (기본). 0 = 체크 off. "
+            "하락 추세 중간에 찍힌 wick을 거름.",
+        )
+        psych_dramatic_wick_ratio_wk = st.number_input(
+            "Check 4: dramatic wick ratio",
+            value=0.65,
+            min_value=0.3,
+            max_value=1.0,
+            step=0.05,
+            format="%.2f",
+            help="upper_wick_ratio가 이 값 이상이면 통과. "
+            "0.5는 구조 하한이고, 0.65+가 Kell의 베스트 예시 수준 "
+            "('극적인 거부 캔들'). 0.53 같은 마진널 케이스를 거름.",
         )
 
     elif pattern_name == "exhaustion_extension_top":
@@ -384,6 +520,22 @@ if run_btn:
                     require_above_long_smas=require_above_long_smas,
                     late_entry_bars=int(late_entry_bars_wp),
                 )
+            elif pattern_name == "wick_play":
+                detector = WickPlayDetector(
+                    min_upper_wick_ratio=float(min_upper_wick_ratio_wp_wk),
+                    max_volume_dryup=float(max_volume_dryup_wk),
+                    breakout_trigger=breakout_trigger_wk,
+                    stop_mode=stop_mode_wk,
+                    max_wick_range_atr=(float(max_wick_range_atr_wk) if enable_max_wick_range_wk else None),
+                    atr_period=int(atr_period),
+                    cooldown_bars=int(cooldown_bars_wk),
+                    psych_vol_lookback=int(psych_vol_lookback_wk),
+                    psych_wick_vol_exhaustion_mult=float(psych_wick_vol_exhaustion_mult_wk),
+                    psych_breakout_vol_expansion_mult=float(psych_breakout_vol_expansion_mult_wk),
+                    psych_prior_red_streak=int(psych_prior_red_streak_wk),
+                    psych_dramatic_wick_ratio=float(psych_dramatic_wick_ratio_wk),
+                    min_psych_score=int(min_psych_score_wk),
+                )
             elif pattern_name == "reversal_extension":
                 detector = ReversalExtensionDetector()
             elif pattern_name == "exhaustion_extension_top":
@@ -467,6 +619,82 @@ if run_btn:
     chart_builder = PlotlyChartBuilder()
     fig = chart_builder.build_candlestick_with_signals(df, signals, title=f"{ticker} — {pattern_name}")
     fig.update_xaxes(range=[str(start_date), str(end_date)])
+
+    # Wick Play 3-bar overlay — annotate Bar i-2 (W = wick),
+    # Bar i-1 (I = inside), Bar i (B = breakout) so the user can
+    # see the full setup structure, not just the entry.
+    if pattern_name == "wick_play" and signals:
+        df_tz = df.copy()
+        if df_tz.index.tz is not None:
+            df_tz.index = df_tz.index.tz_localize(None)
+        date_to_pos = {idx.date(): p for p, idx in enumerate(df_tz.index)}
+        first_group = True
+        for s in signals:
+            pos_i = date_to_pos.get(s.date)
+            if pos_i is None or pos_i < 2:
+                continue
+            ts_w = df_tz.index[pos_i - 2]
+            ts_n = df_tz.index[pos_i - 1]
+            ts_b = df_tz.index[pos_i]
+            high_w = float(df_tz["High"].iloc[pos_i - 2])
+            high_n = float(df_tz["High"].iloc[pos_i - 1])
+            high_b = float(df_tz["High"].iloc[pos_i])
+            wick_high = float(s.metadata.get("wick_high", high_w))
+
+            # Letter markers above each bar's high
+            fig.add_trace(
+                go.Scatter(
+                    x=[ts_w, ts_n, ts_b],
+                    y=[high_w * 1.01, high_n * 1.01, high_b * 1.01],
+                    mode="markers+text",
+                    marker=dict(
+                        symbol=["circle", "square", "diamond"],
+                        size=[16, 16, 16],
+                        color=["#FFB300", "#9E9E9E", "#2196F3"],
+                        line=dict(width=1, color="white"),
+                    ),
+                    text=["W", "I", "B"],
+                    textposition="middle center",
+                    textfont=dict(color="white", size=10, family="Arial Black"),
+                    name="Wick / Inside / Breakout",
+                    legendgroup="wick_play_bars",
+                    showlegend=first_group,
+                    hovertext=[
+                        f"Bar i-2 — Wick bar<br>Date: {ts_w.date()}<br>"
+                        f"High: {high_w:.2f}<br>"
+                        f"Upper wick ratio: {s.metadata.get('upper_wick_ratio')}",
+                        f"Bar i-1 — Inside bar<br>Date: {ts_n.date()}<br>"
+                        f"High: {high_n:.2f}  Low: {s.metadata.get('inside_low')}<br>"
+                        f"Vol vs wick: {s.metadata.get('inside_vol_ratio_vs_wick')}",
+                        f"Bar i — Breakout<br>Date: {ts_b.date()}<br>"
+                        f"Close: {s.entry_price:.2f}<br>"
+                        f"Breakout strength: {s.metadata.get('breakout_strength_atr')} ATR",
+                    ],
+                    hoverinfo="text",
+                ),
+                row=1,
+                col=1,
+            )
+
+            # Trigger line — wick_high from Bar i-2 through Bar i
+            fig.add_trace(
+                go.Scatter(
+                    x=[ts_w, ts_b],
+                    y=[wick_high, wick_high],
+                    mode="lines",
+                    line=dict(color="#FFB300", width=1.2, dash="dash"),
+                    name="Wick High (trigger)",
+                    legendgroup="wick_play_trigger",
+                    showlegend=first_group,
+                    hoverinfo="skip",
+                    opacity=0.75,
+                ),
+                row=1,
+                col=1,
+            )
+
+            first_group = False
+
     st.plotly_chart(fig, use_container_width=True)
 
     if signals:
