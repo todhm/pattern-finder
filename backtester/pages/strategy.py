@@ -330,11 +330,12 @@ with st.sidebar:
         disabled=not enable_trendline_exit,
         help="최근 N개 swing low까지 써서 선형회귀. 2면 정확히 " "최근 두 점을 잇는 선.",
     )
-    show_swing_overlay = st.checkbox(
-        "Show swing pivots / lines on trade chart",
-        value=True,
-        help="per-trade 차트에 swing high/low 마커와 저항선/추세선을 오버레이.",
-    )
+    # Master swing-overlay toggle retired — each pivot / line is now
+    # gated on the specific strategy flag that actually uses it, so
+    # the chart only renders what's currently active. Keeping the
+    # name bound to True preserves downstream references without
+    # adding dead code.
+    show_swing_overlay = True
 
     st.header("Extras (no tuning — toggle only)")
     enable_market_regime_filter = st.checkbox(
@@ -696,35 +697,48 @@ if enable_exh_exit:
 # all potential resistance stops, exhaustion fires) so the user
 # can evaluate the signal landscape even outside actual trades.
 # ------------------------------------------------------------
-if show_swing_overlay and "swing_high" in df_ind.columns:
-    sh_all = df_ind["swing_high"].dropna()
-    if len(sh_all) > 0:
-        trade_fig.add_trace(
-            go.Scatter(
-                x=sh_all.index,
-                y=sh_all.values,
-                mode="markers",
-                marker=dict(symbol="triangle-down", color="#E53935", size=9),
-                name="Swing High",
-                hoverinfo="skip",
-            ),
-            row=1,
-            col=1,
-        )
-    sl_all = df_ind["swing_low"].dropna()
-    if len(sl_all) > 0:
-        trade_fig.add_trace(
-            go.Scatter(
-                x=sl_all.index,
-                y=sl_all.values,
-                mode="markers",
-                marker=dict(symbol="triangle-up", color="#43A047", size=9),
-                name="Swing Low",
-                hoverinfo="skip",
-            ),
-            row=1,
-            col=1,
-        )
+if "swing_high" in df_ind.columns:
+    # Swing high markers — shown only when an active filter/exit
+    # consumes the swing_high column (otherwise visual noise).
+    swing_high_users = (
+        enable_swing_resistance
+        or enable_resistance_break_exit
+        or enable_swing_breakout
+    )
+    if swing_high_users:
+        sh_all = df_ind["swing_high"].dropna()
+        if len(sh_all) > 0:
+            trade_fig.add_trace(
+                go.Scatter(
+                    x=sh_all.index,
+                    y=sh_all.values,
+                    mode="markers",
+                    marker=dict(symbol="triangle-down", color="#E53935", size=9),
+                    name="Swing High",
+                    hovertemplate="Swing High: $%{y:.2f}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
+    else:
+        sh_all = df_ind["swing_high"].dropna()  # needed below if flags change
+
+    # Swing low markers — only the trendline exit uses swing_low.
+    if enable_trendline_exit:
+        sl_all = df_ind["swing_low"].dropna()
+        if len(sl_all) > 0:
+            trade_fig.add_trace(
+                go.Scatter(
+                    x=sl_all.index,
+                    y=sl_all.values,
+                    mode="markers",
+                    marker=dict(symbol="triangle-up", color="#43A047", size=9),
+                    name="Swing Low",
+                    hovertemplate="Swing Low: $%{y:.2f}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
 
     # Resistance Stop lines — every confirmed swing high extends
     # rightward for ``lookback + right`` bars (the window in which
@@ -746,7 +760,7 @@ if show_swing_overlay and "swing_high" in df_ind.columns:
                     showlegend=first,
                     legendgroup="res_stops",
                     opacity=0.55,
-                    hoverinfo="skip",
+                    hovertemplate="Resistance Stop: $%{y:.2f}<extra></extra>",
                 ),
                 row=1,
                 col=1,
@@ -779,7 +793,7 @@ if show_swing_overlay and "swing_high" in df_ind.columns:
                     mode="lines",
                     line=dict(color="#E53935", width=1.4, dash="dot"),
                     name="Swing Resistance (filter)",
-                    hoverinfo="skip",
+                    hovertemplate="Swing Resistance: $%{y:.2f}<extra></extra>",
                 ),
                 row=1,
                 col=1,
@@ -817,15 +831,62 @@ if enable_trendline_exit and "swing_low" in df_ind.columns:
                 line=dict(color="#FF1744", width=4.5, dash="solid"),
                 marker=dict(size=4, color="#FF1744"),
                 name="HL Trendline",
-                hoverinfo="skip",
+                hovertemplate="HL Trendline: $%{y:.2f}<extra></extra>",
             ),
             row=1,
             col=1,
         )
 
-# Exhaustion Extension Top — every bar the detector fires, across
-# the whole chart. Rendered as a yellow-red star slightly above
-# each bar's high.
+# Exhaustion Extension Top — always plot the continuous threshold
+# so the user can see "what price needs to cross" at every bar,
+# regardless of whether a trade is open or the detector fires.
+# Line = ``ema_fast + extension_atr_mult × ATR`` = the primary-path
+# high-extension threshold. Rejection-override path uses
+# ``× rejection_leniency`` (0.9 default), drawn as a secondary
+# fainter line below. Fire markers (⭐) remain on top to mark bars
+# where ALL confirming conditions (slope / close-loc / sell-dom) lined
+# up, not just the extension check.
+if enable_exh_exit and "atr" in df_ind.columns:
+    ema_fast_col = (
+        "ema_trail" if "ema_trail" in df_ind.columns else "ema_fast"
+    )
+    if ema_fast_col in df_ind.columns:
+        ema_f = df_ind[ema_fast_col]
+        atr_col = df_ind["atr"]
+        primary_thr = ema_f + float(exh_exit_extension_atr) * atr_col
+        trade_fig.add_trace(
+            go.Scatter(
+                x=primary_thr.index,
+                y=primary_thr.values,
+                mode="lines",
+                line=dict(color="#FFC107", width=2.0, dash="dash"),
+                name=f"Exh primary ({exh_exit_extension_atr}×ATR)",
+                hovertemplate="Exh primary: $%{y:.2f}<extra></extra>",
+            ),
+            row=1,
+            col=1,
+        )
+        if exh_exit_rejection_override:
+            # 0.9 = ExhaustionExtensionTopDetector default leniency.
+            rejection_thr = ema_f + (
+                float(exh_exit_extension_atr) * 0.9 * atr_col
+            )
+            trade_fig.add_trace(
+                go.Scatter(
+                    x=rejection_thr.index,
+                    y=rejection_thr.values,
+                    mode="lines",
+                    line=dict(color="#FFE082", width=1.2, dash="dot"),
+                    name=f"Exh rejection ({exh_exit_extension_atr * 0.9:.2f}×ATR)",
+                    hovertemplate="Exh rejection: $%{y:.2f}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
+
+# Star markers at bars where the detector fully fires (all confirms
+# satisfied, not just the extension threshold). Rendered on top of
+# the threshold line.
 if enable_exh_exit and exit_fire_dates:
     exh_x = []
     exh_y = []
@@ -848,7 +909,7 @@ if enable_exh_exit and exit_fire_dates:
                     line=dict(width=2, color="#B71C1C"),
                 ),
                 name="Exhaustion Fire",
-                hoverinfo="skip",
+                hovertemplate="Exhaustion Fire @ $%{y:.2f}<extra></extra>",
             ),
             row=1,
             col=1,
@@ -887,7 +948,7 @@ for t in perf.trades:
                         line=dict(color="#2196F3", width=1.5, dash="dashdot"),
                         name="Smart Trail",
                         showlegend=(t == perf.trades[0]),
-                        hoverinfo="skip",
+                        hovertemplate="Smart Trail: $%{y:.2f}<extra></extra>",
                     ),
                     row=1,
                     col=1,
