@@ -90,6 +90,13 @@ class WickPlayDetector(PatternDetector):
         psych_prior_red_streak: int = 2,
         psych_dramatic_wick_ratio: float = 0.65,
         min_psych_score: int = 3,
+        # --- Hard gates from failure-case post-mortem ---
+        min_breakout_strength_atr: float = 0.3,
+        min_prior_trend_20d: float | None = -0.03,
+        max_prior_trend_20d: float | None = None,
+        prior_trend_lookback: int = 20,
+        min_wick_close_location: float = 0.15,
+        min_breakout_close_location: float | None = None,
     ):
         if breakout_trigger not in ("wick_high", "inside_high"):
             raise ValueError(
@@ -114,6 +121,43 @@ class WickPlayDetector(PatternDetector):
         self.psych_prior_red_streak = psych_prior_red_streak
         self.psych_dramatic_wick_ratio = psych_dramatic_wick_ratio
         self.min_psych_score = min_psych_score
+        # Hard gates — derived from deep-dive on 11 failed trades
+        # (PODD/LITE/AIZ/CB/PLTR/AEE/HUM/SBAC/ETR/ADM/KHC).
+        #
+        # ``min_breakout_strength_atr`` — the breakout close must sit
+        # at least this many ATRs above the trigger level. Previously
+        # implicit at 0; 6 of 11 failures had breakouts under 0.3 ATR
+        # (barely-poking-above breakouts = stop-run noise, not a
+        # real "buyers overwhelm sellers" event).
+        #
+        # ``min_prior_trend_20d`` — the wick bar's close must have a
+        # 20-day return no worse than this (default -3%). Caught
+        # HUM(-17%)/ADM(-7.5%)/KHC(-4%)/AIZ(-3.1%). Kell's Wick Play
+        # works inside uptrend pullbacks, not mid-decline bounces.
+        #
+        # ``max_prior_trend_20d`` — optional parabolic cap. When set
+        # (e.g. 0.15), rejects setups that have already rallied more
+        # than this in the prior N days (PLTR +21% case). Exhausted
+        # uptrends turn Wick Plays into tops, not reversals.
+        self.min_breakout_strength_atr = min_breakout_strength_atr
+        self.min_prior_trend_20d = min_prior_trend_20d
+        self.max_prior_trend_20d = max_prior_trend_20d
+        self.prior_trend_lookback = prior_trend_lookback
+        # ``min_wick_close_location`` — wick-bar close must sit at
+        # least this far above the bar's low (as a fraction of its
+        # range). Kell's Wick Play psychology: sellers pushed price
+        # down from high BUT buyers absorbed at the lows. A wick
+        # bar that closes *at* its low (e.g. CL = 0.03) is a
+        # bearish-dominance bar, not absorption — sellers were in
+        # control all session, not just early. Caught the 2024
+        # PODD / ZTS / BG failures where wick CL was 0.03–0.05.
+        #
+        # ``min_breakout_close_location`` — optional gate on where
+        # the BREAKOUT bar closes inside its own range. Weak
+        # breakouts that close mid-range (ZTS 0.61) signal the
+        # intraday buying faded before the bell.
+        self.min_wick_close_location = min_wick_close_location
+        self.min_breakout_close_location = min_breakout_close_location
 
     def detect(
         self,
@@ -152,6 +196,14 @@ class WickPlayDetector(PatternDetector):
             if upper_wick_ratio < self.min_upper_wick_ratio:
                 continue
 
+            # --- Hard gate: wick bar close_location (finding #7) ---
+            # Close sitting at the very bottom of the range = sellers
+            # dominated to the bell, not "absorbed at the lows"
+            # psychology Kell is after.
+            wick_close_location = (w_close - w_low) / w_range
+            if wick_close_location < self.min_wick_close_location:
+                continue
+
             atr_w = float(df["atr"].iloc[w])
             if self.max_wick_range_atr is not None:
                 if pd.isna(atr_w) or atr_w <= 0:
@@ -179,6 +231,59 @@ class WickPlayDetector(PatternDetector):
             )
             if b_close <= trigger_level:
                 continue
+
+            # --- Hard gate: breakout strength (finding #1) ---------
+            # "close > trigger_level" alone accepts 0.01-ATR pokes.
+            # Require the breakout to clear the trigger by a
+            # meaningful ATR fraction.
+            atr_b_gate = float(df["atr"].iloc[i])
+            if self.min_breakout_strength_atr > 0:
+                if pd.isna(atr_b_gate) or atr_b_gate <= 0:
+                    continue
+                strength = (b_close - trigger_level) / atr_b_gate
+                if strength < self.min_breakout_strength_atr:
+                    continue
+
+            # --- Optional gate: breakout-bar close location -------
+            # Breakouts that close mid-range (e.g. ZTS 0.61) mean
+            # intraday buying faded before the bell. Off by default;
+            # set to 0.70+ to require strong top-of-range closes.
+            b_range = float(df["High"].iloc[i]) - float(df["Low"].iloc[i])
+            breakout_close_location = (
+                (b_close - float(df["Low"].iloc[i])) / b_range
+                if b_range > 0
+                else 0.5
+            )
+            if self.min_breakout_close_location is not None:
+                if breakout_close_location < self.min_breakout_close_location:
+                    continue
+
+            # --- Hard gate: 20-day prior-trend filter (finding #2/#3)
+            # Wick Plays work inside uptrend pullbacks, not mid-
+            # decline bounces. Also optionally cap the upper end to
+            # exclude parabolic extensions.
+            lb = self.prior_trend_lookback
+            prior_trend_20d: float | None = None
+            if w >= lb:
+                ref_close = float(df["Close"].iloc[w - lb])
+                if ref_close > 0:
+                    prior_trend_20d = (w_close - ref_close) / ref_close
+            if (
+                self.min_prior_trend_20d is not None
+                or self.max_prior_trend_20d is not None
+            ):
+                if prior_trend_20d is None:
+                    continue
+                if (
+                    self.min_prior_trend_20d is not None
+                    and prior_trend_20d < self.min_prior_trend_20d
+                ):
+                    continue
+                if (
+                    self.max_prior_trend_20d is not None
+                    and prior_trend_20d > self.max_prior_trend_20d
+                ):
+                    continue
 
             # --- Psychology score (4 checks) ---------------------
             # Each check expresses ONE leg of Kell's
@@ -263,6 +368,15 @@ class WickPlayDetector(PatternDetector):
                         "psych_vol_expansion": check_vol_expansion,
                         "psych_no_prior_red_streak": check_no_red_streak,
                         "psych_dramatic_wick": check_dramatic_wick,
+                        "prior_trend_20d": (
+                            round(prior_trend_20d, 4)
+                            if prior_trend_20d is not None
+                            else None
+                        ),
+                        "wick_close_location": round(wick_close_location, 3),
+                        "breakout_close_location": round(
+                            breakout_close_location, 3
+                        ),
                     },
                 )
             )

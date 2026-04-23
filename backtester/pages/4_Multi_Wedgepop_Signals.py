@@ -46,6 +46,36 @@ except Exception:
     pass
 
 
+# ------------------------------------------------------------------
+# Prominent "refresh all targets" CTA — auto-refresh is intentionally
+# disabled (user wants manual control). This button is the single
+# source of truth for pulling latest bars and recomputing the
+# dynamic exit levels (HL Trendline / Exhaustion / latest close /
+# resistance) on BOTH the current scan results AND the saved
+# watchlist. Placed up here so it's always one click away.
+# The heavy lifting happens further down the page once ``repo``,
+# ``build_scanner``, and ``last_scan`` are all in scope; we just
+# set a session flag here.
+# ------------------------------------------------------------------
+st.divider()
+top_refresh_cols = st.columns([3, 1])
+top_refresh_cols[0].markdown(
+    "### 🔄 최신 데이터로 새로고침\n"
+    "scan 결과 + watchlist의 **HL Trendline · 익절 라인 · "
+    "latest close · resistance 레벨**을 오늘 바 기준으로 재계산. "
+    "signal 수만큼 yfinance 호출 발생 (시간 소요될 수 있음). "
+    "자동 새로고침은 비활성화돼 있으므로 필요할 때 직접 눌러줘."
+)
+if top_refresh_cols[1].button(
+    "🔄 모두 새로고침",
+    type="primary",
+    use_container_width=True,
+    key="refresh_all_top_btn",
+):
+    st.session_state._refresh_all_requested = True
+st.divider()
+
+
 # --- Repository: Postgres by default, fall back to in-memory if the
 #     DB is unreachable (e.g. running the page outside docker-compose).
 if "signal_repo" not in st.session_state:
@@ -516,20 +546,18 @@ def _scan_age_hours() -> float | None:
         return None
 
 
-# Auto-rescan if last scan is older than 24h — signal_date is a
-# historical fact tied to the bar it fired on, so stale scan results
-# simply miss signals that fired after the last scan.
-age = _scan_age_hours()
-if (not st.session_state.get("last_scan")) or (age is not None and age >= 24):
-    if st.session_state.get("last_scan"):
-        st.info(
-            f"이전 스캔이 {age:.1f}시간 전이라 자동 재스캔합니다 "
-            "(signal_date는 해당 바에 고정되므로 재스캔 없이는 새 신호 못 잡음)."
-        )
-    _run_scan()
-
+# Auto-scan disabled by user request — the scanner only runs when
+# the user clicks the "Scan for Signals" button. The Scan Results
+# block below already handles an empty ``last_scan`` with its own
+# guidance message; the Watchlist / Manual Add sections further
+# down render independently, so do NOT ``st.stop()`` here.
 last_scan: list[BuySignal] = st.session_state.get("last_scan", [])
-age = _scan_age_hours()  # re-read after potential auto-rescan
+age = _scan_age_hours()
+
+if last_scan and age is not None and age >= 24:
+    st.warning(
+        f"이전 스캔이 {age:.1f}시간 전입니다. 최신 신호를 보려면 **Scan for Signals**를 다시 눌러주세요."
+    )
 
 # Diagnostic banner: when was the scan run, what's the latest bar
 # seen, signal-date distribution. Lets the user verify "scanner DID
@@ -580,25 +608,47 @@ if last_scan:
         f"**{latest_label}** · signal_date 분포: {dist}"
     )
 
-# Auto-refresh scan results' metadata against latest bar. The scan
-# itself (signal ordering, which tickers passed) reflects the
-# universe+filter state at scan-click time, but the per-signal
-# latest_close / HL-trendline / exhaustion / resistance levels
-# should always reflect today. Uses the same ``_needs_refresh``
-# staleness guard (30 min TTL) as the watchlist below.
+# Scan-result refresh is manual — the user clicks "🔄 모두 새로고침"
+# at the top of the page. If that flag is set, refresh every
+# signal regardless of TTL, then clear the flag and push back
+# into session state.
+if last_scan and st.session_state.get("_refresh_all_requested"):
+    refresher = build_scanner()
+    refreshed_map: dict[str, BuySignal] = {}
+    with st.spinner(f"Scan 결과 {len(last_scan)}개 최신화 중..."):
+        for sig in last_scan:
+            try:
+                refreshed_map[sig.id] = refresher.refresh_targets(sig)
+            except Exception as e:
+                st.warning(f"{sig.ticker} scan 새로고침 실패: {e}")
+                refreshed_map[sig.id] = sig
+    last_scan = [refreshed_map.get(s.id, s) for s in last_scan]
+    st.session_state.last_scan = last_scan
+
+# Show how stale the scan results are (if any). Pick the oldest
+# ``refreshed_at`` across the set as the "data freshness" anchor.
 if last_scan:
-    stale_scans = [s for s in last_scan if _needs_refresh(s)]
-    if stale_scans:
-        refresher = build_scanner()
-        refreshed_map: dict[str, BuySignal] = {}
-        with st.spinner(f"Scan 결과 {len(stale_scans)}개 최신화 중..."):
-            for sig in stale_scans:
-                try:
-                    refreshed_map[sig.id] = refresher.refresh_targets(sig)
-                except Exception:
-                    refreshed_map[sig.id] = sig
-        last_scan = [refreshed_map.get(s.id, s) for s in last_scan]
-        st.session_state.last_scan = last_scan
+    oldest_hours = None
+    for s in last_scan:
+        r = s.metadata.get("refreshed_at")
+        if not r:
+            oldest_hours = float("inf")
+            break
+        try:
+            age = (datetime.utcnow() - datetime.fromisoformat(r)).total_seconds() / 3600
+        except Exception:
+            continue
+        oldest_hours = age if oldest_hours is None else max(oldest_hours, age)
+    if oldest_hours is not None:
+        if oldest_hours == float("inf"):
+            st.warning(
+                "⚠️ 일부 scan 결과가 아직 새로고침되지 않았어. 최신 HL Trendline / 익절 라인을 보려면 상단 **모두 새로고침** 클릭."
+            )
+        elif oldest_hours >= 1.0:
+            st.warning(
+                f"⚠️ scan 결과가 {oldest_hours:.1f}시간 전 데이터 기준이야. 최신값 보려면 상단 **모두 새로고침** 클릭."
+            )
+
 if not last_scan:
     st.info("좌측에서 **Scan for Signals** 를 눌러 최근 매수 신호를 불러와.")
 else:
@@ -896,18 +946,42 @@ def _refresh_signals(signals: list[BuySignal]) -> None:
     progress.empty()
 
 
-# Auto-refresh on page view for signals that are stale or
-# never-refreshed. Guarantees the watchlist always shows today's
-# trendline / exhaustion / latest-close without the user clicking.
-stale = [s for s in saved if _needs_refresh(s)]
-if stale:
-    _refresh_signals(stale)
+# Watchlist refresh is manual. Two triggers:
+#   1. Top-level "🔄 모두 새로고침" button → flag on session_state
+#   2. Local Watchlist-section refresh button (``refresh_btn``)
+# Both force-refresh every saved signal regardless of TTL. The
+# top-level flag is consumed here (and cleared) so it only runs
+# once per click.
+top_flag = st.session_state.pop("_refresh_all_requested", False)
+if saved and (top_flag or refresh_btn):
+    _refresh_signals(saved)
+    st.success(f"{len(saved)}개 watchlist signal 새로고침 완료.")
     saved = repo.list(status=status_value)
 
-if refresh_btn and saved:
-    _refresh_signals(saved)
-    st.success(f"{len(saved)}개 signal 강제 새로고침 완료.")
-    saved = repo.list(status=status_value)
+# Staleness banner for the watchlist — mirrors the scan-results
+# banner up top so the user sees at-a-glance "my HL trendline /
+# 익절 라인 is X hours old".
+if saved:
+    oldest_hours = None
+    for s in saved:
+        r = s.metadata.get("refreshed_at")
+        if not r:
+            oldest_hours = float("inf")
+            break
+        try:
+            age = (datetime.utcnow() - datetime.fromisoformat(r)).total_seconds() / 3600
+        except Exception:
+            continue
+        oldest_hours = age if oldest_hours is None else max(oldest_hours, age)
+    if oldest_hours is not None:
+        if oldest_hours == float("inf"):
+            st.warning(
+                "⚠️ 일부 watchlist signal이 아직 새로고침되지 않았어. 상단 **모두 새로고침** 또는 이 섹션의 새로고침 버튼을 눌러줘."
+            )
+        elif oldest_hours >= 1.0:
+            st.warning(
+                f"⚠️ watchlist가 {oldest_hours:.1f}시간 전 데이터 기준. 최신값 보려면 새로고침."
+            )
 
 if not saved:
     st.info("저장된 signal 없음.")

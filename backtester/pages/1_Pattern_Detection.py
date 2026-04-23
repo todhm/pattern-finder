@@ -292,6 +292,76 @@ with st.sidebar:
             "('극적인 거부 캔들'). 0.53 같은 마진널 케이스를 거름.",
         )
 
+        st.subheader("Hard gates (failure post-mortem)")
+        st.caption(
+            "실패 11건(PODD/LITE/AIZ/CB/PLTR/AEE/HUM/SBAC/ETR/ADM/KHC) "
+            "분석으로 추가된 필터."
+        )
+        min_breakout_strength_atr_pd = st.number_input(
+            "① Min breakout strength (× ATR)",
+            value=0.3,
+            min_value=0.0,
+            max_value=5.0,
+            step=0.05,
+            format="%.2f",
+            help="돌파 close가 trigger level을 ATR의 N배 이상 넘어야 함. "
+            "0.0 = 예전 동작. 0.3 = 기본 (약한 돌파 차단).",
+        )
+        enable_min_prior_trend_pd = st.checkbox(
+            "② Enforce min 20-day prior trend",
+            value=True,
+            help="하락 추세 중간의 wick 거부.",
+        )
+        min_prior_trend_20d_pd = st.number_input(
+            "② Min 20-day trend (fraction)",
+            value=-0.03,
+            min_value=-0.5,
+            max_value=0.5,
+            step=0.005,
+            format="%.3f",
+            disabled=not enable_min_prior_trend_pd,
+        )
+        enable_max_prior_trend_pd = st.checkbox(
+            "③ Enforce max 20-day prior trend (parabolic cap)",
+            value=False,
+            help="이미 너무 오른 종목 제외 (PLTR +21% 케이스).",
+        )
+        max_prior_trend_20d_pd = st.number_input(
+            "③ Max 20-day trend (fraction)",
+            value=0.15,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.01,
+            format="%.2f",
+            disabled=not enable_max_prior_trend_pd,
+        )
+        min_wick_close_location_pd = st.number_input(
+            "⑥ Min wick close location (0=low, 1=high)",
+            value=0.15,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.05,
+            format="%.2f",
+            help="Wick bar close가 range 하단 N% 이상이어야 통과. "
+            "0.15 = 하단 15% 미만 마감은 'outright bearish' 봉으로 보고 거부. "
+            "ZTS/BG/PODD 2024 실패 패턴(모두 wick CL < 0.05)을 차단.",
+        )
+        enable_min_breakout_cl_pd = st.checkbox(
+            "⑧ Enforce min breakout close location",
+            value=False,
+            help="돌파 봉 close가 range 상단 N% 이상에 마감해야. "
+            "약한 돌파 마감(ZTS 0.61) 차단.",
+        )
+        min_breakout_close_location_pd = st.number_input(
+            "⑧ Min breakout close location",
+            value=0.70,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.05,
+            format="%.2f",
+            disabled=not enable_min_breakout_cl_pd,
+        )
+
     elif pattern_name == "exhaustion_extension_top":
         st.header("Exhaustion Extension (Top)")
         st.caption("상승 추세 꼭지에서 10 EMA 위로 과도하게 벌어지는 블로우오프.")
@@ -535,6 +605,14 @@ if run_btn:
                     psych_prior_red_streak=int(psych_prior_red_streak_wk),
                     psych_dramatic_wick_ratio=float(psych_dramatic_wick_ratio_wk),
                     min_psych_score=int(min_psych_score_wk),
+                    min_breakout_strength_atr=float(min_breakout_strength_atr_pd),
+                    min_prior_trend_20d=(float(min_prior_trend_20d_pd) if enable_min_prior_trend_pd else None),
+                    max_prior_trend_20d=(float(max_prior_trend_20d_pd) if enable_max_prior_trend_pd else None),
+                    min_wick_close_location=float(min_wick_close_location_pd),
+                    min_breakout_close_location=(
+                        float(min_breakout_close_location_pd)
+                        if enable_min_breakout_cl_pd else None
+                    ),
                 )
             elif pattern_name == "reversal_extension":
                 detector = ReversalExtensionDetector()
