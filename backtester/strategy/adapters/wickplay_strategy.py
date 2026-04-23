@@ -37,16 +37,28 @@ class WickPlayStrategy(StrategyRunnerPort):
 
     Exits (OR — first to fire wins)
         1. **10 EMA trail** — once ``close < 10 EMA`` on any bar
-           (from ``entry_bar + 1``), exit at that bar's close. The
-           "stairstep" trail Kell / Minervini use: while price
-           keeps riding the 10 EMA, hold; when it snaps, exit.
+           (from ``entry_bar + min_trail_bars``), exit at that
+           bar's close. The "stairstep" trail Kell / Minervini use:
+           while price keeps riding the 10 EMA, hold; when it
+           snaps, exit.
         2. **Exhaustion Extension Top** (optional but ON by default)
            — a paired detector (typically
            ``ExhaustionExtensionTopDetector``) fires on the current
            bar → exit at that bar's close. The natural counter-signal
            to Wick Play, from the same Kell masterclass: Wick Play
            is the entry, Exhaustion Extension Top is the exit.
-        3. **Time stop** — after ``max_holding_days`` bars, exit at
+        3. **Breakeven stop** (OPT-IN, off by default) — once any
+           close hits ``entry + arm_r × initial_risk``, the stop
+           moves up to ``entry + offset_r × initial_risk``. A
+           subsequent bar's low touching that level exits there.
+           Guarded off by default because Wick Play's wick_low
+           stop is wide (often 5–10%), so a naive arm at +1R /
+           offset 0 lock exits winners during routine pullbacks
+           (APA/MO/ARES 2024–25). Users who want loss-tail
+           protection should pair ``arm_r ≥ 1.5`` with a positive
+           ``offset_r`` (e.g. 0.5R) so the profit lock asymmetry
+           matches the stop asymmetry.
+        4. **Time stop** — after ``max_holding_days`` bars, exit at
            the next bar's open. Safety net so a flat / drifting
            trade doesn't occupy capital indefinitely.
 
@@ -64,8 +76,11 @@ class WickPlayStrategy(StrategyRunnerPort):
         min_trail_bars: int = 2,
         enable_same_day_reversal_exit: bool = False,
         max_same_day_close_location: float = 0.3,
-        enable_gap_down_rejection: bool = False,
+        enable_gap_down_rejection: bool = True,
         max_entry_gap_down: float = 0.005,
+        enable_breakeven_stop: bool = False,
+        breakeven_arm_r_multiple: float = 1.5,
+        breakeven_exit_offset_r: float = 0.5,
     ):
         self.market_data = market_data
         self.detector = detector
@@ -93,6 +108,14 @@ class WickPlayStrategy(StrategyRunnerPort):
         # Off by default.
         self.enable_gap_down_rejection = enable_gap_down_rejection
         self.max_entry_gap_down = max_entry_gap_down
+        # Breakeven stop — once close hits entry + arm_r × risk, move
+        # the stop up to entry + offset_r × risk. offset=0 means pure
+        # breakeven; small positive offsets lock in a tiny profit.
+        # Fires BEFORE EMA/exhaustion exits so a post-1R pullback can't
+        # be "rescued" into a worse fill by the trail.
+        self.enable_breakeven_stop = enable_breakeven_stop
+        self.breakeven_arm_r_multiple = breakeven_arm_r_multiple
+        self.breakeven_exit_offset_r = breakeven_exit_offset_r
 
     # ------------------------------------------------------------------
     # Public API
@@ -232,6 +255,7 @@ class WickPlayStrategy(StrategyRunnerPort):
         exit_price, exit_idx, exit_reason = self._find_exit(
             df=df,
             entry_idx=entry_idx,
+            entry_price=entry_price,
             stop=stop,
             max_holding_days=config.max_holding_days,
             exit_dates=exit_dates,
@@ -258,6 +282,7 @@ class WickPlayStrategy(StrategyRunnerPort):
         self,
         df: pd.DataFrame,
         entry_idx: int,
+        entry_price: float,
         stop: float,
         max_holding_days: int,
         exit_dates: set[date],
@@ -271,6 +296,11 @@ class WickPlayStrategy(StrategyRunnerPort):
         ema = np.where(np.isnan(ema), 0.0, ema)
 
         deadline = entry_idx + max_holding_days
+        initial_risk = entry_price - stop
+        breakeven_armed = False
+        breakeven_exit_price = (
+            entry_price + self.breakeven_exit_offset_r * initial_risk
+        )
 
         for i in range(entry_idx, last_idx + 1):
             # (A) Hard stop on wick low — pierce on intraday low.
@@ -296,13 +326,35 @@ class WickPlayStrategy(StrategyRunnerPort):
                     if close_loc < self.max_same_day_close_location:
                         return float(closes[i]), i, "same_day_reversal"
 
-            # The three follow-through exits below wait at least
+            # (B) Breakeven stop — once a prior bar's close reached
+            # entry + arm_r × risk, a subsequent low touching the
+            # breakeven level exits at that price (gap-downs fill
+            # at the open). Same-bar arm + pierce cannot fire:
+            # ``breakeven_armed`` uses last bar's state when we
+            # check the pierce, and only flips after the check.
+            if self.enable_breakeven_stop and initial_risk > 0:
+                if (
+                    breakeven_armed
+                    and i > entry_idx
+                    and lows[i] <= breakeven_exit_price
+                ):
+                    fill = min(float(opens[i]), breakeven_exit_price)
+                    return fill, i, "breakeven_stop"
+                if (
+                    not breakeven_armed
+                    and closes[i]
+                    >= entry_price
+                    + self.breakeven_arm_r_multiple * initial_risk
+                ):
+                    breakeven_armed = True
+
+            # The follow-through exits below wait at least
             # ``min_trail_bars`` after entry so the breakout has
             # room to breathe.
             if i - entry_idx < self.min_trail_bars:
                 continue
 
-            # (B) Exhaustion Extension Top — inject from composition
+            # (C) Exhaustion Extension Top — inject from composition
             # root. Exit at the bar's close (the fire bar itself).
             if (
                 self.exit_detector is not None
@@ -310,13 +362,13 @@ class WickPlayStrategy(StrategyRunnerPort):
             ):
                 return float(closes[i]), i, "exhaustion_exit"
 
-            # (C) 10 EMA trail — Kell / Minervini stairstep. Close
+            # (D) EMA trail — Kell / Minervini stairstep. Close
             # below EMA snaps the trail; exit at the close of that
             # bar.
             if ema[i] > 0 and closes[i] < ema[i]:
                 return float(closes[i]), i, "ema_trail"
 
-            # (D) Time stop — exit at next bar's open.
+            # (E) Time stop — exit at next bar's open.
             if i >= deadline:
                 if i + 1 <= last_idx:
                     return float(opens[i + 1]), i + 1, "time_stop"

@@ -190,12 +190,12 @@ with st.sidebar:
     ema_trail = st.number_input(
         "EMA trail period",
         value=10, min_value=3, max_value=50, step=1,
-        help="Kell / Minervini의 stairstep trail. 10 EMA 기본.",
+        help="Kell/Minervini stairstep. 10=기본 (Wick Play 원래 세팅).",
     )
     min_trail_bars = st.number_input(
         "Min bars before trail/exhaustion fires",
-        value=2, min_value=0, max_value=10, step=1,
-        help="진입 직후 N봉은 trail/exhaustion exit 비활성 — 돌파 봉이 소화되도록 여유.",
+        value=2, min_value=0, max_value=20, step=1,
+        help="진입 직후 N봉은 trail/exhaustion exit 비활성 — 돌파 봉 소화 여유.",
     )
     enable_exh_exit = st.checkbox(
         "Enable Exhaustion Extension Top exit",
@@ -204,13 +204,34 @@ with st.sidebar:
     )
     exh_extension_atr = st.number_input(
         "Exh extension above EMA (× ATR)",
-        value=1.9, min_value=0.5, max_value=10.0, step=0.1,
+        value=2.5, min_value=0.5, max_value=10.0, step=0.1,
         disabled=not enable_exh_exit,
+        help="얕은 extension에서 exit하면 winner를 일찍 자름. 2.5×=기본.",
     )
     exh_min_slope = st.number_input(
         "Exh min slow-EMA slope",
         value=0.005, min_value=-1.0, max_value=1.0, step=0.001, format="%.4f",
         disabled=not enable_exh_exit,
+    )
+
+    st.subheader("Breakeven stop (opt-in)")
+    st.caption(
+        "Wick Play는 stop이 wide (5–10%)라 naive breakeven이 winner를 자름. "
+        "쓰려면 arm ≥ 1.5R + offset ≥ 0.5R 권장. 기본 OFF."
+    )
+    enable_breakeven = st.checkbox(
+        "Enable breakeven / partial-profit stop", value=False,
+    )
+    breakeven_arm_r = st.number_input(
+        "Arm at +R multiple",
+        value=1.5, min_value=0.3, max_value=5.0, step=0.1, format="%.2f",
+        disabled=not enable_breakeven,
+    )
+    breakeven_offset_r = st.number_input(
+        "Exit offset (× R)",
+        value=0.5, min_value=-0.5, max_value=2.0, step=0.05, format="%.2f",
+        disabled=not enable_breakeven,
+        help="0 = 순수 breakeven. 0.5 = 최소 +0.5R lock-in (partial profit).",
     )
 
     st.subheader("Same-day reversal exit (opt-in)")
@@ -231,12 +252,12 @@ with st.sidebar:
         "0.3 = 하단 30% 이내 마감 시 청산.",
     )
 
-    st.subheader("Gap-down rejection (opt-in)")
+    st.subheader("Gap-down rejection")
     enable_gap_down_rejection = st.checkbox(
         "⑨ Reject entry if gap-down vs breakout close",
-        value=False,
+        value=True,
         help="진입 open이 breakout close 대비 N% 이상 갭다운이면 아예 진입 거부. "
-        "PODD 2024 -2.9% 갭다운 케이스 대응. 기본 off.",
+        "PODD 2024 -2.9% 갭다운 케이스 대응. 기본 ON.",
     )
     max_entry_gap_down = st.number_input(
         "Max entry gap-down (fraction)",
@@ -311,6 +332,9 @@ strategy = WickPlayStrategy(
     max_same_day_close_location=float(max_same_day_close_location),
     enable_gap_down_rejection=enable_gap_down_rejection,
     max_entry_gap_down=float(max_entry_gap_down),
+    enable_breakeven_stop=enable_breakeven,
+    breakeven_arm_r_multiple=float(breakeven_arm_r),
+    breakeven_exit_offset_r=float(breakeven_offset_r),
 )
 
 config = StrategyConfig(
@@ -371,7 +395,8 @@ if not perf.trades:
 EXIT_LABELS = {
     "wick_low_stop": "Wick Low Stop (initial)",
     "same_day_reversal": "Same-Day Reversal (intraday fail)",
-    "ema_trail": "10 EMA Trail (Kell stairstep)",
+    "breakeven_stop": "Breakeven Stop (post-1R pullback)",
+    "ema_trail": "EMA Trail (Kell stairstep)",
     "exhaustion_exit": "Exhaustion Extension Top",
     "time_stop": "Time Stop",
     "end_of_data": "End of Data (no exit fired)",
