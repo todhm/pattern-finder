@@ -184,6 +184,26 @@ with st.sidebar:
         help="Wick bar close가 range 하단 N% 이상이어야 통과. "
         "0.15 = 하단 15% 미만 마감은 'outright bearish' 봉으로 보고 거부.",
     )
+    st.markdown("**Trend Template (opt-in, 기본 OFF)**")
+    st.caption(
+        "⚠️ Wick Play는 capitulation reversal 세팅이라 Trend Template 필터가 "
+        "**오히려 best winner를 잘라냄** (DDOG/APA 2024 둘 다 SMA200 아래에서 발생). "
+        "백테스트로 net −$9K 확인. Minervini-flavored 변형으로만 사용 권장."
+    )
+    require_above_sma200_wk = st.checkbox(
+        "⑩ Require close > 200 SMA (primary uptrend)",
+        value=False,
+    )
+    enable_pct_high_wk = st.checkbox(
+        "⑪ Require near 52-week high (leadership)",
+        value=False,
+    )
+    min_pct_of_52w_high_wk = st.number_input(
+        "⑪ Min close / 52w high",
+        value=0.75, min_value=0.3, max_value=1.0, step=0.05, format="%.2f",
+        disabled=not enable_pct_high_wk,
+        help="0.75 = 52주 최고가의 75% 이상 (고점 대비 25% 이내).",
+    )
     enable_min_breakout_cl_wk = st.checkbox(
         "⑧ Enforce min breakout close location",
         value=False,
@@ -313,6 +333,10 @@ detector = WickPlayDetector(
     min_wick_close_location=float(min_wick_close_location_wk),
     min_breakout_close_location=(
         float(min_breakout_close_location_wk) if enable_min_breakout_cl_wk else None
+    ),
+    require_above_sma200=bool(require_above_sma200_wk),
+    min_pct_of_52w_high=(
+        float(min_pct_of_52w_high_wk) if enable_pct_high_wk else None
     ),
 )
 

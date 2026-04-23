@@ -123,9 +123,11 @@ class MultiWickPlayStrategy:
     def _scan_ticker(
         self, ticker: str, config: MultiStrategyConfig
     ) -> dict[str, Any] | None:
-        # Fetch extra history so EMA / psych vol average converge from
-        # day 1 of the user's window.
-        fetch_start = config.start_date - timedelta(days=150)
+        # Fetch extra history so EMA / psych vol average + the
+        # 200-day SMA Trend-Template gate all converge from day 1
+        # of the user's window. ~280 trading days ≈ 400 calendar
+        # days of warmup covers SMA200 with margin.
+        fetch_start = config.start_date - timedelta(days=400)
         try:
             df = self._market_data.fetch_ohlcv(
                 ticker, fetch_start, config.end_date

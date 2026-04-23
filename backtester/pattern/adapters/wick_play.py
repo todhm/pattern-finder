@@ -97,6 +97,20 @@ class WickPlayDetector(PatternDetector):
         prior_trend_lookback: int = 20,
         min_wick_close_location: float = 0.15,
         min_breakout_close_location: float | None = None,
+        # --- Trend Template gates (opt-in; default OFF) ---
+        # Data-driven: Wick Play is a CAPITULATION REVERSAL setup,
+        # not a Minervini Trend Template continuation. Empirically,
+        # the biggest winners (DDOG +21.7%, APA +7.06%) were BELOW
+        # their 200-SMA and >25% off 52-week highs at the wick bar
+        # — exactly the "weak-looking" stocks that produce the
+        # strongest absorption bounces. Forcing ``require_above_sma200``
+        # on cuts net P&L by more than the small-loser reduction
+        # buys back. Exposed as opt-in for users who want a
+        # Minervini-flavored variant of the setup.
+        require_above_sma200: bool = False,
+        sma_period: int = 200,
+        min_pct_of_52w_high: float | None = None,
+        pct_high_lookback: int = 252,
     ):
         if breakout_trigger not in ("wick_high", "inside_high"):
             raise ValueError(
@@ -158,6 +172,24 @@ class WickPlayDetector(PatternDetector):
         # intraday buying faded before the bell.
         self.min_wick_close_location = min_wick_close_location
         self.min_breakout_close_location = min_breakout_close_location
+        # Trend Template gates — Minervini-style leadership filter,
+        # off by default because Wick Play is a CAPITULATION
+        # REVERSAL setup, not a continuation-in-uptrend. Walk-through
+        # on 20 live trades (2024-06 → 2026-04) showed both top
+        # winners (DDOG +21.7%, APA +7.06%) sat BELOW their 200-SMA
+        # and >25% off 52-week highs at the wick bar — the "weak-
+        # looking" setups that produce the strongest absorption
+        # bounces. With ``require_above_sma200=True``, saved small
+        # losers (APTV/REGN/HRL/CL/MKC ≈ +$4.6K) are dwarfed by
+        # lost winners (DDOG + APA ≈ -$14K). Net −$9K.
+        #
+        # Kept as opt-in for users who want a Minervini-flavored
+        # variant — e.g. combine with a different pattern where the
+        # Trend Template actually applies.
+        self.require_above_sma200 = require_above_sma200
+        self.sma_period = sma_period
+        self.min_pct_of_52w_high = min_pct_of_52w_high
+        self.pct_high_lookback = pct_high_lookback
 
     def detect(
         self,
@@ -169,6 +201,16 @@ class WickPlayDetector(PatternDetector):
         df["atr"] = self._compute_atr(df, self.atr_period)
         df["vol_avg_psych"] = (
             df["Volume"].rolling(self.psych_vol_lookback).mean()
+        )
+        df["sma_long"] = (
+            df["Close"].rolling(self.sma_period).mean()
+            if self.require_above_sma200
+            else pd.Series(index=df.index, dtype=float)
+        )
+        df["pct_of_52w_high"] = (
+            df["Close"] / df["Close"].rolling(self.pct_high_lookback).max()
+            if self.min_pct_of_52w_high is not None
+            else pd.Series(index=df.index, dtype=float)
         )
         is_red = df["Close"] < df["Open"]
 
@@ -285,6 +327,28 @@ class WickPlayDetector(PatternDetector):
                 ):
                     continue
 
+            # --- Trend Template: primary uptrend (SMA200) -----------
+            # Kell/Minervini Wick Play is a pullback inside an
+            # uptrend. Stock below its 200-SMA is in a primary
+            # downtrend — bounces there are dead-cat, not setups.
+            sma_long_w = float(df["sma_long"].iloc[w])
+            if self.require_above_sma200:
+                if pd.isna(sma_long_w) or w_close <= sma_long_w:
+                    continue
+
+            # --- Trend Template: leadership (near 52w high) ---------
+            # Leaders trade within 25% of their 52-week highs
+            # during momentum regimes; laggards sit 30–50% off.
+            # Wick Plays on laggards fail more often than they
+            # run (VTRS/HRL/MKC/CL type).
+            pct_of_high_w = float(df["pct_of_52w_high"].iloc[w])
+            if self.min_pct_of_52w_high is not None:
+                if (
+                    pd.isna(pct_of_high_w)
+                    or pct_of_high_w < self.min_pct_of_52w_high
+                ):
+                    continue
+
             # --- Psychology score (4 checks) ---------------------
             # Each check expresses ONE leg of Kell's
             # "sellers → stalemate → buyers" story. A setup whose
@@ -376,6 +440,16 @@ class WickPlayDetector(PatternDetector):
                         "wick_close_location": round(wick_close_location, 3),
                         "breakout_close_location": round(
                             breakout_close_location, 3
+                        ),
+                        "above_sma_long": (
+                            None
+                            if pd.isna(sma_long_w) or sma_long_w <= 0
+                            else round(w_close / sma_long_w, 3)
+                        ),
+                        "pct_of_52w_high": (
+                            None
+                            if pd.isna(pct_of_high_w)
+                            else round(pct_of_high_w, 3)
                         ),
                     },
                 )
