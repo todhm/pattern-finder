@@ -107,6 +107,158 @@ class WikipediaUniverseAdapter(UniverseProviderPort):
         return symbol.replace(".", "-").strip().upper()
 
 
+class NasdaqTraderUniverseAdapter(UniverseProviderPort):
+    """Resolves Nasdaq-listed universes from nasdaqtrader.com.
+
+    Data source: ``https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt``
+    — official Nasdaq-published daily listing file. Pipe-delimited with
+    columns:
+        Symbol | Security Name | Market Category | Test Issue |
+        Financial Status | Round Lot Size | ETF | NextShares
+
+    Unlike Wikipedia (static index constituents), this covers the FULL
+    Nasdaq cash-equity universe (~5,400 rows → ~2,200 common stocks
+    after filtering) so downstream multi-ticker strategies can scan
+    the broader Nasdaq tape, not just the Nasdaq-100.
+
+    Aliases
+        - ``nasdaq_full`` / ``nasdaq_all`` — all non-test, non-ETF
+          securities, default filtered to common stock only.
+        - ``nasdaq_common`` — explicit common-stock-only (same as
+          default full).
+        - ``nasdaq_composite`` — every non-test, non-ETF listing,
+          including ADRs / units / warrants / preferreds. Noisier,
+          but gives the full breadth.
+
+    Filters applied
+        - Drop rows with ``Test Issue = Y``.
+        - Drop ETFs (``ETF = Y``) — those are price-index products,
+          not the kind of single-name setups Wick Play targets.
+        - ``common_stock_only`` (default True for _full/_all/_common)
+          additionally requires ``"Common Stock"`` in the Security
+          Name to exclude ADRs, depositary receipts, units, etc.
+    """
+
+    NASDAQ_LISTED_URL = (
+        "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    )
+    ALIASES_FULL = {"nasdaq_full", "nasdaq_all", "nasdaqfull", "nasdaqall"}
+    ALIASES_COMMON = {"nasdaq_common", "nasdaqcommon"}
+    ALIASES_COMPOSITE = {"nasdaq_composite", "nasdaqcomposite"}
+    USER_AGENT = "Mozilla/5.0 (compatible; pattern-finder/1.0)"
+
+    def __init__(self, http_client: httpx.Client | None = None):
+        self._client = http_client or httpx.Client(
+            headers={"User-Agent": self.USER_AGENT},
+            follow_redirects=True,
+            timeout=30.0,
+        )
+
+    @classmethod
+    def handles(cls, universe: str) -> bool:
+        key = cls._normalize_key(universe)
+        return (
+            key in cls.ALIASES_FULL
+            or key in cls.ALIASES_COMMON
+            or key in cls.ALIASES_COMPOSITE
+        )
+
+    def get_tickers(self, universe: str) -> list[str]:
+        key = self._normalize_key(universe)
+        if key in self.ALIASES_COMPOSITE:
+            return self._fetch(common_only=False)
+        if key in self.ALIASES_FULL or key in self.ALIASES_COMMON:
+            return self._fetch(common_only=True)
+        raise ValueError(
+            f"Unknown universe: {universe!r}. Expected one of "
+            f"{sorted(self.ALIASES_FULL | self.ALIASES_COMMON | self.ALIASES_COMPOSITE)}"
+        )
+
+    # ---- internals ----
+
+    @staticmethod
+    def _normalize_key(universe: str) -> str:
+        return (
+            universe.strip().lower().replace("-", "_").replace(" ", "_")
+        )
+
+    def _fetch(self, common_only: bool) -> list[str]:
+        resp = self._client.get(self.NASDAQ_LISTED_URL)
+        resp.raise_for_status()
+        return self._parse(resp.text, common_only=common_only)
+
+    @staticmethod
+    def _parse(text: str, common_only: bool) -> list[str]:
+        """Parse the pipe-delimited listing file.
+
+        The file ends with a ``File Creation Time`` footer that must
+        be skipped. Exposed as a classmethod-style staticmethod so
+        the parse logic can be unit-tested with a synthetic payload
+        instead of hitting the network.
+        """
+        lines = text.strip().split("\n")
+        out: list[str] = []
+        for line in lines[1:]:  # skip header
+            if line.startswith("File Creation Time"):
+                break
+            parts = line.split("|")
+            if len(parts) < 8:
+                continue
+            symbol = parts[0].strip()
+            name = parts[1].strip()
+            test_issue = parts[3].strip()
+            etf_flag = parts[6].strip()
+            if not symbol:
+                continue
+            if test_issue == "Y":
+                continue
+            if etf_flag == "Y":
+                continue
+            if common_only and "Common Stock" not in name:
+                continue
+            # yfinance ticker convention: dots → dashes (BRK.B → BRK-B)
+            out.append(symbol.replace(".", "-").upper())
+        return out
+
+
+class CompositeUniverseAdapter(UniverseProviderPort):
+    """Tries each constituent adapter in order until one handles
+    the requested universe. Pattern: declarative multi-source
+    resolver without the caller having to know which adapter owns
+    which universe key.
+    """
+
+    def __init__(self, adapters: list[UniverseProviderPort]):
+        if not adapters:
+            raise ValueError("CompositeUniverseAdapter needs at least one adapter")
+        self._adapters = list(adapters)
+
+    def get_tickers(self, universe: str) -> list[str]:
+        last_err: Exception | None = None
+        for adapter in self._adapters:
+            try:
+                return adapter.get_tickers(universe)
+            except ValueError as e:
+                last_err = e
+                continue
+        raise ValueError(
+            f"No adapter accepted universe={universe!r}. "
+            f"Last error: {last_err}"
+        )
+
+
+def default_universe_provider() -> UniverseProviderPort:
+    """Factory: composite of NasdaqTrader + Wikipedia.
+
+    NasdaqTrader is tried first so ``nasdaq_full`` / ``nasdaq_all``
+    resolve there; everything else falls through to Wikipedia
+    (``sp500``, ``nasdaq100``).
+    """
+    return CompositeUniverseAdapter(
+        [NasdaqTraderUniverseAdapter(), WikipediaUniverseAdapter()]
+    )
+
+
 class StaticUniverseAdapter(UniverseProviderPort):
     """In-memory universe provider for tests and ad-hoc ticker lists.
 

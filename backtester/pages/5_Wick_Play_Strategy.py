@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from data.adapters.macro_calendar import blackout_dates as build_blackout_dates
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.exhaustion_extension_top import (
     ExhaustionExtensionTopDetector,
@@ -14,8 +15,7 @@ from visualization.adapters.plotly_charts import PlotlyChartBuilder
 st.set_page_config(page_title="Wick Play Strategy", layout="wide")
 st.title("Wick Play Strategy")
 st.caption(
-    "Oliver Kell의 Wick Play 진입 → wick low 손절 / 10 EMA trail / "
-    "Exhaustion Extension Top / time stop"
+    "Oliver Kell의 Wick Play 진입 → wick low 손절 / 10 EMA trail / " "Exhaustion Extension Top / time stop"
 )
 
 # --- Sidebar ---
@@ -44,7 +44,7 @@ with st.sidebar:
     )
     risk_pct = st.number_input(
         "Risk per Trade (%)",
-        value=2.0,
+        value=5.0,
         min_value=0.1,
         max_value=100.0,
         step=0.5,
@@ -56,8 +56,7 @@ with st.sidebar:
         min_value=5,
         max_value=500,
         step=5,
-        help="multi-week 이동을 노리는 setup이라 40일 기본. "
-        "시간 초과 시 다음 봉 open에서 청산.",
+        help="multi-week 이동을 노리는 setup이라 40일 기본. " "시간 초과 시 다음 봉 open에서 청산.",
     )
 
     st.header("Wick Play Detector")
@@ -96,9 +95,7 @@ with st.sidebar:
         options=["wick_high", "inside_high"],
         index=0,
     )
-    enable_max_wick_range = st.checkbox(
-        "Cap wick-bar range (× ATR)", value=True
-    )
+    enable_max_wick_range = st.checkbox("Cap wick-bar range (× ATR)", value=True)
     max_wick_range_atr = st.number_input(
         "Max wick-bar range (× ATR)",
         value=2.5,
@@ -118,37 +115,53 @@ with st.sidebar:
 
     st.subheader("Psychology score (4 checks)")
     st.caption("4개 중 N개 이상 통과해야 신호 발동.")
-    min_psych_score = st.slider(
-        "Min psych score", 0, 4, 3, 1
-    )
+    min_psych_score = st.slider("Min psych score", 0, 4, 3, 1)
     psych_vol_lookback = st.number_input(
         "Vol avg lookback (days)", value=20, min_value=5, max_value=100, step=5
     )
     psych_wick_vol_exhaustion_mult = st.number_input(
         "Check 1: wick vol ≤ avg × mult",
-        value=1.0, min_value=0.1, max_value=3.0, step=0.05, format="%.2f",
+        value=1.0,
+        min_value=0.1,
+        max_value=3.0,
+        step=0.05,
+        format="%.2f",
     )
     psych_breakout_vol_expansion_mult = st.number_input(
         "Check 2: breakout vol > wick vol × mult",
-        value=1.0, min_value=0.1, max_value=3.0, step=0.05, format="%.2f",
+        value=1.0,
+        min_value=0.1,
+        max_value=3.0,
+        step=0.05,
+        format="%.2f",
     )
     psych_prior_red_streak = st.number_input(
         "Check 3: prior red streak bars (fail if all red)",
-        value=2, min_value=0, max_value=10, step=1,
+        value=2,
+        min_value=0,
+        max_value=10,
+        step=1,
     )
     psych_dramatic_wick_ratio = st.number_input(
         "Check 4: dramatic wick ratio",
-        value=0.65, min_value=0.3, max_value=1.0, step=0.05, format="%.2f",
+        value=0.65,
+        min_value=0.3,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
     )
 
     st.subheader("Hard gates (2024–2026 failure post-mortem)")
     st.caption(
-        "11개 실패 트레이드(PODD/LITE/AIZ/CB/PLTR/AEE/HUM/SBAC/ETR/ADM/KHC) "
-        "분석으로 추가된 필터."
+        "11개 실패 트레이드(PODD/LITE/AIZ/CB/PLTR/AEE/HUM/SBAC/ETR/ADM/KHC) " "분석으로 추가된 필터."
     )
     min_breakout_strength_atr_wk = st.number_input(
         "① Min breakout strength (× ATR)",
-        value=0.3, min_value=0.0, max_value=5.0, step=0.05, format="%.2f",
+        value=0.3,
+        min_value=0.0,
+        max_value=5.0,
+        step=0.05,
+        format="%.2f",
         help="돌파 close가 trigger level을 ATR의 N배 이상 넘어야 함. "
         "0.0 = 예전 동작 (아무리 작은 돌파도 OK). "
         "0.3 = 기본 — 기계적 stop-run 돌파 차단. "
@@ -162,7 +175,11 @@ with st.sidebar:
     )
     min_prior_trend_20d_wk = st.number_input(
         "② Min 20-day trend (fraction)",
-        value=-0.01, min_value=-0.5, max_value=0.5, step=0.005, format="%.3f",
+        value=-0.01,
+        min_value=-0.5,
+        max_value=0.5,
+        step=0.005,
+        format="%.3f",
         disabled=not enable_min_prior_trend,
         help="-0.03 = 직전 20일 -3% 이상 빠진 종목 거부. "
         "-2% (-0.02)로 하면 더 엄격, -5% (-0.05)로 하면 느슨.",
@@ -174,13 +191,21 @@ with st.sidebar:
     )
     max_prior_trend_20d_wk = st.number_input(
         "③ Max 20-day trend (fraction)",
-        value=0.15, min_value=0.0, max_value=1.0, step=0.01, format="%.2f",
+        value=0.15,
+        min_value=0.0,
+        max_value=1.0,
+        step=0.01,
+        format="%.2f",
         disabled=not enable_max_prior_trend,
         help="0.15 = 직전 20일 +15% 초과 종목 거부 (parabolic).",
     )
     min_wick_close_location_wk = st.number_input(
         "⑥ Min wick close location (0=low, 1=high)",
-        value=0.15, min_value=0.0, max_value=1.0, step=0.05, format="%.2f",
+        value=0.15,
+        min_value=0.0,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
         help="Wick bar close가 range 하단 N% 이상이어야 통과. "
         "0.15 = 하단 15% 미만 마감은 'outright bearish' 봉으로 보고 거부. "
         "ZTS/BG/PODD 2024 실패(모두 CL < 0.05) 차단.",
@@ -192,7 +217,11 @@ with st.sidebar:
     )
     min_breakout_close_location_wk = st.number_input(
         "⑧ Min breakout close location",
-        value=0.70, min_value=0.0, max_value=1.0, step=0.05, format="%.2f",
+        value=0.70,
+        min_value=0.0,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
         disabled=not enable_min_breakout_cl_wk,
     )
     st.markdown("**Trend Template (opt-in, 기본 OFF)**")
@@ -210,9 +239,97 @@ with st.sidebar:
     )
     min_pct_of_52w_high_wk = st.number_input(
         "⑪ Min close / 52w high",
-        value=0.75, min_value=0.3, max_value=1.0, step=0.05, format="%.2f",
+        value=0.75,
+        min_value=0.3,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
         disabled=not enable_pct_high_wk,
         help="0.75 = 52주 최고가의 75% 이상 (고점 대비 25% 이내).",
+    )
+
+    st.subheader("Macro regime gates")
+    st.caption(
+        "2026-04 480-config 스윕 결과 반영 (500 Nasdaq 티커, 2024-01 → 2026-04). "
+        "상위 config: ema=10 / mtb=5 / regime=sma50 / macro=cpi±1 → +4.44% net, "
+        "baseline(off)은 -0.52%. 기본 ON으로 전환."
+    )
+    enable_regime_filter = st.checkbox(
+        "⑫ Enable index regime filter (SPY)",
+        value=True,
+        help="SPY OHLCV를 받아 신호 봉에서 regime 조건 검사. "
+        "엄격 가운데 하나라도 실패하면 해당 신호 거부.",
+    )
+    regime_symbol = st.text_input(
+        "Regime symbol",
+        value="^GSPC",
+        disabled=not enable_regime_filter,
+        help="SPY / QQQ / ^GSPC / ^NDX 등.",
+    )
+    regime_sma = st.number_input(
+        "Require SPY close > SMA period (0 = off)",
+        value=50,
+        min_value=0,
+        max_value=400,
+        step=10,
+        disabled=not enable_regime_filter,
+        help="스윕 결과 sma20/sma50/dd5_2pct 동률. sma50이 가장 단순한 단일 필터.",
+    )
+    regime_ema = st.number_input(
+        "Require SPY close > EMA period (0 = off)",
+        value=0,
+        min_value=0,
+        max_value=200,
+        step=5,
+        disabled=not enable_regime_filter,
+    )
+    regime_dd_n = st.number_input(
+        "Max N-day drawdown period (0 = off)",
+        value=0,
+        min_value=0,
+        max_value=60,
+        step=1,
+        disabled=not enable_regime_filter,
+        help="SPY N일 수익률이 -max_dd보다 나쁘면 거부. " "sma50과 대체로 중복되므로 0(off)이 기본.",
+    )
+    regime_dd_max = st.number_input(
+        "Max N-day drawdown (magnitude, fraction)",
+        value=0.02,
+        min_value=0.0,
+        max_value=0.5,
+        step=0.005,
+        format="%.3f",
+        disabled=not enable_regime_filter,
+        help="0.02 = -2%.",
+    )
+
+    enable_macro_blackout = st.checkbox(
+        "⑬ Enable macro-event blackout",
+        value=True,
+        help="FOMC / CPI 발표일 근처 신호·entry를 거부. "
+        "스윕 결과 CPI ±1일이 가장 유효 (FOMC 단독보다 우수).",
+    )
+    include_fomc_blackout = st.checkbox(
+        "Include FOMC announcement days",
+        value=False,
+        disabled=not enable_macro_blackout,
+        help="스윕 기간엔 CPI 블랙아웃보다 약간 약했지만 SHOP 2024-12-18 같은 "
+        "단일 이벤트 방어에는 여전히 유효.",
+    )
+    include_cpi_blackout = st.checkbox(
+        "Include CPI release days",
+        value=True,
+        disabled=not enable_macro_blackout,
+        help="스윕 상위 모든 config의 macro 선택. ON 권장.",
+    )
+    blackout_window_days = st.number_input(
+        "Blackout window (± days)",
+        value=1,
+        min_value=0,
+        max_value=3,
+        step=1,
+        disabled=not enable_macro_blackout,
+        help="0 = 이벤트 당일만. 1 = ±1일 포함 — 스윕 최적값.",
     )
 
     st.header("Exits")
@@ -222,13 +339,20 @@ with st.sidebar:
     )
     ema_trail = st.number_input(
         "EMA trail period",
-        value=10, min_value=3, max_value=50, step=1,
+        value=10,
+        min_value=3,
+        max_value=50,
+        step=1,
         help="Kell/Minervini stairstep. 10=기본 (Wick Play 원래 세팅).",
     )
     min_trail_bars = st.number_input(
         "Min bars before trail/exhaustion fires",
-        value=2, min_value=0, max_value=20, step=1,
-        help="진입 직후 N봉은 trail/exhaustion exit 비활성 — 돌파 봉 소화 여유.",
+        value=5,
+        min_value=0,
+        max_value=20,
+        step=1,
+        help="진입 직후 N봉은 trail/exhaustion exit 비활성 — 돌파 봉 소화 여유. "
+        "2026-04 스윕: 5가 2보다 top-config 기준 우수 (+4.44% vs +1.58%).",
     )
     enable_exh_exit = st.checkbox(
         "Enable Exhaustion Extension Top exit",
@@ -237,34 +361,54 @@ with st.sidebar:
     )
     exh_extension_atr = st.number_input(
         "Exh extension above EMA (× ATR)",
-        value=2.5, min_value=0.5, max_value=10.0, step=0.1,
+        value=2.2,
+        min_value=0.5,
+        max_value=10.0,
+        step=0.1,
         disabled=not enable_exh_exit,
-        help="얕은 extension에서 exit하면 winner를 일찍 자름. 2.5×=기본.",
+        help="Exit-sweep 2026-04 (S&P 500 2017-2025): 2.2가 sweet spot. "
+        "2.5는 exhaustion 기회 놓침 (9년 5건), 1.5는 winner 일찍 잘라냄. "
+        "2.2에서 exhaustion 13건, PF 1.67 (ext=2.5 대비 +13%p 수익).",
     )
     exh_min_slope = st.number_input(
         "Exh min slow-EMA slope",
-        value=0.005, min_value=-1.0, max_value=1.0, step=0.001, format="%.4f",
+        value=0.005,
+        min_value=-1.0,
+        max_value=1.0,
+        step=0.001,
+        format="%.4f",
         disabled=not enable_exh_exit,
     )
 
-    st.subheader("Breakeven stop (opt-in)")
+    st.subheader("Breakeven stop")
     st.caption(
-        "Wick Play는 stop이 wide (5–10%)라 naive breakeven이 winner를 자름. "
-        "쓰려면 arm ≥ 1.5R + offset ≥ 0.5R 권장. 기본 OFF."
+        "Exit-sweep 2026-04 결과: arm=2.0 / offset=1.0 조합이 최적 "
+        "(+2R 도달 winner가 reverse 시 +1R 잠금). "
+        "arm=1.0 (pure BE)은 오히려 winner를 잘라 win_rate 45%→40% 하락."
     )
     enable_breakeven = st.checkbox(
-        "Enable breakeven / partial-profit stop", value=False,
+        "Enable breakeven / partial-profit stop",
+        value=True,
     )
     breakeven_arm_r = st.number_input(
         "Arm at +R multiple",
-        value=1.5, min_value=0.3, max_value=5.0, step=0.1, format="%.2f",
+        value=2.0,
+        min_value=0.3,
+        max_value=5.0,
+        step=0.1,
+        format="%.2f",
         disabled=not enable_breakeven,
+        help="+2R 도달해야 stop을 +1R로 이동. 1.0으로 내리면 너무 빨리 트리거 → winner 잘림.",
     )
     breakeven_offset_r = st.number_input(
         "Exit offset (× R)",
-        value=0.5, min_value=-0.5, max_value=2.0, step=0.05, format="%.2f",
+        value=1.0,
+        min_value=-0.5,
+        max_value=2.0,
+        step=0.05,
+        format="%.2f",
         disabled=not enable_breakeven,
-        help="0 = 순수 breakeven. 0.5 = 최소 +0.5R lock-in (partial profit).",
+        help="0 = 순수 breakeven. 1.0 = arm=2.0과 쌍 — 최소 +1R lock-in.",
     )
 
     st.subheader("Same-day reversal exit (opt-in)")
@@ -279,7 +423,11 @@ with st.sidebar:
     )
     max_same_day_close_location = st.number_input(
         "Max same-day close location (0=low, 1=high)",
-        value=0.3, min_value=0.0, max_value=1.0, step=0.05, format="%.2f",
+        value=0.3,
+        min_value=0.0,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
         disabled=not enable_same_day_reversal,
         help="진입 봉 close가 (close-low)/(high-low) < 이 값이면 당일 close 청산. "
         "0.3 = 하단 30% 이내 마감 시 청산.",
@@ -294,7 +442,11 @@ with st.sidebar:
     )
     max_entry_gap_down = st.number_input(
         "Max entry gap-down (fraction)",
-        value=0.005, min_value=0.0, max_value=0.1, step=0.001, format="%.3f",
+        value=0.005,
+        min_value=0.0,
+        max_value=0.1,
+        step=0.001,
+        format="%.3f",
         disabled=not enable_gap_down_rejection,
         help="0.005 = -0.5% 이상 갭다운이면 거부. 0.01 = -1% 이상.",
     )
@@ -321,17 +473,37 @@ if df is None or df.empty:
     st.warning("No data returned.")
     st.stop()
 
+# Fetch regime benchmark if enabled. Uses the same cached path so
+# subsequent runs across pages reuse the parquet on disk.
+regime_df = None
+if enable_regime_filter:
+    with st.spinner(f"Fetching regime symbol {regime_symbol}..."):
+        try:
+            regime_df = market_data.fetch_ohlcv(regime_symbol, fetch_start, end_date)
+        except Exception as e:
+            st.error(f"Failed to fetch regime symbol: {e}")
+            st.stop()
+    if regime_df is None or regime_df.empty:
+        st.warning(f"No data for regime symbol {regime_symbol} — disabling filter.")
+        regime_df = None
+
+blackout_set = None
+if enable_macro_blackout and (include_fomc_blackout or include_cpi_blackout):
+    blackout_set = build_blackout_dates(
+        start=fetch_start,
+        end=end_date,
+        include_fomc=include_fomc_blackout,
+        include_cpi=include_cpi_blackout,
+        window_days=int(blackout_window_days),
+    )
+
 detector = WickPlayDetector(
     min_upper_wick_ratio=float(min_upper_wick_ratio),
-    max_upper_wick_ratio=(
-        float(max_upper_wick_ratio) if enable_max_upper_wick else None
-    ),
+    max_upper_wick_ratio=(float(max_upper_wick_ratio) if enable_max_upper_wick else None),
     max_volume_dryup=float(max_volume_dryup),
     breakout_trigger=breakout_trigger,
     stop_mode="wick_low",  # per user choice — Kell's "more room" stop
-    max_wick_range_atr=(
-        float(max_wick_range_atr) if enable_max_wick_range else None
-    ),
+    max_wick_range_atr=(float(max_wick_range_atr) if enable_max_wick_range else None),
     cooldown_bars=int(cooldown_bars),
     psych_vol_lookback=int(psych_vol_lookback),
     psych_wick_vol_exhaustion_mult=float(psych_wick_vol_exhaustion_mult),
@@ -347,9 +519,14 @@ detector = WickPlayDetector(
         float(min_breakout_close_location_wk) if enable_min_breakout_cl_wk else None
     ),
     require_above_sma200=bool(require_above_sma200_wk),
-    min_pct_of_52w_high=(
-        float(min_pct_of_52w_high_wk) if enable_pct_high_wk else None
+    min_pct_of_52w_high=(float(min_pct_of_52w_high_wk) if enable_pct_high_wk else None),
+    regime_df=regime_df,
+    regime_min_above_sma=(int(regime_sma) if enable_regime_filter and regime_sma > 0 else None),
+    regime_min_above_ema=(int(regime_ema) if enable_regime_filter and regime_ema > 0 else None),
+    regime_max_n_day_drawdown=(
+        (int(regime_dd_n), float(regime_dd_max)) if enable_regime_filter and regime_dd_n > 0 else None
     ),
+    blackout_dates=blackout_set,
 )
 
 exit_detector = (
@@ -400,9 +577,7 @@ perf = result.performance
 st.subheader(f"{ticker} — Wick Play Strategy")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Trades", perf.total_trades)
-m2.metric(
-    "Win Rate", f"{perf.win_rate:.0%}" if perf.total_trades else "—"
-)
+m2.metric("Win Rate", f"{perf.win_rate:.0%}" if perf.total_trades else "—")
 m3.metric("Total Return", f"{perf.total_return_pct:.2%}")
 m4.metric("Final Capital", f"${perf.final_capital:,.0f}")
 
@@ -422,9 +597,7 @@ st.plotly_chart(trade_fig, use_container_width=True)
 
 # --- Equity curve ---
 if len(result.equity_curve) > 1:
-    eq_fig = chart_builder.build_equity_curve(
-        result.equity_curve, title="Equity Curve"
-    )
+    eq_fig = chart_builder.build_equity_curve(result.equity_curve, title="Equity Curve")
     st.plotly_chart(eq_fig, use_container_width=True)
 
 # --- Trades table ---

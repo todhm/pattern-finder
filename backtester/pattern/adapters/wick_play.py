@@ -1,3 +1,5 @@
+from datetime import date
+
 import pandas as pd
 
 from pattern.domain.models import PatternSignal
@@ -112,6 +114,39 @@ class WickPlayDetector(PatternDetector):
         sma_period: int = 200,
         min_pct_of_52w_high: float | None = None,
         pct_high_lookback: int = 252,
+        # --- Index-regime gates (opt-in; default OFF) -------------
+        # The Multi-Wick Play post-mortem showed two of four losing
+        # trades (SHOP 2024-12-18 on FOMC "hawkish cut" day, REGN
+        # 2025-02-21 during the tariff/DeepSeek wobble) died from
+        # index-wide macro shocks, not from a broken setup shape.
+        # These gates let the caller pass an index OHLCV frame
+        # (typically SPY / ^GSPC) and require its regime to be
+        # "risk-on" before any Wick Play signal is emitted.
+        #
+        # ``regime_df`` — OHLCV of the benchmark index, same column
+        #   format as ``df``. None = regime filter OFF.
+        # ``regime_min_above_sma`` — SMA period. When set (e.g. 50),
+        #   require ``regime_Close > SMA(N)`` on the signal bar.
+        # ``regime_min_above_ema`` — EMA period. When set (e.g. 20),
+        #   require ``regime_Close > EMA(N)`` on the signal bar.
+        # ``regime_max_n_day_drawdown`` — tuple ``(n, max_dd)``. When
+        #   set (e.g. (5, 0.02)), reject if the index's N-day return
+        #   is worse than ``-max_dd`` (i.e. a >2% 5-day drop). This
+        #   is the filter that would have spared REGN: entry day
+        #   had a sharply negative SPY 5-day print.
+        regime_df: pd.DataFrame | None = None,
+        regime_min_above_sma: int | None = None,
+        regime_min_above_ema: int | None = None,
+        regime_max_n_day_drawdown: tuple[int, float] | None = None,
+        # --- Macro-event blackout (opt-in; default OFF) -----------
+        # Dates on which to reject new entries regardless of setup
+        # quality. Typical use: FOMC announcement days (SHOP was
+        # stopped out on 2024-12-18 FOMC). The set applies to both
+        # the SIGNAL bar (breakout day) and the ENTRY bar (next
+        # open) — either landing on a blackout date kills the
+        # signal. Callers build the set via
+        # ``data.adapters.macro_calendar.blackout_dates()``.
+        blackout_dates: set[date] | None = None,
     ):
         if breakout_trigger not in ("wick_high", "inside_high"):
             raise ValueError(
@@ -208,6 +243,21 @@ class WickPlayDetector(PatternDetector):
         self.sma_period = sma_period
         self.min_pct_of_52w_high = min_pct_of_52w_high
         self.pct_high_lookback = pct_high_lookback
+        # Index-regime gates — stored verbatim. Pre-computation
+        # happens in detect() so the regime_df is only scanned once
+        # per detect() call even though the gate fires per-bar.
+        self.regime_df = regime_df
+        self.regime_min_above_sma = regime_min_above_sma
+        self.regime_min_above_ema = regime_min_above_ema
+        self.regime_max_n_day_drawdown = regime_max_n_day_drawdown
+        if regime_max_n_day_drawdown is not None:
+            n, dd = regime_max_n_day_drawdown
+            if n <= 0 or dd < 0:
+                raise ValueError(
+                    "regime_max_n_day_drawdown must be (n>0, dd>=0); "
+                    "dd is the magnitude of allowed drawdown."
+                )
+        self.blackout_dates = blackout_dates
 
     def detect(
         self,
@@ -232,11 +282,37 @@ class WickPlayDetector(PatternDetector):
         )
         is_red = df["Close"] < df["Open"]
 
+        # Regime mask (pre-compute once). Aligned to df's index via
+        # forward-fill so that signal bars falling on index-holidays
+        # inherit the last known regime state.
+        regime_ok = self._build_regime_mask(df)
+
         signals: list[PatternSignal] = []
         cooldown_until = -1
 
         for i in range(2, len(df)):
             if i <= cooldown_until:
+                continue
+
+            # --- Macro blackout gate -----------------------------
+            # Reject if the signal bar itself (breakout day) OR the
+            # entry bar (next open) falls on a blackout date. The
+            # "signal + entry" pair catches both "setup triggered
+            # on FOMC day" and "setup triggered day before FOMC
+            # → entry bar IS FOMC day".
+            if self.blackout_dates:
+                sig_d = df.index[i].date()
+                if sig_d in self.blackout_dates:
+                    continue
+                if i + 1 < len(df):
+                    entry_d = df.index[i + 1].date()
+                    if entry_d in self.blackout_dates:
+                        continue
+
+            # --- Index-regime gate -------------------------------
+            # regime_ok is aligned to df's index; False = macro
+            # tape fails at least one configured check on bar i.
+            if regime_ok is not None and not bool(regime_ok.iloc[i]):
                 continue
 
             # --- Bar i-2: wick bar -------------------------------
@@ -480,6 +556,56 @@ class WickPlayDetector(PatternDetector):
             cooldown_until = i + self.cooldown_bars
 
         return signals
+
+    def _build_regime_mask(self, df: pd.DataFrame) -> pd.Series | None:
+        """Pre-compute a boolean "regime OK" mask aligned to ``df``.
+
+        Returns None when no regime gate is configured. When at least
+        one gate is configured but ``regime_df`` was not supplied,
+        raises — a misconfiguration that would silently pass every
+        bar otherwise.
+        """
+        any_gate = (
+            self.regime_min_above_sma is not None
+            or self.regime_min_above_ema is not None
+            or self.regime_max_n_day_drawdown is not None
+        )
+        if not any_gate:
+            return None
+        if self.regime_df is None or self.regime_df.empty:
+            raise ValueError(
+                "regime gates configured but regime_df is empty — "
+                "pass an index OHLCV frame (e.g. SPY / ^GSPC) or "
+                "disable all regime_min_* / regime_max_* params."
+            )
+
+        regime = self.regime_df.copy()
+        if regime.index.tz is not None:
+            regime.index = regime.index.tz_localize(None)
+        r_close = regime["Close"].astype(float)
+
+        ok = pd.Series(True, index=regime.index)
+        if self.regime_min_above_sma is not None:
+            sma = r_close.rolling(self.regime_min_above_sma).mean()
+            ok &= r_close > sma
+        if self.regime_min_above_ema is not None:
+            ema = r_close.ewm(
+                span=self.regime_min_above_ema, adjust=False
+            ).mean()
+            ok &= r_close > ema
+        if self.regime_max_n_day_drawdown is not None:
+            n, max_dd = self.regime_max_n_day_drawdown
+            ret_n = r_close.pct_change(n)
+            # max_dd stored as magnitude; allow returns >= -max_dd.
+            ok &= ret_n >= -abs(max_dd)
+
+        # Align to df's index. method='ffill' covers cases where
+        # df and regime_df are daily but on slightly different
+        # trading calendars (shouldn't happen for US equities, but
+        # defensive). fillna(False) treats unknown regime = FAIL
+        # so early bars without enough history don't leak through.
+        aligned = ok.reindex(df.index, method="ffill").fillna(False)
+        return aligned
 
     @staticmethod
     def _compute_atr(df: pd.DataFrame, period: int) -> pd.Series:
