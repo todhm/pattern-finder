@@ -69,6 +69,20 @@ with st.sidebar:
         step=0.05,
         format="%.2f",
     )
+    enable_max_upper_wick = st.checkbox(
+        "Cap upper wick / range (opt-in, 기본 OFF)",
+        value=False,
+        help="실측 재분석: winner와 loser uw_ratio 겹침 큼. 유의하지 않음. 실험용.",
+    )
+    max_upper_wick_ratio = st.number_input(
+        "Max upper wick / range",
+        value=0.55,
+        min_value=0.3,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_max_upper_wick,
+    )
     max_volume_dryup = st.number_input(
         "Max inside-bar vol vs wick bar",
         value=1.0,
@@ -148,7 +162,7 @@ with st.sidebar:
     )
     min_prior_trend_20d_wk = st.number_input(
         "② Min 20-day trend (fraction)",
-        value=-0.03, min_value=-0.5, max_value=0.5, step=0.005, format="%.3f",
+        value=-0.01, min_value=-0.5, max_value=0.5, step=0.005, format="%.3f",
         disabled=not enable_min_prior_trend,
         help="-0.03 = 직전 20일 -3% 이상 빠진 종목 거부. "
         "-2% (-0.02)로 하면 더 엄격, -5% (-0.05)로 하면 느슨.",
@@ -309,6 +323,9 @@ if df is None or df.empty:
 
 detector = WickPlayDetector(
     min_upper_wick_ratio=float(min_upper_wick_ratio),
+    max_upper_wick_ratio=(
+        float(max_upper_wick_ratio) if enable_max_upper_wick else None
+    ),
     max_volume_dryup=float(max_volume_dryup),
     breakout_trigger=breakout_trigger,
     stop_mode="wick_low",  # per user choice — Kell's "more room" stop

@@ -93,6 +93,22 @@ with st.sidebar:
         step=0.05,
         format="%.2f",
     )
+    enable_max_upper_wick = st.checkbox(
+        "Cap upper wick / range (opt-in, 기본 OFF)",
+        value=False,
+        help="초기 분석에서 도입했으나 wick bar 인덱스 off-by-1로 결론 뒤집힘. "
+        "재분석: Winner 평균 uw=0.67, Loser 0.59 (winner가 오히려 큼). "
+        "DDOG(+21.7%) uw=0.782. 0.55 cap이면 DDOG 차단됨. 실험용으로만.",
+    )
+    max_upper_wick_ratio = st.number_input(
+        "Max upper wick / range",
+        value=0.55,
+        min_value=0.3,
+        max_value=1.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_max_upper_wick,
+    )
     max_volume_dryup = st.number_input(
         "Max inside-bar vol vs wick bar",
         value=1.0,
@@ -164,9 +180,11 @@ with st.sidebar:
     )
     min_prior_trend_20d_wk = st.number_input(
         "② Min 20-day trend (fraction)",
-        value=-0.03, min_value=-0.5, max_value=0.5, step=0.005, format="%.3f",
+        value=-0.01, min_value=-0.5, max_value=0.5, step=0.005, format="%.3f",
         disabled=not enable_min_prior_trend,
-        help="-0.03 = 20일 -3% 이상 빠진 종목 거부.",
+        help="실측 기반. -0.01 = 20일 -1% 이상 빠진 종목 거부. "
+        "20 trade 분석: winner는 전원 ret20 ≥ -0.5%, loser HRL/CHTR는 -2%. "
+        "-0.01에서 winner 손실 0, loser 2개 차단.",
     )
     enable_max_prior_trend = st.checkbox(
         "③ Enforce max 20-day prior trend (parabolic cap)",
@@ -314,6 +332,9 @@ universe_provider = WikipediaUniverseAdapter()
 
 detector = WickPlayDetector(
     min_upper_wick_ratio=float(min_upper_wick_ratio),
+    max_upper_wick_ratio=(
+        float(max_upper_wick_ratio) if enable_max_upper_wick else None
+    ),
     max_volume_dryup=float(max_volume_dryup),
     breakout_trigger=breakout_trigger,
     stop_mode="wick_low",

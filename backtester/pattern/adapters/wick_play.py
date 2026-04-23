@@ -77,6 +77,7 @@ class WickPlayDetector(PatternDetector):
     def __init__(
         self,
         min_upper_wick_ratio: float = 0.5,
+        max_upper_wick_ratio: float | None = None,
         max_volume_dryup: float = 1.0,
         breakout_trigger: str = "wick_high",
         stop_mode: str = "inside_low",
@@ -92,7 +93,7 @@ class WickPlayDetector(PatternDetector):
         min_psych_score: int = 3,
         # --- Hard gates from failure-case post-mortem ---
         min_breakout_strength_atr: float = 0.3,
-        min_prior_trend_20d: float | None = -0.03,
+        min_prior_trend_20d: float | None = -0.01,
         max_prior_trend_20d: float | None = None,
         prior_trend_lookback: int = 20,
         min_wick_close_location: float = 0.15,
@@ -121,6 +122,17 @@ class WickPlayDetector(PatternDetector):
         if not 0 <= min_psych_score <= 4:
             raise ValueError("min_psych_score must be between 0 and 4")
         self.min_upper_wick_ratio = min_upper_wick_ratio
+        # Upper-wick CEILING — opt-in (off by default). An initial
+        # analysis of 20 trades suggested extreme wicks (>0.55)
+        # correlated with losers, but that used an off-by-one
+        # wick-bar index. Re-analysis with the correct wick bar
+        # (entry_idx − 3, since entry = signal + 1) showed the
+        # opposite: winner mean uw_ratio 0.672 vs loser 0.591,
+        # with heavy overlap and no clean cutoff. DDOG (+21.7%
+        # top winner) had uw_ratio = 0.782 and would be dropped
+        # by a 0.55 ceiling. Kept as a configurable knob but not
+        # a recommended filter.
+        self.max_upper_wick_ratio = max_upper_wick_ratio
         self.max_volume_dryup = max_volume_dryup
         self.breakout_trigger = breakout_trigger
         self.stop_mode = stop_mode
@@ -145,9 +157,15 @@ class WickPlayDetector(PatternDetector):
         # real "buyers overwhelm sellers" event).
         #
         # ``min_prior_trend_20d`` — the wick bar's close must have a
-        # 20-day return no worse than this (default -3%). Caught
-        # HUM(-17%)/ADM(-7.5%)/KHC(-4%)/AIZ(-3.1%). Kell's Wick Play
-        # works inside uptrend pullbacks, not mid-decline bounces.
+        # 20-day return no worse than this (default -1%). Originally
+        # -3% from the HUM/ADM/KHC/AIZ post-mortem; tightened to
+        # -1% after walk-through on 20 live trades (2024-06 →
+        # 2026-04) showed ret20d is the single most-discriminating
+        # feature: every winner had ret20d ≥ -0.5%, while two
+        # losers (HRL -2.1%, CHTR -2.0%) sat clearly below. The
+        # -0.01 cutoff drops those two without touching any
+        # winner. Kell's Wick Play works inside uptrend
+        # pullbacks, not mid-decline bounces.
         #
         # ``max_prior_trend_20d`` — optional parabolic cap. When set
         # (e.g. 0.15), rejects setups that have already rallied more
@@ -236,6 +254,11 @@ class WickPlayDetector(PatternDetector):
             upper_wick = w_high - body_top
             upper_wick_ratio = upper_wick / w_range
             if upper_wick_ratio < self.min_upper_wick_ratio:
+                continue
+            if (
+                self.max_upper_wick_ratio is not None
+                and upper_wick_ratio > self.max_upper_wick_ratio
+            ):
                 continue
 
             # --- Hard gate: wick bar close_location (finding #7) ---
