@@ -25,7 +25,7 @@ class FakeMarketData(MarketDataPort):
     def __init__(self, df: pd.DataFrame):
         self._df = df
 
-    def fetch_ohlcv(self, symbol, start, end):
+    def fetch_ohlcv(self, symbol, start, end, interval="1d"):
         return self._df
 
 
@@ -577,14 +577,17 @@ def _force_entry(df: pd.DataFrame, entry_date: date, **strategy_overrides):
         risk_per_trade=0.02,
         max_holding_days=60,
     )
-    # Mirror ``execute()``'s end-to-end flow: pre-compute exit dates
+    # Mirror ``execute()``'s end-to-end flow: pre-compute exit keys
     # when the strategy has a detector wired up, so ``_force_entry``
-    # exercises the same exit path as the public API.
-    exit_dates: set[date] = set()
+    # exercises the same exit path as the public API. Keys go through
+    # the same ``_signal_key`` hook the strategy uses internally, so
+    # this helper stays correct if a subclass changes the identity
+    # (date → timestamp).
+    exit_keys: set[pd.Timestamp] = set()
     if strategy._exit_detector is not None:
-        exit_dates = {s.date for s in strategy._exit_detector.detect(df_ind)}
+        exit_keys = {strategy._signal_key(s) for s in strategy._exit_detector.detect(df_ind)}
     trade, _ = strategy._execute_trade(
-        df_ind, signal, entry_idx, 100_000.0, config, exit_dates
+        df_ind, signal, entry_idx, 100_000.0, config, exit_keys
     )
     return trade
 

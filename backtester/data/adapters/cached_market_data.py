@@ -37,6 +37,7 @@ class CachedMarketDataAdapter(MarketDataPort):
         symbol: str,
         start: date,
         end: date,
+        interval: str = "1d",
     ) -> pd.DataFrame:
         # Requests that include today's bar must bypass the cache —
         # the intraday/live bar updates through the session, and a
@@ -45,23 +46,30 @@ class CachedMarketDataAdapter(MarketDataPort):
         # stable and safe to cache.
         today = date.today()
         if end >= today:
-            return self._upstream.fetch_ohlcv(symbol, start, end)
+            return self._upstream.fetch_ohlcv(symbol, start, end, interval=interval)
 
-        path = self._cache_path(symbol, start, end)
+        path = self._cache_path(symbol, start, end, interval)
         if path.exists():
             try:
                 return pd.read_parquet(path)
             except Exception:
                 # Corrupted cache file — fall through to re-fetch.
                 path.unlink(missing_ok=True)
-        df = self._upstream.fetch_ohlcv(symbol, start, end)
+        df = self._upstream.fetch_ohlcv(symbol, start, end, interval=interval)
         try:
             df.to_parquet(path)
         except Exception:
             pass
         return df
 
-    def _cache_path(self, symbol: str, start: date, end: date) -> Path:
-        key = f"{symbol}_{start.isoformat()}_{end.isoformat()}"
+    def _cache_path(
+        self, symbol: str, start: date, end: date, interval: str = "1d"
+    ) -> Path:
+        # Keep the legacy key for "1d" so existing parquet caches stay
+        # valid; tag every other interval explicitly to avoid collisions.
+        if interval == "1d":
+            key = f"{symbol}_{start.isoformat()}_{end.isoformat()}"
+        else:
+            key = f"{symbol}_{interval}_{start.isoformat()}_{end.isoformat()}"
         safe = hashlib.sha1(key.encode()).hexdigest()[:16]
         return self._cache_dir / f"{symbol}_{safe}.parquet"

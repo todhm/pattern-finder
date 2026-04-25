@@ -149,9 +149,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             height=700,
             margin=dict(l=50, r=50, t=50, b=30),
             xaxis=dict(
-                rangebreaks=[
-                    dict(values=self._missing_dates(df)),
-                ],
+                rangebreaks=self._rangebreaks(df),
             ),
             yaxis=dict(autorange=True, fixedrange=False),
             yaxis2=dict(autorange=True, fixedrange=False),
@@ -258,17 +256,73 @@ class PlotlyChartBuilder(ChartBuilderPort):
         )
 
         # Per-trade overlay: stop line, connector, then aggregated marker traces.
-        # ``_resolve`` supports both daily charts (exact date match) and
-        # resampled charts (weekly/monthly — snap the trade date to the
-        # first bar whose period contains or follows it).
+        #
+        # Two resolution paths:
+        #   - ``_resolve_ts(trade_ts)`` — exact bar match when the trade
+        #     carries an ``entry_ts``/``exit_ts`` (populated on every
+        #     run since the interval generalization). Intraday charts
+        #     need this so a 15m BUY marker lands on the *specific*
+        #     bar the strategy entered on, not the last bar of that
+        #     session.
+        #   - ``_resolve_date(d)`` — legacy path for daily / resampled
+        #     (weekly/monthly) charts. Snaps a date to the first bar
+        #     at or after that calendar day. Kept as a fallback for
+        #     hand-built Trade objects where the ts fields are None.
         date_map = {idx.date(): idx for idx in df.index}
 
-        def _resolve(d):
+        def _resolve_date(d):
             if d in date_map:
                 return date_map[d]
             ts = pd.Timestamp(d)
             after = df.index[df.index >= ts]
             return after[0] if len(after) > 0 else None
+
+        def _resolve_ts(ts):
+            """Map a trade Timestamp onto the chart's df.index, picking
+            the bar at-or-before the ts so 15m trades land on the exact
+            entry/exit bar.
+
+            tz alignment rules (picked so wall-clock time is preserved,
+            not shifted to UTC):
+
+            - df naive + ts tz-aware  → strip ts's tz keeping wall clock
+              (``tz_localize(None)``). Daily df on a ts that came from
+              a tz-aware intraday fetch would fall into this branch.
+            - df tz-aware + ts naive  → localize ts into df's tz.
+            - both tz-aware, different zones → convert ts into df's tz.
+            """
+            if ts is None:
+                return None
+            stamp = pd.Timestamp(ts)
+            if df.index.tz is None and stamp.tz is not None:
+                stamp = stamp.tz_localize(None)
+            elif df.index.tz is not None and stamp.tz is None:
+                stamp = stamp.tz_localize(df.index.tz)
+            elif (
+                df.index.tz is not None
+                and stamp.tz is not None
+                and str(stamp.tz) != str(df.index.tz)
+            ):
+                stamp = stamp.tz_convert(df.index.tz)
+            if stamp in df.index:
+                return stamp
+            before = df.index[df.index <= stamp]
+            return before[-1] if len(before) > 0 else None
+
+        def _resolve_trade(ts, d):
+            """Prefer exact-bar resolution via ts, fall back to date-
+            based resolution. Returns the DatetimeIndex value or None."""
+            return _resolve_ts(ts) if ts is not None else _resolve_date(d)
+
+        def _hover_when(ts, d):
+            """Display label — ``YYYY-MM-DD HH:MM`` if intraday ts is
+            available, else ISO date. Keeps daily-trade hovers exactly
+            as before while 15m trades surface the bar time."""
+            if ts is not None:
+                stamp = pd.Timestamp(ts)
+                if stamp.time().hour != 0 or stamp.time().minute != 0:
+                    return stamp.strftime("%Y-%m-%d %H:%M")
+            return str(d)
 
         exit_reason_labels = {
             "exhaustion_exit": "Exhaustion Extension Top",
@@ -287,9 +341,13 @@ class PlotlyChartBuilder(ChartBuilderPort):
         sell_hover: list[str] = []
 
         for t in trades:
-            entry_ts = _resolve(t.entry_date)
-            exit_ts = _resolve(t.exit_date)
-            if entry_ts is None or exit_ts is None:
+            entry_marker_x = _resolve_trade(
+                getattr(t, "entry_ts", None), t.entry_date
+            )
+            exit_marker_x = _resolve_trade(
+                getattr(t, "exit_ts", None), t.exit_date
+            )
+            if entry_marker_x is None or exit_marker_x is None:
                 continue
 
             entry_value = t.entry_price * t.shares
@@ -297,23 +355,29 @@ class PlotlyChartBuilder(ChartBuilderPort):
             pnl_sign = "+" if t.pnl >= 0 else ""
             exit_reason = getattr(t, "exit_reason", "end_of_data")
             reason_label = exit_reason_labels.get(exit_reason, exit_reason)
+            entry_when = _hover_when(
+                getattr(t, "entry_ts", None), t.entry_date
+            )
+            exit_when = _hover_when(
+                getattr(t, "exit_ts", None), t.exit_date
+            )
 
-            entry_x.append(entry_ts)
+            entry_x.append(entry_marker_x)
             entry_y.append(t.entry_price)
             entry_hover.append(
                 "<b>BUY</b><br>"
-                f"Date: {t.entry_date}<br>"
+                f"Date: {entry_when}<br>"
                 f"Price: ${t.entry_price:,.2f}<br>"
                 f"Shares: {t.shares}<br>"
                 f"Value: ${entry_value:,.0f}<br>"
                 f"Stop: ${t.stop_loss:,.2f}"
             )
 
-            sell_x.append(exit_ts)
+            sell_x.append(exit_marker_x)
             sell_y.append(t.exit_price)
             sell_hover.append(
                 "<b>SELL</b><br>"
-                f"Date: {t.exit_date}<br>"
+                f"Date: {exit_when}<br>"
                 f"Price: ${t.exit_price:,.2f}<br>"
                 f"Shares: {t.shares}<br>"
                 f"Value: ${exit_value:,.0f}<br>"
@@ -325,7 +389,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             # Stop-loss envelope segment
             fig.add_trace(
                 go.Scatter(
-                    x=[entry_ts, exit_ts],
+                    x=[entry_marker_x, exit_marker_x],
                     y=[t.stop_loss, t.stop_loss],
                     mode="lines",
                     line=dict(color="#F44336", width=1, dash="dash"),
@@ -341,7 +405,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             connector_color = "#26a69a" if t.pnl > 0 else "#ef5350"
             fig.add_trace(
                 go.Scatter(
-                    x=[entry_ts, exit_ts],
+                    x=[entry_marker_x, exit_marker_x],
                     y=[t.entry_price, t.exit_price],
                     mode="lines",
                     line=dict(color=connector_color, width=1.2, dash="dot"),
@@ -397,7 +461,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             height=700,
             margin=dict(l=50, r=50, t=50, b=30),
             xaxis=dict(
-                rangebreaks=[dict(values=self._missing_dates(df))],
+                rangebreaks=self._rangebreaks(df),
             ),
             yaxis=dict(autorange=True, fixedrange=False),
             yaxis2=dict(autorange=True, fixedrange=False),
@@ -487,6 +551,39 @@ class PlotlyChartBuilder(ChartBuilderPort):
         all_days = pd.date_range(df.index.min(), df.index.max(), freq="D")
         missing = all_days.difference(df.index)
         return [d.strftime("%Y-%m-%d") for d in missing]
+
+    @classmethod
+    def _rangebreaks(cls, df: pd.DataFrame) -> list[dict]:
+        """Plotly ``xaxis.rangebreaks`` config, picked from the index.
+
+        Daily frames get a list of missing calendar dates so weekends
+        / holidays collapse on the x-axis. Intraday frames use
+        plotly's pattern-based breaks instead — without them the
+        16:00 → next-day 09:30 overnight gap renders as a wide empty
+        stretch and indicator lines (EMA / SMA) appear as flat
+        horizontal segments crossing it. ``pattern="hour"`` with
+        ``bounds=[16, 9.5]`` hides 16:00–09:30 of each day; the
+        ``bounds=["sat", "mon"]`` rule then collapses weekends.
+
+        Detection works on both tz-aware and tz-stripped frames.
+        ``build_candlestick_with_trades`` strips the tz at the top
+        for marker alignment, so by the time we run we can't rely on
+        ``df.index.tz``. Instead we count how many bars share each
+        calendar date — daily frames have at most one, intraday
+        frames have many.
+        """
+        if len(df.index) == 0:
+            return [dict(values=cls._missing_dates(df))]
+        is_intraday = (
+            df.index.tz is not None
+            or df.index.normalize().value_counts().max() > 1
+        )
+        if is_intraday:
+            return [
+                dict(bounds=["sat", "mon"]),
+                dict(bounds=[16, 9.5], pattern="hour"),
+            ]
+        return [dict(values=cls._missing_dates(df))]
 
     def build_equity_curve(
         self,

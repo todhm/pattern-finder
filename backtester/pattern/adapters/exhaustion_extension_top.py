@@ -243,6 +243,7 @@ class ExhaustionExtensionTopDetector(PatternDetector):
         )
         return PatternSignal(
             date=df.index[i].date(),
+            timestamp=pd.Timestamp(df.index[i]).to_pydatetime(),
             pattern_name=self.name,
             entry_price=close,
             stop_loss=round(high, 2),

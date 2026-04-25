@@ -23,10 +23,16 @@ class InMemorySignalRepo(SignalRepositoryPort):
         self._store[signal.id] = deepcopy(signal)
         return signal
 
-    def list(self, status: SignalStatus | None = None) -> list[BuySignal]:
+    def list(
+        self,
+        status: SignalStatus | None = None,
+        interval: str | None = None,
+    ) -> list[BuySignal]:
         items = list(self._store.values())
         if status is not None:
             items = [s for s in items if s.status == status]
+        if interval is not None:
+            items = [s for s in items if s.interval == interval]
         items.sort(key=lambda s: (s.signal_date, s.created_at), reverse=True)
         return items
 

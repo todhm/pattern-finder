@@ -121,9 +121,18 @@ class WickPlayStrategy(StrategyRunnerPort):
     # Public API
     # ------------------------------------------------------------------
 
+    # Interval forwarded to ``MarketDataPort.fetch_ohlcv``. Daily is
+    # the historical default; intraday subclasses override via class
+    # attribute so ``run()`` pulls the right granularity without
+    # overriding the method itself.
+    _interval: str = "1d"
+
     def run(self, config: StrategyConfig) -> StrategyResult:
         df = self.market_data.fetch_ohlcv(
-            config.ticker, config.start_date, config.end_date
+            config.ticker,
+            config.start_date,
+            config.end_date,
+            interval=self._interval,
         )
         return self.execute(df, config)
 
@@ -133,11 +142,13 @@ class WickPlayStrategy(StrategyRunnerPort):
         df = self._with_indicators(df)
         signals = self.detector.detect(df)
 
-        # Pre-compute exhaustion fire dates once; detector docstrings
-        # guarantee causal (end-of-bar) detection.
-        exit_dates: set[date] = set()
+        # Pre-compute exhaustion exit-bar identity keys once;
+        # detector docstrings guarantee causal (end-of-bar) detection.
+        # Keys go through ``_signal_key`` so intraday subclasses can
+        # swap the identity granularity (date → timestamp).
+        exit_keys: set[pd.Timestamp] = set()
         if self.exit_detector is not None:
-            exit_dates = {s.date for s in self.exit_detector.detect(df)}
+            exit_keys = {self._signal_key(s) for s in self.exit_detector.detect(df)}
 
         capital = config.initial_capital
         trades: list[Trade] = []
@@ -147,7 +158,7 @@ class WickPlayStrategy(StrategyRunnerPort):
         position_until: int = -1  # one-position-at-a-time
 
         for sig in signals:
-            entry_idx = self._next_open_index(df, sig.date)
+            entry_idx = self._next_open_index(df, sig)
             if entry_idx is None:
                 continue
             if entry_idx <= position_until:
@@ -159,7 +170,7 @@ class WickPlayStrategy(StrategyRunnerPort):
                 entry_idx=entry_idx,
                 capital=capital,
                 config=config,
-                exit_dates=exit_dates,
+                exit_keys=exit_keys,
             )
             if trade is None:
                 continue
@@ -185,9 +196,16 @@ class WickPlayStrategy(StrategyRunnerPort):
     # Internals
     # ------------------------------------------------------------------
 
+    # Daily path drops index tz to match pre-existing naive-timestamp
+    # semantics in the rest of the daily pipeline (trade dates, chart
+    # builders). Intraday subclasses override to keep the NY tz so
+    # ``_next_open_index`` can match ``signal.timestamp`` against the
+    # index without a tz-mismatch.
+    _strip_index_tz: bool = True
+
     def _with_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
-        if df.index.tz is not None:
+        if self._strip_index_tz and df.index.tz is not None:
             df.index = df.index.tz_localize(None)
         df["ema_trail"] = (
             df["Close"].ewm(span=self.ema_trail, adjust=False).mean()
@@ -208,9 +226,34 @@ class WickPlayStrategy(StrategyRunnerPort):
         ).max(axis=1)
         return true_range.ewm(span=period, adjust=False).mean()
 
+    # ---- interval-identity hooks ----
+    # Default implementations preserve the historical 1d behavior
+    # bit-for-bit (keys = session date midnight). Intraday subclasses
+    # override these to key by the exact ``DatetimeIndex`` value so
+    # same-session 15m bars stay distinct.
+
     @staticmethod
-    def _next_open_index(df: pd.DataFrame, signal_date) -> int | None:
-        ts = pd.Timestamp(signal_date)
+    def _signal_match_ts(signal: PatternSignal) -> pd.Timestamp:
+        return pd.Timestamp(signal.date)
+
+    @staticmethod
+    def _signal_key(signal: PatternSignal) -> pd.Timestamp:
+        return pd.Timestamp(signal.date)
+
+    @staticmethod
+    def _bar_key(df: pd.DataFrame, i: int) -> pd.Timestamp:
+        return pd.Timestamp(df.index[i].date())
+
+    @staticmethod
+    def _trade_exit_key(trade: Trade) -> pd.Timestamp:
+        return pd.Timestamp(trade.exit_date)
+
+    def _next_open_index(
+        self, df: pd.DataFrame, signal: PatternSignal
+    ) -> int | None:
+        ts = self._signal_match_ts(signal)
+        if df.index.tz is not None and ts.tz is None:
+            ts = ts.tz_localize(df.index.tz)
         try:
             signal_idx = df.index.get_loc(ts)
         except KeyError:
@@ -227,10 +270,10 @@ class WickPlayStrategy(StrategyRunnerPort):
         entry_idx: int,
         capital: float,
         config: StrategyConfig,
-        exit_dates: set[date] | None = None,
+        exit_keys: set[pd.Timestamp] | None = None,
     ) -> tuple[Trade | None, int]:
-        if exit_dates is None:
-            exit_dates = set()
+        if exit_keys is None:
+            exit_keys = set()
         entry_price = float(df["Open"].iloc[entry_idx])
         stop = float(signal.stop_loss)
 
@@ -258,12 +301,14 @@ class WickPlayStrategy(StrategyRunnerPort):
             entry_price=entry_price,
             stop=stop,
             max_holding_days=config.max_holding_days,
-            exit_dates=exit_dates,
+            exit_keys=exit_keys,
         )
 
         pnl = (exit_price - entry_price) * shares
         pnl_pct = (exit_price - entry_price) / entry_price
 
+        entry_ts = pd.Timestamp(df.index[entry_idx]).to_pydatetime()
+        exit_ts = pd.Timestamp(df.index[exit_idx]).to_pydatetime()
         trade = Trade(
             pattern_name=signal.pattern_name,
             entry_date=df.index[entry_idx].date(),
@@ -275,6 +320,8 @@ class WickPlayStrategy(StrategyRunnerPort):
             pnl=pnl,
             pnl_pct=pnl_pct,
             exit_reason=exit_reason,
+            entry_ts=entry_ts,
+            exit_ts=exit_ts,
         )
         return trade, exit_idx
 
@@ -285,7 +332,7 @@ class WickPlayStrategy(StrategyRunnerPort):
         entry_price: float,
         stop: float,
         max_holding_days: int,
-        exit_dates: set[date],
+        exit_keys: set[pd.Timestamp],
     ) -> tuple[float, int, str]:
         last_idx = len(df) - 1
         opens = df["Open"].to_numpy(dtype=float)
@@ -356,9 +403,12 @@ class WickPlayStrategy(StrategyRunnerPort):
 
             # (C) Exhaustion Extension Top — inject from composition
             # root. Exit at the bar's close (the fire bar itself).
+            # Bar-identity uses ``_bar_key`` so intraday subclasses
+            # can swap the granularity (date → timestamp) without
+            # rewriting this loop.
             if (
                 self.exit_detector is not None
-                and df.index[i].date() in exit_dates
+                and self._bar_key(df, i) in exit_keys
             ):
                 return float(closes[i]), i, "exhaustion_exit"
 

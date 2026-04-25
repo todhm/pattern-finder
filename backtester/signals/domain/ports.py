@@ -18,8 +18,19 @@ class SignalRepositoryPort(ABC):
         """Persist a signal. Idempotent on ``signal.id``."""
 
     @abstractmethod
-    def list(self, status: SignalStatus | None = None) -> list[BuySignal]:
-        """Return signals, optionally filtered by status, newest first."""
+    def list(
+        self,
+        status: SignalStatus | None = None,
+        interval: str | None = None,
+    ) -> list[BuySignal]:
+        """Return signals, optionally filtered by status and bar
+        interval, newest first.
+
+        ``interval=None`` returns every cadence (back-compat for
+        pages that pre-date the 15m work). Pass e.g. ``"1d"`` to
+        show only daily signals on the legacy watchlist, ``"15m"``
+        on intraday pages.
+        """
 
     @abstractmethod
     def get(self, signal_id: str) -> BuySignal | None:

@@ -70,7 +70,7 @@ class _FakeMarketData(MarketDataPort):
     def __init__(self, df_by_ticker: dict[str, pd.DataFrame]):
         self._df_by_ticker = df_by_ticker
 
-    def fetch_ohlcv(self, symbol, start, end):
+    def fetch_ohlcv(self, symbol, start, end, interval="1d"):
         df = self._df_by_ticker.get(symbol)
         if df is None:
             raise ValueError(f"unknown ticker {symbol}")
@@ -256,7 +256,7 @@ def test_last_scan_stats_flags_fetch_failure():
     specifically so the UI can explain "no data" vs "no pattern"."""
 
     class _AlwaysFails(MarketDataPort):
-        def fetch_ohlcv(self, symbol, start, end):
+        def fetch_ohlcv(self, symbol, start, end, interval="1d"):
             raise RuntimeError("boom")
 
     scanner = WickPlayBuySignalScanner(

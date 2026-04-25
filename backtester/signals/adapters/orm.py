@@ -40,11 +40,26 @@ class BuySignalRow(Base):
         nullable=False,
         server_default=func.now(),
     )
+    # Bar cadence the signal was discovered on — splits daily and
+    # intraday watchlists in the same table. Default-populated via
+    # server_default so pre-existing rows upgrade cleanly (every
+    # row written before the 15m work was inherently a 1d signal).
+    interval: Mapped[str] = mapped_column(
+        String, nullable=False, server_default="1d", default="1d"
+    )
+    # Exact intraday bar timestamp. Left NULL for daily signals —
+    # ``signal_date`` is already a unique bar identifier at 1-bar-
+    # per-day. Kept tz-aware so NY session timestamps round-trip
+    # without tz-drift on retrieval.
+    signal_datetime: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     __table_args__ = (
         Index("idx_buy_signals_signal_date", "signal_date"),
         Index("idx_buy_signals_status", "status"),
         Index("idx_buy_signals_ticker", "ticker"),
+        Index("idx_buy_signals_interval", "interval"),
     )
 
     # ---- conversion ----
@@ -61,6 +76,8 @@ class BuySignalRow(Base):
             status=SignalStatus(self.status),
             notes=self.notes or "",
             created_at=self.created_at,
+            interval=self.interval or "1d",
+            signal_datetime=self.signal_datetime,
         )
 
     @classmethod
@@ -76,4 +93,6 @@ class BuySignalRow(Base):
             status=sig.status.value,
             notes=sig.notes or "",
             created_at=sig.created_at or datetime.utcnow(),
+            interval=sig.interval or "1d",
+            signal_datetime=sig.signal_datetime,
         )

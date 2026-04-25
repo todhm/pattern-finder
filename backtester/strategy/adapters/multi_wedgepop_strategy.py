@@ -62,6 +62,15 @@ class MultiWedgepopStrategy:
     (compound), so winning trades grow the next position naturally.
     """
 
+    # Calendar-days of history fetched BEFORE ``config.start_date`` so
+    # long-window indicators (50/200 SMA, EMA convergence, slope
+    # regression) have enough warmup. The daily default of 400 keeps
+    # the 200 SMA valid from day-1 of the user's window. Intraday
+    # subclasses lower this drastically — yfinance caps 15m history
+    # at 60 calendar days, so anything bigger would just crash the
+    # fetch.
+    _warmup_days: int = 400
+
     def __init__(
         self,
         market_data: MarketDataPort,
@@ -140,13 +149,19 @@ class MultiWedgepopStrategy:
     def _scan_ticker(
         self, ticker: str, config: MultiStrategyConfig
     ) -> dict[str, Any] | None:
-        # Fetch extra history so 50/200 SMA converge from day 1.
+        # Fetch extra history so long-window indicators (SMAs, EMA
+        # convergence, slope regression) are valid from day 1 of the
+        # user's window. Warmup length comes from the class attribute
+        # so intraday subclasses can downshift safely.
         from datetime import timedelta
 
-        fetch_start = config.start_date - timedelta(days=400)
+        fetch_start = config.start_date - timedelta(days=self._warmup_days)
         try:
             df = self._market_data.fetch_ohlcv(
-                ticker, fetch_start, config.end_date
+                ticker,
+                fetch_start,
+                config.end_date,
+                interval=self._strategy._interval,
             )
         except Exception:
             return None
@@ -156,21 +171,26 @@ class MultiWedgepopStrategy:
         df_ind = self._strategy._with_indicators(df)
         signals = self._detector.detect(df_ind)
 
-        # Pre-compute pattern-based exit dates for this ticker when
-        # the injected wedgepop strategy has an exit detector wired
-        # up. Safe against look-ahead: the detector's conditions are
-        # all end-of-bar, and pandas EWM/rolling indicators are
-        # causal — each signal's date corresponds to a bar whose
-        # detection used only data up to and including that bar.
-        exit_dates: set[date] = set()
+        # Pre-compute exit-bar identity keys for this ticker when the
+        # injected wedgepop strategy has an exit detector wired up.
+        # Safe against look-ahead: the detector's conditions are all
+        # end-of-bar and pandas EWM/rolling indicators are causal —
+        # each signal's bar could have been detected at its own close
+        # in real time. Keys go through ``_signal_key`` so intraday
+        # subclasses can swap the identity (date → timestamp) without
+        # rewriting this scan.
+        exit_keys: set[pd.Timestamp] = set()
         exit_detector = getattr(self._strategy, "_exit_detector", None)
         if exit_detector is not None:
-            exit_dates = {s.date for s in exit_detector.detect(df_ind)}
+            exit_keys = {
+                self._strategy._signal_key(s)
+                for s in exit_detector.detect(df_ind)
+            }
 
         return {
             "df": df_ind,
             "signals": signals,
-            "exit_dates": exit_dates,
+            "exit_keys": exit_keys,
         }
 
     # ---- phase 2a: collect signals across universe ----
@@ -179,7 +199,7 @@ class MultiWedgepopStrategy:
         self,
         ticker_state: dict[str, dict[str, Any]],
         config: MultiStrategyConfig,
-    ) -> tuple[dict[date, list[dict[str, Any]]], int]:
+    ) -> tuple[dict[pd.Timestamp, list[dict[str, Any]]], int]:
         """Collect all signals tagged with their buy/sell pressure.
 
         Signals outside ``[config.start_date, config.end_date]`` are
@@ -189,8 +209,14 @@ class MultiWedgepopStrategy:
         volume is *below* the 20-day average (``metadata.volume_ratio
         < 1.0``) is excluded from the multi-strategy's candidate
         pool entirely.
+
+        Grouping key comes from ``_signal_key`` — for daily signals
+        this collapses to a midnight Timestamp (one bucket per session,
+        matching the original date-keyed behavior bit-for-bit); for
+        intraday subclasses each bar gets its own bucket so multiple
+        15m signals on the same session stay separate.
         """
-        by_date: dict[date, list[dict[str, Any]]] = defaultdict(list)
+        by_key: dict[pd.Timestamp, list[dict[str, Any]]] = defaultdict(list)
         total = 0
         for ticker, state in ticker_state.items():
             df: pd.DataFrame = state["df"]
@@ -203,25 +229,27 @@ class MultiWedgepopStrategy:
                 pressure = self._signal_pressure(df, signal)
                 if pressure is None:
                     continue
-                by_date[signal.date].append(
+                key = self._strategy._signal_key(signal)
+                by_key[key].append(
                     {"ticker": ticker, "signal": signal, **pressure}
                 )
                 total += 1
-        return by_date, total
+        return by_key, total
 
-    @staticmethod
     def _signal_pressure(
-        df: pd.DataFrame, signal: PatternSignal
+        self, df: pd.DataFrame, signal: PatternSignal
     ) -> dict[str, float] | None:
-        """Estimate buy vs sell volume on the signal day from OHLC.
+        """Estimate buy vs sell volume on the signal bar from OHLC.
 
         Splits the bar's volume into buy/sell shares using the close's
         location within the high–low range — the Accumulation /
-        Distribution proxy. Returns None when the signal date is not
+        Distribution proxy. Returns None when the signal's bar is not
         in the index. Falls back to a neutral 1:1 split for degenerate
-        bars (high == low or zero volume).
+        bars (high == low or zero volume). The row lookup goes through
+        ``_signal_match_ts`` so intraday signals resolve to the exact
+        15m bar instead of the session midnight.
         """
-        ts = pd.Timestamp(signal.date)
+        ts = self._strategy._signal_match_ts(signal)
         if df.index.tz is not None and ts.tz is None:
             ts = ts.tz_localize(df.index.tz)
         if ts not in df.index:
@@ -260,7 +288,7 @@ class MultiWedgepopStrategy:
 
     def _walk_signals(
         self,
-        signals_by_date: dict[date, list[dict[str, Any]]],
+        signals_by_key: dict[pd.Timestamp, list[dict[str, Any]]],
         ticker_state: dict[str, dict[str, Any]],
         config: MultiStrategyConfig,
     ) -> tuple[list[MultiTrade], list[EquityPoint], float, float]:
@@ -271,19 +299,26 @@ class MultiWedgepopStrategy:
         curve: list[EquityPoint] = [
             EquityPoint(date=config.start_date, equity=capital)
         ]
-        free_after_date: date | None = None
+        # Lock key: ``_signal_key``-compatible bar identifier. The
+        # portfolio is blocked until a new signal's key is strictly
+        # greater than the last trade's exit key. For daily runs this
+        # is midnight-Timestamp ordering (semantically identical to
+        # the old ``date <= date`` check); intraday subclasses that
+        # override ``_signal_key`` / ``_trade_exit_key`` get the
+        # right same-day-next-bar unblocking for free.
+        free_after_key: pd.Timestamp | None = None
 
-        for signal_date in sorted(signals_by_date.keys()):
-            if free_after_date is not None and signal_date <= free_after_date:
+        for signal_key in sorted(signals_by_key.keys()):
+            if free_after_key is not None and signal_key <= free_after_key:
                 continue
 
             best = max(
-                signals_by_date[signal_date],
+                signals_by_key[signal_key],
                 key=lambda c: c["buy_sell_ratio"],
             )
             ticker = best["ticker"]
             df = ticker_state[ticker]["df"]
-            exit_dates = ticker_state[ticker].get("exit_dates", set())
+            exit_keys = ticker_state[ticker].get("exit_keys", set())
             signal: PatternSignal = best["signal"]
 
             multi_trade, exit_date = self._execute_one(
@@ -293,7 +328,7 @@ class MultiWedgepopStrategy:
                 pressure=best,
                 capital=capital,
                 config=config,
-                exit_dates=exit_dates,
+                exit_keys=exit_keys,
             )
             if multi_trade is None or exit_date is None:
                 continue
@@ -306,7 +341,7 @@ class MultiWedgepopStrategy:
             curve.append(
                 EquityPoint(date=exit_date, equity=round(capital, 2))
             )
-            free_after_date = exit_date
+            free_after_key = self._strategy._trade_exit_key(multi_trade)
 
         return trades, curve, capital, max_dd
 
@@ -318,9 +353,9 @@ class MultiWedgepopStrategy:
         pressure: dict[str, float],
         capital: float,
         config: MultiStrategyConfig,
-        exit_dates: set[date] | None = None,
+        exit_keys: set[pd.Timestamp] | None = None,
     ) -> tuple[MultiTrade | None, date | None]:
-        entry_idx = self._strategy._next_open_index(df, signal.date)
+        entry_idx = self._strategy._next_open_index(df, signal)
         if entry_idx is None:
             return None, None
 
@@ -335,7 +370,7 @@ class MultiWedgepopStrategy:
         )
         trade, exit_idx = self._strategy._execute_trade(
             df, signal, entry_idx, capital, per_config,
-            exit_dates or set(),
+            exit_keys or set(),
         )
         if trade is None:
             return None, None
@@ -372,6 +407,8 @@ class MultiWedgepopStrategy:
             pnl=net_pnl,
             pnl_pct=net_pnl_pct,
             exit_reason=trade.exit_reason,
+            entry_ts=trade.entry_ts,
+            exit_ts=trade.exit_ts,
         )
         return multi_trade, trade.exit_date
 

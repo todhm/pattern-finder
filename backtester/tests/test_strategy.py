@@ -16,7 +16,7 @@ class FakeMarketData(MarketDataPort):
     def __init__(self, df: pd.DataFrame):
         self._df = df
 
-    def fetch_ohlcv(self, symbol, start, end):
+    def fetch_ohlcv(self, symbol, start, end, interval="1d"):
         return self._df
 
 

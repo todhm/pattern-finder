@@ -510,6 +510,7 @@ class WickPlayDetector(PatternDetector):
             signals.append(
                 PatternSignal(
                     date=df.index[i].date(),
+                    timestamp=pd.Timestamp(df.index[i]).to_pydatetime(),
                     pattern_name=self.name,
                     entry_price=b_close,
                     stop_loss=round(stop_loss, 2),

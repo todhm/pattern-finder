@@ -81,6 +81,7 @@ class ReversalExtensionDetector(PatternDetector):
     ) -> PatternSignal:
         return PatternSignal(
             date=df.index[i].date(),
+            timestamp=pd.Timestamp(df.index[i]).to_pydatetime(),
             pattern_name=self.name,
             entry_price=df["Close"].iloc[i],
             stop_loss=df["Low"].iloc[i],

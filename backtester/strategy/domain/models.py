@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -33,6 +33,13 @@ class Trade(BaseModel):
     #   "breakeven_stop"    — broke-even stop after ≥ 1R unrealized gain
     #   "end_of_data"       — no rule fired; held to the last bar
     exit_reason: str = "end_of_data"
+    # Intraday bar timestamps. Always populated by the strategy
+    # layer (including the 1d path), so downstream consumers can
+    # pick whichever precision they need. Daily pages that only
+    # want the session date keep reading ``entry_date``/``exit_date``
+    # unchanged; 15m pages read the ts fields for sub-day rendering.
+    entry_ts: datetime | None = None
+    exit_ts: datetime | None = None
 
 
 class StrategyPerformance(BaseModel):

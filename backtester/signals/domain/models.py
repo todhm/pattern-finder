@@ -30,6 +30,17 @@ class BuySignal:
     (breakout strength, slopes, volume, filter-gate pass/fail map)
     so the UI can explain *why* this ticker appeared and the user can
     annotate/store the evidence alongside the signal.
+
+    ``interval`` identifies the bar cadence the signal was detected on
+    (``"1d"``, ``"15m"``, …). It distinguishes daily and intraday
+    watchlists in the same repo — the UI filters by it so existing
+    1d pages keep showing only daily signals after the schema gains
+    intraday rows. Daily scanners default to ``"1d"`` so existing
+    callers don't need to set it.
+
+    ``signal_datetime`` is the exact bar timestamp for intraday
+    signals; for daily signals it's left as ``None`` (``signal_date``
+    is already a unique bar identifier at 1-bar-per-day resolution).
     """
 
     ticker: str
@@ -42,3 +53,5 @@ class BuySignal:
     status: SignalStatus = SignalStatus.PENDING
     created_at: datetime = field(default_factory=datetime.utcnow)
     notes: str = ""
+    interval: str = "1d"
+    signal_datetime: datetime | None = None

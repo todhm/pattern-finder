@@ -13,11 +13,18 @@ class MarketDataPort(ABC):
         symbol: str,
         start: date,
         end: date,
+        interval: str = "1d",
     ) -> pd.DataFrame:
         """Fetch OHLCV data.
 
         Returns DataFrame with columns: Open, High, Low, Close, Volume
         indexed by DatetimeIndex.
+
+        ``interval`` follows yfinance conventions (e.g. ``"1d"``, ``"1h"``,
+        ``"30m"``, ``"15m"``, ``"5m"``). For sub-daily intervals the
+        returned DatetimeIndex is tz-aware in ``America/New_York`` and
+        contains only regular US equity session bars (09:30–16:00 ET).
+        Daily (``"1d"``) data keeps the legacy tz-naive contract.
         """
         ...
 

@@ -31,10 +31,16 @@ class PostgresSignalRepo(SignalRepositoryPort):
             s.commit()
         return signal
 
-    def list(self, status: SignalStatus | None = None) -> list[BuySignal]:
+    def list(
+        self,
+        status: SignalStatus | None = None,
+        interval: str | None = None,
+    ) -> list[BuySignal]:
         stmt = select(BuySignalRow)
         if status is not None:
             stmt = stmt.where(BuySignalRow.status == status.value)
+        if interval is not None:
+            stmt = stmt.where(BuySignalRow.interval == interval)
         stmt = stmt.order_by(
             BuySignalRow.signal_date.desc(),
             BuySignalRow.created_at.desc(),

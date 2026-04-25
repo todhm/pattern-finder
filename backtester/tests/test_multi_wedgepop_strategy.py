@@ -35,7 +35,7 @@ class FakeUniverseMarketData(MarketDataPort):
         self._tables = tables
         self._failing = failing or set()
 
-    def fetch_ohlcv(self, symbol, start, end):
+    def fetch_ohlcv(self, symbol, start, end, interval="1d"):
         if symbol in self._failing:
             raise RuntimeError(f"simulated fetch failure for {symbol}")
         if symbol not in self._tables:

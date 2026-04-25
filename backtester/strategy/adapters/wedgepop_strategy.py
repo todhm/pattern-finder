@@ -291,9 +291,20 @@ class WedgepopStrategy(StrategyRunnerPort):
 
     # ---- public API ----
 
+    # Interval forwarded to ``MarketDataPort.fetch_ohlcv``. Daily
+    # is the historical default; intraday subclasses override this
+    # class attribute (e.g. ``"15m"``) so the same ``run()`` path
+    # pulls the right granularity without subclassing the method.
+    _interval: str = "1d"
+
     def run(self, config: StrategyConfig) -> StrategyResult:
         """Fetch data via the market-data port and execute the strategy."""
-        df = self._market_data.fetch_ohlcv(config.ticker, config.start_date, config.end_date)
+        df = self._market_data.fetch_ohlcv(
+            config.ticker,
+            config.start_date,
+            config.end_date,
+            interval=self._interval,
+        )
         return self.execute(df, config)
 
     def execute(self, df: pd.DataFrame, config: StrategyConfig) -> StrategyResult:
@@ -314,23 +325,69 @@ class WedgepopStrategy(StrategyRunnerPort):
         # Discard warmup-period signals outside the user's date range.
         signals = [s for s in signals if config.start_date <= s.date <= config.end_date]
 
-        # Pre-compute pattern-based exit dates once. Safe against
+        # Pre-compute exit-bar identity keys once. Safe against
         # look-ahead: the detector's conditions (extensions, slopes,
         # candle shapes, rolling volume) are all causal — EWM/rolling
         # indicators only read past+current values — so each signal's
-        # date corresponds to a bar that could have been detected at
-        # its own close in real time.
-        exit_dates: set[date] = set()
+        # bar could have been detected at its own close in real time.
+        # Keys go through ``_signal_key`` so intraday subclasses can
+        # swap the identity granularity (date → full timestamp)
+        # without rewriting the exit loop.
+        exit_keys: set[pd.Timestamp] = set()
         if self._exit_detector is not None:
-            exit_dates = {s.date for s in self._exit_detector.detect(df)}
+            exit_keys = {self._signal_key(s) for s in self._exit_detector.detect(df)}
 
-        performance, equity_curve = self._run_signals(df, signals, config, exit_dates)
+        performance, equity_curve = self._run_signals(df, signals, config, exit_keys)
 
         return StrategyResult(
             config=config,
             performance=performance,
             equity_curve=equity_curve,
         )
+
+    # ---- interval-identity hooks ----
+    #
+    # The three hooks below are the entire B-plan interface between the
+    # daily strategy (this class) and intraday subclasses. Default
+    # implementations preserve the historical 1d behavior bit-for-bit:
+    # they key every bar by its session date, so the exit-match set and
+    # the next-open search resolve exactly as the original code did.
+    # ``Wedgepop15mStrategy`` overrides them to key by full timestamp
+    # so 15m signals land on the correct bar instead of collapsing to
+    # midnight of the session.
+
+    @staticmethod
+    def _signal_match_ts(signal: PatternSignal) -> pd.Timestamp:
+        """Timestamp to scan for in ``df.index`` when placing the next
+        open. For daily signals the session ``date`` (midnight) is
+        enough — ``df.index > midnight`` picks up the *next* session's
+        bar because daily index entries are themselves bar-start
+        timestamps at the session open."""
+        return pd.Timestamp(signal.date)
+
+    @staticmethod
+    def _signal_key(signal: PatternSignal) -> pd.Timestamp:
+        """Canonical hashable identity of a signal's bar. Used to build
+        the exit-match set and must agree with ``_bar_key`` for lookups
+        to land."""
+        return pd.Timestamp(signal.date)
+
+    @staticmethod
+    def _bar_key(df: pd.DataFrame, i: int) -> pd.Timestamp:
+        """Canonical hashable identity of bar ``i``. Paired with
+        ``_signal_key`` so ``_bar_key(df, i) in exit_keys`` resolves
+        exit matches regardless of the index's tz or sub-day
+        resolution."""
+        return pd.Timestamp(df.index[i].date())
+
+    @staticmethod
+    def _trade_exit_key(trade: Trade) -> pd.Timestamp:
+        """Canonical key for the bar a trade exited on. Intraday
+        subclasses override to key by ``trade.exit_ts`` instead of
+        ``trade.exit_date`` — this is what ``MultiWedgepopStrategy``
+        uses to lock out new signals until the current position has
+        fully closed."""
+        return pd.Timestamp(trade.exit_date)
 
     # ---- indicators ----
 
@@ -371,7 +428,7 @@ class WedgepopStrategy(StrategyRunnerPort):
         df: pd.DataFrame,
         signals: list[PatternSignal],
         config: StrategyConfig,
-        exit_dates: set[date],
+        exit_keys: set[pd.Timestamp],
     ) -> tuple[StrategyPerformance, list[EquityPoint]]:
         capital = config.initial_capital
         peak = capital
@@ -381,11 +438,11 @@ class WedgepopStrategy(StrategyRunnerPort):
 
         next_open_idx = 0  # blocks new entries while a position is open
         for signal in signals:
-            entry_idx = self._next_open_index(df, signal.date)
+            entry_idx = self._next_open_index(df, signal)
             if entry_idx is None or entry_idx < next_open_idx:
                 continue
 
-            trade, exit_idx = self._execute_trade(df, signal, entry_idx, capital, config, exit_dates)
+            trade, exit_idx = self._execute_trade(df, signal, entry_idx, capital, config, exit_keys)
             if trade is None:
                 continue
 
@@ -399,13 +456,17 @@ class WedgepopStrategy(StrategyRunnerPort):
         performance = self._build_performance(config.initial_capital, capital, max_dd, trades)
         return performance, curve
 
-    @staticmethod
-    def _next_open_index(df: pd.DataFrame, signal_date) -> int | None:
-        # `signal_date` is a plain `date`. yfinance returns a tz-aware
-        # DatetimeIndex (America/New_York), so a naive Timestamp would
-        # raise on comparison. Localize the Timestamp to the index tz
-        # whenever the index has one.
-        ts = pd.Timestamp(signal_date)
+    def _next_open_index(
+        self, df: pd.DataFrame, signal: PatternSignal
+    ) -> int | None:
+        # yfinance returns a tz-aware DatetimeIndex (America/New_York)
+        # for intraday data and a naive one for daily; Timestamp
+        # comparison across tz-aware/naive raises, so localize the
+        # match Timestamp to the index's tz whenever the index has
+        # one. The matcher itself comes from ``_signal_match_ts`` so
+        # intraday subclasses resolve to the signal's exact bar
+        # timestamp rather than the session midnight.
+        ts = self._signal_match_ts(signal)
         if df.index.tz is not None and ts.tz is None:
             ts = ts.tz_localize(df.index.tz)
         after = df.index[df.index > ts]
@@ -420,10 +481,10 @@ class WedgepopStrategy(StrategyRunnerPort):
         entry_idx: int,
         capital: float,
         config: StrategyConfig,
-        exit_dates: set[date] | None = None,
+        exit_keys: set[pd.Timestamp] | None = None,
     ) -> tuple[Trade | None, int]:
-        if exit_dates is None:
-            exit_dates = set()
+        if exit_keys is None:
+            exit_keys = set()
         entry_price = float(df["Open"].iloc[entry_idx])
 
         # (A) Market-regime filter — reject entries taken while SPY
@@ -638,11 +699,18 @@ class WedgepopStrategy(StrategyRunnerPort):
             entry_price,
             stop,
             config.max_holding_days,
-            exit_dates,
+            exit_keys,
             entry_resistances,
         )
 
         pnl = (exit_price - entry_price) * shares
+        # Always populate ``entry_ts`` / ``exit_ts`` — for daily data
+        # this is midnight of the session, for intraday it's the exact
+        # bar timestamp. Downstream consumers that only care about
+        # the session date keep reading ``entry_date`` / ``exit_date``
+        # unchanged; sub-daily UIs read ``entry_ts`` / ``exit_ts``.
+        entry_ts = pd.Timestamp(df.index[entry_idx]).to_pydatetime()
+        exit_ts = pd.Timestamp(df.index[exit_idx]).to_pydatetime()
         trade = Trade(
             pattern_name=signal.pattern_name,
             entry_date=df.index[entry_idx].date(),
@@ -654,6 +722,8 @@ class WedgepopStrategy(StrategyRunnerPort):
             pnl=round(pnl, 2),
             pnl_pct=round((exit_price - entry_price) / entry_price, 4),
             exit_reason=exit_reason,
+            entry_ts=entry_ts,
+            exit_ts=exit_ts,
         )
         return trade, exit_idx
 
@@ -664,11 +734,11 @@ class WedgepopStrategy(StrategyRunnerPort):
         entry_price: float,
         stop: float,
         max_holding_days: int,
-        exit_dates: set[date] | None = None,
+        exit_keys: set[pd.Timestamp] | None = None,
         entry_resistances: list[float] | None = None,
     ) -> tuple[float, int, str]:
-        if exit_dates is None:
-            exit_dates = set()
+        if exit_keys is None:
+            exit_keys = set()
         if entry_resistances is None:
             entry_resistances = []
         last_idx = len(df) - 1
@@ -755,8 +825,10 @@ class WedgepopStrategy(StrategyRunnerPort):
             # (1) Exhaustion Extension Top exit — fires when the
             #     injected ``exit_detector`` signals on this bar.
             #     Detection was pre-run causally, so firing on this
-            #     bar's close uses no future data.
-            if i > entry_idx and df.index[i].date() in exit_dates:
+            #     bar's close uses no future data. Bar-identity comes
+            #     from ``_bar_key`` so intraday subclasses can swap
+            #     the granularity without touching this loop.
+            if i > entry_idx and self._bar_key(df, i) in exit_keys:
                 return close, i, "exhaustion_exit"
 
             # (2) Higher-low trendline break — LOW-based limit-order
