@@ -1,10 +1,21 @@
+from datetime import time as _dt_time
+
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from pattern.domain.models import PatternSignal
+from pattern.helpers.pivots import find_swing_highs
 from strategy.domain.models import EquityPoint, MultiTrade, Trade
 from visualization.domain.ports import ChartBuilderPort
+
+# Regular session window for BOS reference filtering. After-hours
+# bars print on thin liquidity and routinely spike above the actual
+# RTH structural pivot — using them as the BOS reference would
+# anchor the line off-screen and make the visualization useless.
+_RTH_OPEN = _dt_time(9, 30)
+_RTH_CLOSE = _dt_time(16, 0)
 
 
 class PlotlyChartBuilder(ChartBuilderPort):
@@ -164,6 +175,8 @@ class PlotlyChartBuilder(ChartBuilderPort):
         df: pd.DataFrame,
         trades: list[Trade],
         title: str = "",
+        fvg_signals: list | None = None,
+        take_profit_r: float | None = None,
     ) -> go.Figure:
         """Candlestick chart annotated with executed trades.
 
@@ -179,6 +192,16 @@ class PlotlyChartBuilder(ChartBuilderPort):
 
         Hover text on every marker shows price, share count, $ value,
         and (on exits) realized P&L in dollars and percent.
+
+        ``fvg_signals`` (Fair Value Gap detector output) and
+        ``take_profit_r`` (e.g. 3.0 for 1:3 R/R) are optional. When
+        provided we also paint the structural setup behind each
+        trade: a green box for the FVG zone, a dashed midpoint line,
+        a CHoCH annotation, plus stop / take-profit horizontal
+        extensions so the risk-reward envelope is visible at a
+        glance — matching the framework's step-3/4 illustrations.
+        Other strategies (wedgepop, wickplay) leave both arguments
+        as ``None`` and render exactly as before.
         """
         if df.index.tz is not None:
             df = df.copy()
@@ -324,6 +347,17 @@ class PlotlyChartBuilder(ChartBuilderPort):
                     return stamp.strftime("%Y-%m-%d %H:%M")
             return str(d)
 
+        def _strip_tz(ts):
+            """The chart's df.index has been tz-stripped at the top of
+            the function; FVG-overlay timestamps coming from detector
+            metadata may still carry tz info. Normalize to tz-naive so
+            ``add_shape`` / ``add_annotation`` x-values land on the
+            right candle."""
+            stamp = pd.Timestamp(ts)
+            if stamp.tz is not None:
+                stamp = stamp.tz_localize(None)
+            return stamp
+
         exit_reason_labels = {
             "take_profit": "Take Profit (R-target)",
             "initial_stop": "Initial Stop (consolidation low)",
@@ -332,6 +366,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             "smart_trail": "Smart Trail (Chandelier)",
             "resistance_break": "Resistance Break (false breakout)",
             "breakeven_stop": "Break-even Stop (≥1R unrealized)",
+            "bos_trail_stop": "BOS Trail (FVG midpoint)",
             "end_of_data": "End of Data (no exit fired)",
         }
 
@@ -456,6 +491,318 @@ class PlotlyChartBuilder(ChartBuilderPort):
                 row=1,
                 col=1,
             )
+
+        # ---- FVG structural overlay -----------------------------
+        # When the caller hands us the detector's signals, paint
+        # each setup's structural anchors directly on the chart:
+        #   - light-green rectangle = FVG zone
+        #   - dashed mid-line       = midpoint hold/break level
+        #   - CHoCH text annotation = where the structural break printed
+        # Other strategies leave ``fvg_signals=None`` and skip this
+        # whole block, so existing wedgepop/wickplay charts render
+        # exactly as before.
+        if fvg_signals:
+            for sig in fvg_signals:
+                meta = sig.metadata or {}
+                if "fvg_low" not in meta or "fvg_high" not in meta:
+                    continue
+                fvg_low = float(meta["fvg_low"])
+                fvg_high = float(meta["fvg_high"])
+                fvg_mid = float(
+                    meta.get("fvg_mid", (fvg_low + fvg_high) / 2.0)
+                )
+
+                fvg_start_iso = meta.get("fvg_start_timestamp")
+                fvg_start = (
+                    _strip_tz(pd.Timestamp(fvg_start_iso))
+                    if fvg_start_iso
+                    else _strip_tz(pd.Timestamp(sig.timestamp))
+                )
+                sig_ts = _strip_tz(pd.Timestamp(sig.timestamp))
+
+                # Box spans the FVG's *active* window — from the
+                # first bar of the gap (fvg_start) up through the
+                # retest entry bar (sig_ts), where the gap got
+                # consumed. After entry the box becomes irrelevant;
+                # stop/TP lines below carry forward instead.
+                fig.add_shape(
+                    type="rect",
+                    xref="x",
+                    yref="y",
+                    x0=fvg_start,
+                    x1=sig_ts,
+                    y0=fvg_low,
+                    y1=fvg_high,
+                    fillcolor="rgba(76, 175, 80, 0.18)",
+                    line=dict(color="rgba(76, 175, 80, 0.55)", width=1),
+                    row=1,
+                    col=1,
+                )
+                fig.add_shape(
+                    type="line",
+                    xref="x",
+                    yref="y",
+                    x0=fvg_start,
+                    x1=sig_ts,
+                    y0=fvg_mid,
+                    y1=fvg_mid,
+                    line=dict(color="#4caf50", width=1, dash="dash"),
+                    row=1,
+                    col=1,
+                )
+
+                choch_iso = meta.get("choch_timestamp")
+                choch_high_meta = meta.get("choch_high")
+                if choch_iso and choch_high_meta is not None:
+                    choch_ts = _strip_tz(pd.Timestamp(choch_iso))
+                    # Horizontal at the broken swing-high level. Spans
+                    # from the swing-high bar (where the level first
+                    # printed) to the CHoCH break bar — so the user
+                    # *sees* exactly which prior structure got
+                    # invalidated. Without this line the ChoCH text
+                    # alone hovers at an arbitrary y-coordinate and
+                    # the "break point" is ambiguous.
+                    break_start_iso = meta.get("choch_break_level_start_ts")
+                    line_x0 = (
+                        _strip_tz(pd.Timestamp(break_start_iso))
+                        if break_start_iso
+                        else choch_ts
+                    )
+                    fig.add_shape(
+                        type="line",
+                        xref="x",
+                        yref="y",
+                        x0=line_x0,
+                        x1=choch_ts,
+                        y0=float(choch_high_meta),
+                        y1=float(choch_high_meta),
+                        line=dict(
+                            color="#ab47bc", width=1.5, dash="dashdot"
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_annotation(
+                        x=choch_ts,
+                        y=float(choch_high_meta),
+                        text="ChoCH",
+                        showarrow=True,
+                        arrowhead=2,
+                        arrowsize=1,
+                        arrowwidth=1,
+                        arrowcolor="#ab47bc",
+                        font=dict(color="#ab47bc", size=11),
+                        row=1,
+                        col=1,
+                    )
+
+                    # ---- BOS (Break of Structure) overlay ---------
+                    # Per the framework: after the FVG entry, price
+                    # rallies and prints a *new* swing high — that
+                    # rally peak (NOT choch_high) is the BOS line.
+                    # When a later close pierces that swing-high
+                    # level, BOS fires and the strategy's optional
+                    # ``enable_bos_trail`` lifts the stop to the FVG
+                    # midpoint. The line we draw here:
+                    #
+                    #   - sits at the level of the most recent
+                    #     confirmed post-entry swing high (running
+                    #     max — once a new higher peak prints it
+                    #     replaces the prior reference)
+                    #   - extends from that swing-high bar forward
+                    #     to the breakout bar
+                    #
+                    # Drawn unconditionally (not gated on
+                    # enable_bos_trail) — it's diagnostic info that
+                    # tells the user *where* the structural pivot
+                    # lives even when no trail is configured.
+                    bos_swing_ts, bos_event_ts, bos_level = (
+                        self._find_post_entry_bos(df, sig_ts)
+                    )
+                    if bos_level is not None and bos_swing_ts is not None:
+                        # Extent: if the level got broken, stop the
+                        # line at the breakout bar (the level was
+                        # taken out there). If still intact, extend
+                        # ~30 bars forward from the swing-high bar
+                        # so the user can see *where* the line sits
+                        # while the trade is still live, even when
+                        # the trade exits via BE/stop/TP before any
+                        # breakout. Without this, a trade that BE-
+                        # exited on a pullback (TSLA 2026-04-24
+                        # case) would draw nothing at all and the
+                        # user couldn't tell what level was being
+                        # watched.
+                        if bos_event_ts is not None:
+                            line_end = bos_event_ts
+                        else:
+                            after_swing = df.index[df.index > bos_swing_ts]
+                            if len(after_swing) > 0:
+                                line_end = _strip_tz(
+                                    pd.Timestamp(
+                                        after_swing[
+                                            min(30, len(after_swing) - 1)
+                                        ]
+                                    )
+                                )
+                            else:
+                                line_end = bos_swing_ts
+                        fig.add_shape(
+                            type="line",
+                            xref="x",
+                            yref="y",
+                            x0=bos_swing_ts,
+                            x1=line_end,
+                            y0=bos_level,
+                            y1=bos_level,
+                            line=dict(
+                                color="#ff9800", width=1.8, dash="dot"
+                            ),
+                            row=1,
+                            col=1,
+                        )
+                        # Small "BOS line" label at the right end so
+                        # the line is identifiable even when not
+                        # broken.
+                        fig.add_annotation(
+                            x=line_end,
+                            y=bos_level,
+                            text="BOS line",
+                            showarrow=False,
+                            xanchor="left",
+                            yanchor="middle",
+                            font=dict(color="#ff9800", size=10),
+                            row=1,
+                            col=1,
+                        )
+                        # The actual "BOS" arrow only fires on
+                        # breakout — its presence on the chart is
+                        # the user's signal that the structural
+                        # break happened.
+                        if bos_event_ts is not None:
+                            fig.add_annotation(
+                                x=bos_event_ts,
+                                y=bos_level,
+                                text="BOS",
+                                showarrow=True,
+                                arrowhead=2,
+                                arrowsize=1,
+                                arrowwidth=1.5,
+                                arrowcolor="#ff9800",
+                                ax=0,
+                                ay=-30,
+                                font=dict(
+                                    color="#ff9800",
+                                    size=11,
+                                    family="Arial Black",
+                                ),
+                                row=1,
+                                col=1,
+                            )
+
+                # ---- per-signal stop / take-profit lines ----------
+                # Even when no trade was taken on this signal (e.g.
+                # the strategy was already in a position), draw the
+                # *plan*: where the stop sits, where the R-target
+                # sits. Lines extend ~30 bars forward from the
+                # retest entry bar so they're visible without
+                # flooding the whole future of the chart. Each line
+                # carries a small "STOP" / "TP +Nx" label so the
+                # user can read the levels at a glance.
+                sig_entry = float(sig.entry_price)
+                sig_stop = float(sig.stop_loss)
+                risk = sig_entry - sig_stop
+                if risk > 0:
+                    after_sig_full = df.index[df.index > sig_ts]
+                    sig_extend_end = (
+                        after_sig_full[min(30, len(after_sig_full) - 1)]
+                        if len(after_sig_full) > 0
+                        else sig_ts
+                    )
+                    fig.add_shape(
+                        type="line",
+                        xref="x",
+                        yref="y",
+                        x0=sig_ts,
+                        x1=sig_extend_end,
+                        y0=sig_stop,
+                        y1=sig_stop,
+                        line=dict(
+                            color="#ef5350", width=1.8, dash="dash"
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_annotation(
+                        x=sig_extend_end,
+                        y=sig_stop,
+                        text="STOP",
+                        showarrow=False,
+                        xanchor="left",
+                        yanchor="middle",
+                        font=dict(color="#ef5350", size=10),
+                        bgcolor="rgba(0,0,0,0.0)",
+                        row=1,
+                        col=1,
+                    )
+                    if take_profit_r is not None:
+                        sig_target = sig_entry + take_profit_r * risk
+                        fig.add_shape(
+                            type="line",
+                            xref="x",
+                            yref="y",
+                            x0=sig_ts,
+                            x1=sig_extend_end,
+                            y0=sig_target,
+                            y1=sig_target,
+                            line=dict(
+                                color="#26a69a", width=1.8, dash="dot"
+                            ),
+                            row=1,
+                            col=1,
+                        )
+                        fig.add_annotation(
+                            x=sig_extend_end,
+                            y=sig_target,
+                            text=f"TP +{take_profit_r:g}R",
+                            showarrow=False,
+                            xanchor="left",
+                            yanchor="middle",
+                            font=dict(color="#26a69a", size=10),
+                            row=1,
+                            col=1,
+                        )
+
+        # ---- Take-profit envelope -------------------------------
+        # Per-trade horizontal at ``entry + R × initial_risk``. The
+        # stop line is already drawn during the trade loop above, so
+        # this layer just adds the upside half of the R/R box.
+        if take_profit_r is not None:
+            for t in trades:
+                entry_x_t = _resolve_trade(
+                    getattr(t, "entry_ts", None), t.entry_date
+                )
+                exit_x_t = _resolve_trade(
+                    getattr(t, "exit_ts", None), t.exit_date
+                )
+                if entry_x_t is None or exit_x_t is None:
+                    continue
+                init_risk = t.entry_price - t.stop_loss
+                if init_risk <= 0:
+                    continue
+                tp_price = t.entry_price + take_profit_r * init_risk
+                fig.add_shape(
+                    type="line",
+                    xref="x",
+                    yref="y",
+                    x0=entry_x_t,
+                    x1=exit_x_t,
+                    y0=tp_price,
+                    y1=tp_price,
+                    line=dict(color="#26a69a", width=1.5, dash="dot"),
+                    row=1,
+                    col=1,
+                )
+
         fig.update_layout(
             title=title,
             xaxis_rangeslider_visible=False,
@@ -563,16 +910,21 @@ class PlotlyChartBuilder(ChartBuilderPort):
         plotly's pattern-based breaks instead — without them the
         16:00 → next-day 09:30 overnight gap renders as a wide empty
         stretch and indicator lines (EMA / SMA) appear as flat
-        horizontal segments crossing it. ``pattern="hour"`` with
-        ``bounds=[16, 9.5]`` hides 16:00–09:30 of each day; the
-        ``bounds=["sat", "mon"]`` rule then collapses weekends.
+        horizontal segments crossing it.
 
-        Detection works on both tz-aware and tz-stripped frames.
-        ``build_candlestick_with_trades`` strips the tz at the top
-        for marker alignment, so by the time we run we can't rely on
-        ``df.index.tz``. Instead we count how many bars share each
-        calendar date — daily frames have at most one, intraday
-        frames have many.
+        Three regimes:
+        - **Daily**: ``values=missing_dates`` — collapses weekends /
+          holidays.
+        - **Intraday RTH only** (no bar before 09:30 or after 16:00):
+          ``bounds=[16, 9.5]`` hides each day's overnight 16:00–09:30
+          gap. Same as the original 1d-vs-15m split.
+        - **Intraday with extended hours** (any pre-market / after-
+          hours bar present): ``bounds=[20, 4]`` instead, so the
+          chart shows the full 04:00–20:00 trading window and only
+          collapses the true overnight 20:00–04:00 idle. Picked
+          automatically from the time-of-day distribution; FVG
+          callers that need pre-market CHoCH context get the right
+          x-axis without any extra config.
         """
         if len(df.index) == 0:
             return [dict(values=cls._missing_dates(df))]
@@ -580,12 +932,131 @@ class PlotlyChartBuilder(ChartBuilderPort):
             df.index.tz is not None
             or df.index.normalize().value_counts().max() > 1
         )
-        if is_intraday:
+        if not is_intraday:
+            return [dict(values=cls._missing_dates(df))]
+
+        # Detect extended-hours: any bar's time-of-day falls outside
+        # the 09:30–16:00 regular session window. ``hour + minute/60``
+        # makes the comparison exact at quarter-hour boundaries.
+        tods = pd.Series(
+            [t.hour + t.minute / 60.0 for t in df.index]
+        )
+        has_pre_post = bool(((tods < 9.5) | (tods >= 16.0)).any())
+        if has_pre_post:
             return [
                 dict(bounds=["sat", "mon"]),
-                dict(bounds=[16, 9.5], pattern="hour"),
+                dict(bounds=[20, 4], pattern="hour"),
             ]
-        return [dict(values=cls._missing_dates(df))]
+        return [
+            dict(bounds=["sat", "mon"]),
+            dict(bounds=[16, 9.5], pattern="hour"),
+        ]
+
+    @staticmethod
+    def _find_post_entry_bos(
+        df: pd.DataFrame,
+        sig_ts: pd.Timestamp,
+        swing_left: int = 1,
+        swing_right: int = 1,
+    ) -> tuple[pd.Timestamp | None, pd.Timestamp | None, float | None]:
+        """Locate the FVG strategy's BOS reference (swing high) and
+        break event, if any.
+
+        Per the framework's step-4 picture, the BOS reference is
+        **the FIRST post-entry rally peak** — the singular
+        "한참 올라갔던 상승선" that the strategy waits for price to
+        pierce. Implementation: find the first confirmed 2/2 swing
+        high *strictly after* ``sig_ts`` and freeze it as the
+        reference. Don't promote to later (higher) peaks; that
+        would shift the line away from the level the user actually
+        sees getting broken on the chart.
+
+        Returns ``(swing_high_bar_ts, bos_event_bar_ts, level)``:
+
+        - ``level`` / ``swing_high_bar_ts`` — the first confirmed
+          post-entry swing high.
+        - ``bos_event_bar_ts`` — the first bar (after the swing
+          high) whose CLOSE pierces ``level``. ``None`` while the
+          peak is still intact.
+
+        Returns ``(None, None, None)`` when no swing high confirms
+        in the post-entry RTH window.
+
+        ETH gate: bars whose start falls outside 09:30–16:00 NY
+        local are excluded from the post-entry window. Without this,
+        a thin after-hours print regularly anchors the line off-
+        chart (TSLA 2026-04-24 had a 17:50 spike at $391 well
+        above the visible RTH peak at ~$382).
+
+        Pivot half-widths default to **1/1** (a bar whose high is
+        strictly higher than the immediately neighboring bar on
+        each side). The detector's CHoCH logic uses 2/2 because it
+        needs a stricter "real swing" gate, but for the BOS
+        reference the framework just talks about the rally's *peak*
+        — and on 1m bars 2/2 is so strict that obvious chart peaks
+        like the TSLA 2026-04-24 09:46 high get overridden two bars
+        later by a marginally-higher print, leaving the line
+        anchored at the wrong level.
+        """
+        post = df[df.index > sig_ts]
+        # Drop ETH bars before swing-high detection. After-hours
+        # liquidity routinely prints isolated spikes that aren't
+        # real structural pivots — TSLA 2026-04-24 had an 17:50
+        # post-market high at $391 well above the visible RTH peak
+        # at ~$382, which set ``bos_level`` off-chart and rendered
+        # the line invisible. Daily-resolution frames (all bars at
+        # midnight) are exempt from the time-of-day gate.
+        times = [t.time() for t in post.index]
+        if times and not all(t == _dt_time(0, 0) for t in times):
+            rth_mask = np.array(
+                [(_RTH_OPEN <= t < _RTH_CLOSE) for t in times], dtype=bool
+            )
+            post = post[rth_mask]
+        if len(post) < swing_left + swing_right + 1:
+            return None, None, None
+        swing_arr = find_swing_highs(
+            post, left=swing_left, right=swing_right
+        ).to_numpy()
+        closes_arr = post["Close"].to_numpy(dtype=float)
+        post_index = post.index
+
+        bos_level: float | None = None
+        bos_swing_idx: int | None = None
+        bos_event_idx: int | None = None
+        for j in range(len(post_index)):
+            confirm = j - swing_right
+            if confirm >= 0 and bos_level is None:
+                # Freeze the FIRST confirmed swing high as the BOS
+                # reference. Do not promote to later (higher) peaks
+                # — the user expects the line at the first rally
+                # pivot they can see, not whatever turns out to be
+                # the session's all-time high.
+                sh_val = swing_arr[confirm]
+                if not np.isnan(sh_val):
+                    bos_level = float(sh_val)
+                    bos_swing_idx = confirm
+            if (
+                bos_level is not None
+                and bos_event_idx is None
+                and closes_arr[j] > bos_level
+            ):
+                bos_event_idx = j
+                break
+        if bos_level is None or bos_swing_idx is None:
+            return None, None, None
+
+        def _strip(ts):
+            if hasattr(ts, "tz") and ts.tz is not None:
+                ts = ts.tz_localize(None)
+            return pd.Timestamp(ts)
+
+        swing_ts = _strip(post_index[bos_swing_idx])
+        event_ts = (
+            _strip(post_index[bos_event_idx])
+            if bos_event_idx is not None
+            else None
+        )
+        return swing_ts, event_ts, bos_level
 
     def build_equity_curve(
         self,

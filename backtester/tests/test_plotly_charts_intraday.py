@@ -153,6 +153,34 @@ def test_intraday_chart_uses_hour_rangebreaks() -> None:
     assert (16, 9.5) in bounds
 
 
+def test_extended_hours_chart_uses_wider_bounds() -> None:
+    """When the df includes pre-market or after-hours bars, the
+    rangebreak bounds switch to ``[20, 4]`` so the full 04:00–20:00
+    extended-hours window stays visible. FVG users need this so the
+    morning CHoCH that printed during pre-market doesn't disappear
+    from the x-axis."""
+    # 04:00–20:00 extended-hours session (1 calendar day).
+    idx = pd.date_range(
+        "2024-03-18 04:00", "2024-03-18 19:45", freq="15min", tz=NY_TZ
+    )
+    n = len(idx)
+    df = pd.DataFrame(
+        {
+            "Open": range(n),
+            "High": [x + 1 for x in range(n)],
+            "Low": [x - 1 for x in range(n)],
+            "Close": [x + 0.5 for x in range(n)],
+            "Volume": [1_000] * n,
+        },
+        index=idx,
+    )
+    fig = PlotlyChartBuilder().build_candlestick_with_trades(df, [])
+    breaks = list(fig.layout.xaxis.rangebreaks)
+    bounds = [tuple(b.bounds) for b in breaks]
+    assert (20, 4) in bounds
+    assert (16, 9.5) not in bounds
+
+
 def test_daily_chart_uses_missing_dates_rangebreaks() -> None:
     """Daily charts keep the legacy ``values=missing_dates`` config
     — pre-existing pages render exactly as before."""

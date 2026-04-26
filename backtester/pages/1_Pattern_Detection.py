@@ -3,10 +3,13 @@ from datetime import date, timedelta
 import plotly.graph_objects as go
 import streamlit as st
 
+from data.adapters.cached_market_data import CachedMarketDataAdapter
+from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.base_n_break_downside import BaseNBreakDownsideDetector
 from pattern.adapters.ema_crossback_downside import EmaCrossbackDownsideDetector
 from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDetector
+from pattern.adapters.fair_value_gap import FairValueGapDetector
 from pattern.adapters.reversal_extension import ReversalExtensionDetector
 from pattern.adapters.wedge_drop import WedgeDropDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
@@ -19,6 +22,7 @@ st.title("Pattern Detection")
 PATTERN_OPTIONS = [
     "wedge_pop",
     "wick_play",
+    "fair_value_gap",
     "reversal_extension",
     "exhaustion_extension_top",
     "wedge_drop",
@@ -564,10 +568,178 @@ with st.sidebar:
             step=1,
         )
 
+    if pattern_name == "fair_value_gap":
+        st.header("Fair Value Gap")
+        st.caption(
+            "Step 1) NY 세션 첫 CHoCH (lower-lows 시퀀스에서 prior swing high "
+            "위로 close) → Step 2) 그 이후 형성되는 3-bar bullish FVG "
+            "(bar i-2 high < bar i low, 1번 wick과 3번 wick 비중첩)."
+        )
+        fvg_interval = st.radio(
+            "Bar interval",
+            options=["1m", "5m", "15m", "30m"],
+            index=2,
+            horizontal=True,
+            help="원문은 1M (1분봉) 기준. yfinance 1m 캡 7일 / 5m·15m·30m 60일.",
+        )
+        fvg_swing_left = st.number_input(
+            "Swing pivot left (bars)",
+            value=2,
+            min_value=1,
+            max_value=10,
+            step=1,
+            help="ChoCH 감지에 쓰는 swing fractal의 좌측 폭. 작을수록 micro-structure에 민감.",
+        )
+        fvg_swing_right = st.number_input(
+            "Swing pivot right (bars)",
+            value=2,
+            min_value=1,
+            max_value=10,
+            step=1,
+        )
+        fvg_min_gap_pct = st.number_input(
+            "Min FVG size (%)",
+            value=0.30,
+            min_value=0.0,
+            max_value=5.0,
+            step=0.05,
+            format="%.2f",
+            help="close 대비 FVG 폭의 최소값. 0.30 (= 0.3%) = detector default. "
+            "값이 작으면 spread 수준의 hairline gap이 포함됨.",
+        )
+        # Default ``max_bars_after_choch`` scales with the bar
+        # interval — CHoCH → FVG rally typically plays out within
+        # 1–2 hours of wall-clock regardless of timeframe.
+        _FVG_CHOCH_DEFAULT = {"1m": 60, "5m": 20, "15m": 8, "30m": 4}
+        fvg_max_bars_after_choch = st.number_input(
+            "Max bars CHoCH → FVG",
+            value=_FVG_CHOCH_DEFAULT[fvg_interval],
+            min_value=3,
+            max_value=200,
+            step=1,
+            help="ChoCH 이후 N bar 안에 FVG가 형성돼야 valid. 너무 늦은 FVG는 trend 추격 영역. "
+            "1m=60, 5m=20, 15m=8, 30m=4.",
+        )
+        # Default ``max_retest_bars`` scales with the bar interval —
+        # roughly 30–90 minute window across timeframes.
+        _FVG_RETEST_DEFAULT = {"1m": 40, "5m": 15, "15m": 5, "30m": 3}
+        fvg_max_retest_bars = st.number_input(
+            "Max bars FVG → retest entry",
+            value=_FVG_RETEST_DEFAULT[fvg_interval],
+            min_value=1,
+            max_value=200,
+            step=1,
+            help="FVG 형성 후 N bar 안에 midpoint를 retest해야 진입 시그널. "
+            "1m=40, 5m=15, 15m=5, 30m=3.",
+        )
+        fvg_max_signals_per_session = st.number_input(
+            "Max signals per session",
+            value=2,
+            min_value=1,
+            max_value=10,
+            step=1,
+        )
+        fvg_include_pre_post = st.checkbox(
+            "Include pre/post market data",
+            value=True,
+            help="ChoCH가 04:00–09:30 프리마켓에서 형성되는 경우도 잡으려면 ON. "
+            "OFF면 정규장 (09:30–16:00 ET)만.",
+        )
+        fvg_take_profit_r = st.number_input(
+            "Take profit (× R) for chart",
+            value=3.0,
+            min_value=0.5,
+            max_value=10.0,
+            step=0.5,
+            format="%.1f",
+            help="signal마다 stop과 함께 그려지는 R-target 익절선. 원문 step 4의 1:3-4 권고.",
+        )
+
     run_btn = st.button("Detect", type="primary", use_container_width=True)
 
 # --- Main area ---
 if run_btn:
+    # FVG is the only intraday-native pattern on this page; the
+    # daily fetch path with 400-day warmup doesn't apply (yfinance
+    # 1m cap = 7d, 15m cap = 60d). Branch the data layer up front
+    # so the rest of the rendering logic doesn't have to special-case.
+    if pattern_name == "fair_value_gap":
+        with st.spinner("Fetching intraday data & detecting FVG..."):
+            try:
+                base_market = CachedMarketDataAdapter(YFinanceAdapter())
+                market_data = (
+                    base_market
+                    if fvg_include_pre_post
+                    else RegularSessionFilterAdapter(base_market)
+                )
+                df = market_data.fetch_ohlcv(
+                    ticker,
+                    start_date,
+                    end_date,
+                    interval=fvg_interval,
+                )
+                detector = FairValueGapDetector(
+                    swing_left=int(fvg_swing_left),
+                    swing_right=int(fvg_swing_right),
+                    min_gap_pct=fvg_min_gap_pct / 100.0,
+                    max_bars_after_choch=int(fvg_max_bars_after_choch),
+                    max_retest_bars=int(fvg_max_retest_bars),
+                    max_signals_per_session=int(fvg_max_signals_per_session),
+                )
+                signals = detector.detect(df)
+            except Exception as e:
+                st.error(f"Error: {e}")
+                st.stop()
+
+        st.subheader(
+            f"{ticker} — fair_value_gap ({len(signals)} signals, "
+            f"{fvg_interval})"
+        )
+        chart_builder = PlotlyChartBuilder()
+        # Reuse ``build_candlestick_with_trades`` with empty trades —
+        # the FVG overlay (zone box, midpoint line, ChoCH annotation)
+        # is keyed off ``fvg_signals``, no trades needed.
+        fig = chart_builder.build_candlestick_with_trades(
+            df,
+            trades=[],
+            title=f"{ticker} — fair_value_gap ({fvg_interval})",
+            fvg_signals=signals,
+            take_profit_r=float(fvg_take_profit_r),
+        )
+        fig.update_xaxes(range=[str(start_date), str(end_date)])
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption(
+            "🟩 FVG zone  ·  ━━ midpoint  ·  ChoCH 보라 dashdot = 깨진 swing-high 레벨 (H1→break)  ·  "
+            "🟠 BOS dotted = ChoCH 이후 close가 같은 레벨을 다시 돌파한 시점 (BOS trail이 stop을 FVG mid로 올리는 트리거)  ·  "
+            "🔴 dashed = stop (FVG-producing low)  ·  🟢 dotted = "
+            f"{fvg_take_profit_r:.1f}R take-profit."
+        )
+
+        if signals:
+            st.subheader("Detected Signals")
+            signal_data = [
+                {
+                    "Time": s.timestamp.strftime("%Y-%m-%d %H:%M")
+                    if s.timestamp is not None
+                    else str(s.date),
+                    "Entry Price": f"{s.entry_price:.4f}",
+                    "Stop Loss": f"{s.stop_loss:.4f}",
+                    "Confidence": f"{s.confidence:.2f}",
+                    **{
+                        k: f"{v:.4f}" if isinstance(v, float) else v
+                        for k, v in s.metadata.items()
+                    },
+                }
+                for s in signals
+            ]
+            st.dataframe(signal_data, use_container_width=True)
+        else:
+            st.info(
+                "이 기간엔 FVG signal 안 잡혔어. 기간/필터를 조정하거나 "
+                "다른 ticker / interval을 시도해봐."
+            )
+        st.stop()
+
     # Fetch extra history so 50/200 SMA are converged from day 1.
     fetch_start = start_date - timedelta(days=400)
     with st.spinner("Fetching data & detecting patterns..."):

@@ -43,6 +43,7 @@ EXIT_REASON_LABELS = {
     "smart_trail": "Smart Trail (Chandelier)",
     "resistance_break": "Resistance Break (false breakout)",
     "breakeven_stop": "Break-even Stop (≥1R unrealized)",
+    "bos_trail_stop": "BOS Trail (FVG midpoint)",
     "end_of_data": "End of Data (no exit fired)",
 }
 
