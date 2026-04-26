@@ -71,6 +71,13 @@ class MultiWedgepopStrategy:
     # fetch.
     _warmup_days: int = 400
 
+    # Hard upper bound on how far back ``_scan_ticker`` may look. ``None``
+    # = no clamp (daily fetches are unbounded). Intraday subclasses set
+    # this to stay strictly inside yfinance's 60-day cap on sub-hour
+    # bars; without it the warmup pad pushes ``fetch_start`` past the
+    # cap and every ticker fetch silently fails.
+    _max_fetch_lookback_days: int | None = None
+
     def __init__(
         self,
         market_data: MarketDataPort,
@@ -153,9 +160,19 @@ class MultiWedgepopStrategy:
         # convergence, slope regression) are valid from day 1 of the
         # user's window. Warmup length comes from the class attribute
         # so intraday subclasses can downshift safely.
+        from datetime import date as _date
         from datetime import timedelta
 
         fetch_start = config.start_date - timedelta(days=self._warmup_days)
+        # Intraday subclasses pin a max lookback so warmup never pushes
+        # the fetch past yfinance's 60-day intraday cap. Daily callers
+        # leave ``_max_fetch_lookback_days`` as None and skip the clamp.
+        if self._max_fetch_lookback_days is not None:
+            earliest = _date.today() - timedelta(
+                days=self._max_fetch_lookback_days
+            )
+            if fetch_start < earliest:
+                fetch_start = earliest
         try:
             df = self._market_data.fetch_ohlcv(
                 ticker,

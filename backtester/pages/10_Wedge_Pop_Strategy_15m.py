@@ -65,10 +65,12 @@ with st.sidebar:
     )
     risk_pct = st.number_input(
         "Risk per Trade (%)",
-        value=5.0,
+        value=2.0,
         min_value=0.1,
         max_value=100.0,
         step=0.5,
+        help="15m stop이 타이트해서 1d (5%) 그대로 쓰면 한 trade 손실이 "
+        "절대값으로 큼. 2~3% 권장.",
     )
     max_holding_bars = st.number_input(
         "Max Holding Bars",
@@ -138,9 +140,35 @@ with st.sidebar:
         step=1,
     )
 
-    st.header("Strategy")
-    use_smart_trail = st.checkbox("Smart trail (Chandelier)", value=True)
-    enable_breakeven = st.checkbox("Break-even stop after +1R", value=False)
+    st.header("Exits — fixed-R framework (15m default)")
+    st.caption(
+        "백테스트 결과 Smart Trail은 winner는 너무 늦게 / loser는 너무 빨리 "
+        "끊는 양면 문제 → 15m은 ±R 고정 envelope이 기본."
+    )
+    take_profit_r = st.number_input(
+        "Take profit (× R)",
+        value=2.0,
+        min_value=0.0,
+        max_value=10.0,
+        step=0.5,
+        format="%.1f",
+        help="bar HIGH가 entry + N×(entry-stop) 도달 시 즉시 익절. 0 = off.",
+    )
+    enable_hard_initial_stop = st.checkbox(
+        "Hard initial stop",
+        value=True,
+        help="bar LOW가 stop_loss 도달 시 즉시 손절. breakeven armed 후 비활성.",
+    )
+    enable_breakeven = st.checkbox(
+        "Break-even stop after +1R",
+        value=True,
+        help="+1R 마감 후 stop이 entry로 이동. winner의 -R 전환 방어.",
+    )
+    use_smart_trail = st.checkbox(
+        "Smart trail (Chandelier) — opt-in",
+        value=False,
+        help="default off. fixed-R envelope과 first-to-fire 경쟁 원하면 ON.",
+    )
     enable_exh_exit = st.checkbox("Exhaustion Extension Top exit", value=False)
 
     fee_schedule = render_toss_fee_inputs(key_prefix="wpg15m_")
@@ -185,8 +213,12 @@ strategy = Wedgepop15mStrategy(
     ema_trail=int(ema_fast),
     ema_slow=int(ema_slow),
     atr_period=int(atr_period),
-    use_smart_trail=use_smart_trail,
+    take_profit_r_multiple=(
+        float(take_profit_r) if take_profit_r > 0 else None
+    ),
+    enable_hard_initial_stop=enable_hard_initial_stop,
     enable_breakeven_stop=enable_breakeven,
+    use_smart_trail=use_smart_trail,
     exit_detector=exit_detector,
 )
 config = StrategyConfig(
@@ -244,14 +276,15 @@ else:
     render_single_ticker_trade_table(fee_rows)
 
 # Full-period 15m candlestick — always rendered, with whatever trades
-# fired (possibly zero) overlaid. Lets the user see the raw price
-# action of the window even when the detector didn't pick anything,
-# so parameter tuning has a visual reference.
+# fired (possibly zero) overlaid. Fetch range matches the user's
+# window exactly (no warmup pad): yfinance caps 15m history at 60
+# calendar days, and any extra pad pushes wider windows past the cap
+# and silently empties the chart. Indicator overlays may not fully
+# converge in the first bars — fine for visual context.
 st.subheader("Chart")
-fetch_start = start_date - timedelta(days=10)
 try:
     full_df = market_data.fetch_ohlcv(
-        ticker.upper(), fetch_start, end_date, interval="15m"
+        ticker.upper(), start_date, end_date, interval="15m"
     )
 except Exception as exc:
     st.warning(f"Failed to fetch chart data: {exc}")

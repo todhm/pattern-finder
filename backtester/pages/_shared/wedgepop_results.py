@@ -36,6 +36,8 @@ from strategy.domain.models import (
 from visualization.adapters.plotly_charts import PlotlyChartBuilder
 
 EXIT_REASON_LABELS = {
+    "take_profit": "Take Profit (R-target)",
+    "initial_stop": "Initial Stop (consolidation low)",
     "exhaustion_exit": "Exhaustion Extension Top",
     "trendline_break": "Higher-Low Trendline Break",
     "smart_trail": "Smart Trail (Chandelier)",

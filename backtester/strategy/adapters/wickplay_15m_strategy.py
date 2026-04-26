@@ -141,7 +141,13 @@ class MultiWickplay15mStrategy(MultiWickPlayStrategy):
       strategy have enough warmup to converge before signals fire.
     """
 
-    _warmup_days: int = 30
+    # 10 calendar days warmup covers the 26-EMA / 26-ATR convergence
+    # comfortably (~7 trading sessions × 26 bars/session = 180 bars)
+    # while leaving the user's window room inside yfinance's 60-day
+    # 15m cap. ``_max_fetch_lookback_days=58`` clamps warmup so a
+    # user picking a window near the cap boundary still gets data.
+    _warmup_days: int = 10
+    _max_fetch_lookback_days: int = 58
 
     def __init__(
         self,

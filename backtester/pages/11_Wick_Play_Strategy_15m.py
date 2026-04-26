@@ -197,11 +197,16 @@ else:
 
 # Full-period chart with every trade overlaid — always rendered,
 # even when zero trades fired, so price action is visible for tuning.
+# Fetch range is exactly the user's window (no warmup pad): yfinance
+# caps 15m history at 60 calendar days, so any extra pad would push
+# wider windows past the cap and silently kill the chart. Indicator
+# overlays may not converge in the first few bars of the window —
+# acceptable cost for keeping the chart available across the full
+# 60-day cap range.
 st.subheader("Chart")
-fetch_start = start_date - timedelta(days=10)
 try:
     full_df = market_data.fetch_ohlcv(
-        ticker.upper(), fetch_start, end_date, interval="15m"
+        ticker.upper(), start_date, end_date, interval="15m"
     )
 except Exception as exc:
     st.warning(f"Failed to fetch chart data: {exc}")

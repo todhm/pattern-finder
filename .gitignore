@@ -31,3 +31,4 @@ wickplay.docx
 summary.csv
 config.json
 trades.parquet
+*.csv

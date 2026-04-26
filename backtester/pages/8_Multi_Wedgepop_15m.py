@@ -115,10 +115,12 @@ with st.sidebar:
     )
     risk_pct = st.number_input(
         "Risk per Trade (%)",
-        value=5.0,
+        value=2.0,
         min_value=0.1,
         max_value=100.0,
         step=0.5,
+        help="15m은 stop이 더 타이트해서 한 trade의 1R 손실이 절대값으로 "
+        "비례적으로 커. 2~3% 권장 (1d default 5%보다 낮춤).",
     )
     max_holding_bars = st.number_input(
         "Max Holding Bars",
@@ -193,15 +195,40 @@ with st.sidebar:
         help="동일 ticker에서 signal 간 최소 간격. 15m에서 26 = 1 session.",
     )
 
-    st.header("Strategy toggles")
-    use_smart_trail = st.checkbox(
-        "Smart trail exit (Chandelier)",
+    st.header("Exits — fixed-R framework (15m default)")
+    st.caption(
+        "백테스트 분석 결과 Smart Trail이 winner는 peak에서 너무 늦게, "
+        "loser는 noise에 너무 빨리 끊는 양면 문제가 있어 → 15m은 ±R "
+        "고정 envelope을 default exit으로 씀."
+    )
+    take_profit_r = st.number_input(
+        "Take profit (× R)",
+        value=2.0,
+        min_value=0.0,
+        max_value=10.0,
+        step=0.5,
+        format="%.1f",
+        help="bar HIGH가 entry + N×(entry-stop) 도달 시 즉시 익절. "
+        "0 = off. 2.0 = 표준 risk/reward 1:2.",
+    )
+    enable_hard_initial_stop = st.checkbox(
+        "Hard initial stop (consolidation low)",
         value=True,
-        help="ATR-scaled trailing stop. 15m에서도 동일하게 작동.",
+        help="bar LOW가 stop_loss 도달 시 즉시 손절. breakeven이 armed "
+        "되면 자동 비활성화 — BE check가 floor 인계.",
     )
     enable_breakeven_stop = st.checkbox(
         "Break-even stop after +1R",
+        value=True,
+        help="+1R 마감 후 stop을 entry로 올림. winner 일부가 entry까지 "
+        "되돌아오면 0으로 청산해서 -R 손실로 변하는 걸 막음.",
+    )
+    use_smart_trail = st.checkbox(
+        "Smart trail (Chandelier) — opt-in",
         value=False,
+        help="ATR-scaled chandelier 트레일. 15m default off — "
+        "fixed-R envelope이 더 잘 작동함. 켜면 TP/Stop과 함께 "
+        "first-to-fire 경쟁.",
     )
     enable_gap_down_rejection = st.checkbox(
         "Reject gap-down opens",
@@ -292,8 +319,12 @@ per_ticker_strategy = Wedgepop15mStrategy(
     ema_trail=int(ema_fast),
     ema_slow=int(ema_slow),
     atr_period=int(atr_period),
-    use_smart_trail=use_smart_trail,
+    take_profit_r_multiple=(
+        float(take_profit_r) if take_profit_r > 0 else None
+    ),
+    enable_hard_initial_stop=enable_hard_initial_stop,
     enable_breakeven_stop=enable_breakeven_stop,
+    use_smart_trail=use_smart_trail,
     enable_gap_down_rejection=enable_gap_down_rejection,
     exit_detector=exit_detector,
 )

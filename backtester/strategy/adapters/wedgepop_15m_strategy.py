@@ -94,6 +94,23 @@ class Wedgepop15mStrategy(WedgepopStrategy):
         # bar-appropriate value.
         max_ema_slope_decline: float | None = None,
         min_ema_slow_slope: float | None = None,
+        # --- 15m exit framework: fixed-R take profit + hard stop ---
+        # CSV evidence (see /multiwedge.csv, /aapl.csv, …) showed every
+        # trade exiting via Smart Trail with give-back from peak on
+        # winners and premature whipsaw on losers. Replacing the trail
+        # with a deterministic ±R envelope:
+        #   - bar HIGH ≥ entry + 2R   → take profit at the target
+        #   - bar LOW  ≤ stop_loss    → exit at consolidation-low stop
+        #   - +1R close arms break-even, then any low at entry exits
+        #     at zero P&L (existing knob, just turned on by default
+        #     for 15m to prevent +1R winners turning into losers).
+        # Smart-trail stays available as an opt-in for users who want
+        # peak-chasing behavior on quieter names, but it's OFF by
+        # default for the 15m subclass.
+        take_profit_r_multiple: float | None = 2.0,
+        enable_hard_initial_stop: bool = True,
+        enable_breakeven_stop: bool = True,
+        use_smart_trail: bool = False,
         **overrides,
     ) -> None:
         super().__init__(
@@ -107,6 +124,10 @@ class Wedgepop15mStrategy(WedgepopStrategy):
             swing_pivot_lookback=swing_pivot_lookback,
             max_ema_slope_decline=max_ema_slope_decline,
             min_ema_slow_slope=min_ema_slow_slope,
+            take_profit_r_multiple=take_profit_r_multiple,
+            enable_hard_initial_stop=enable_hard_initial_stop,
+            enable_breakeven_stop=enable_breakeven_stop,
+            use_smart_trail=use_smart_trail,
             **overrides,
         )
 
@@ -170,11 +191,15 @@ class MultiWedgepop15mStrategy(MultiWedgepopStrategy):
       converge before the first signal check.
     """
 
-    # 30 calendar days ≈ 20 sessions ≈ 520 15m bars — sufficient
-    # warmup for the 78-bar slow EMA and 26-bar ATR used by
-    # ``Wedgepop15mStrategy`` defaults, and well within yfinance's
-    # 60-day intraday cap.
-    _warmup_days: int = 30
+    # 10 calendar days ≈ 7 trading sessions ≈ 180 15m bars — enough
+    # warmup for the 78-bar slow EMA and 26-bar ATR to converge
+    # before the user's window starts, while leaving room for the
+    # user's window itself to extend up to ~50 days inside yfinance's
+    # 60-day intraday cap. ``_max_fetch_lookback_days=58`` gives a
+    # 2-day margin against the cap so users picking a window near
+    # the boundary still get data.
+    _warmup_days: int = 10
+    _max_fetch_lookback_days: int = 58
 
     def __init__(
         self,

@@ -158,6 +158,20 @@ class WedgepopStrategy(StrategyRunnerPort):
         structural_exit_grace_bars: int = 0,
         breakeven_exit_offset_r: float = 0.0,
         structural_exit_close_confirm: bool = False,
+        # Fixed-R exit framework (opt-in; default OFF preserves the
+        # original structural-exit-only daily behavior). When set, the
+        # bar's HIGH reaching ``entry + take_profit_r_multiple ×
+        # initial_risk`` exits at the target — peak-capture without a
+        # trail, useful on intraday timeframes where chandelier-style
+        # trails over-react to noise.
+        take_profit_r_multiple: float | None = None,
+        # Hard initial stop. The original strategy intentionally has no
+        # initial-stop pierce check — sizing assumes structural exits
+        # contain the loss. For 15m / fixed-R setups we want the
+        # consolidation-low to be a hard floor: bar's LOW touching
+        # ``stop_loss`` exits at the stop (gap-down → open). Daily
+        # callers leave this off and keep the structural behavior.
+        enable_hard_initial_stop: bool = False,
     ):
         self._market_data = market_data
         self._detector = detector
@@ -288,6 +302,8 @@ class WedgepopStrategy(StrategyRunnerPort):
         # broken. Default False preserves the original LOW-based
         # limit-order fill model.
         self.structural_exit_close_confirm = structural_exit_close_confirm
+        self.take_profit_r_multiple = take_profit_r_multiple
+        self.enable_hard_initial_stop = enable_hard_initial_stop
 
     # ---- public API ----
 
@@ -800,6 +816,42 @@ class WedgepopStrategy(StrategyRunnerPort):
 
             if high_bar > highest_high:
                 highest_high = high_bar
+
+            # (T) Fixed-R take profit — opt-in (default off). When the
+            #     bar's HIGH reaches ``entry + r × initial_risk`` we
+            #     book the gain at the target rather than waiting for
+            #     a trail to chase the peak. Designed for intraday
+            #     setups where give-back from peak is the dominant
+            #     winner-attrition mode. Gap-up opens fill at the open
+            #     (we couldn't have bought below the open anyway).
+            if (
+                self.take_profit_r_multiple is not None
+                and initial_risk > 0
+                and i > entry_idx
+            ):
+                target = (
+                    entry_price + self.take_profit_r_multiple * initial_risk
+                )
+                if open_bar >= target:
+                    return open_bar, i, "take_profit"
+                if high_bar >= target:
+                    return target, i, "take_profit"
+
+            # (S) Hard initial stop — opt-in (default off; daily
+            #     callers stay structural). When enabled, the bar's
+            #     LOW touching the consolidation-low ``stop`` exits
+            #     at the stop. Suppressed once break-even has armed —
+            #     the BE check below owns the floor from that point.
+            #     Gap-down opens fill at the open.
+            if (
+                self.enable_hard_initial_stop
+                and not breakeven_armed
+                and i > entry_idx
+            ):
+                if open_bar <= stop:
+                    return open_bar, i, "initial_stop"
+                if low_bar <= stop:
+                    return stop, i, "initial_stop"
 
             # (B) Break-even stop — fires before any other exit once
             #     the trade has proven itself (close ≥ entry + 1R)
