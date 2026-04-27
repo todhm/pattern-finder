@@ -196,11 +196,18 @@ with st.sidebar:
         "FVG mid = entry이므로 사실상 break-even으로 동작.",
     )
     disable_stops_outside_rth = st.checkbox(
-        "Disable stops outside RTH (TP only)",
+        "Disable stops outside RTH",
         value=True,
-        help="정규장(09:30–16:00 ET) 외 봉에서는 TP만 발화하고 "
-        "initial / BE / BOS trail stop 모두 차단. After-hours 저유동성 "
-        "spike에 false stop-out되는 걸 방지 — 다음 RTH open까지 보유.",
+        help="정규장 외 봉에서 initial / BE / BOS trail stop 모두 차단. "
+        "After-hours 저유동성 spike에 false stop-out되는 걸 방지.",
+    )
+    force_close_session_end = st.checkbox(
+        "Force close at session end (day-trade mode)",
+        value=True,
+        help="정규장 마지막 RTH 봉(15m=15:45, 1m=15:59)까지 TP에 못 닿으면 "
+        "그 봉 close에서 강제 청산. 대부분의 ICT/SMC FVG 트레이더가 쓰는 "
+        "intraday day-trade 방식 — 오버나잇 갭 리스크 회피, ETH 저유동성 "
+        "구간에서 시각적/실체결 모순 방지. OFF면 max holding bars까지 보유.",
     )
 
     st.header("Session")
@@ -258,6 +265,7 @@ strategy = _IntervalScopedFVGStrategy(
     enable_breakeven_stop=enable_breakeven,
     enable_bos_trail=enable_bos_trail,
     disable_stops_outside_rth=disable_stops_outside_rth,
+    force_close_at_session_end=force_close_session_end,
 )
 
 config = StrategyConfig(

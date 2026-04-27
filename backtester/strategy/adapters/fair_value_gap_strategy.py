@@ -50,7 +50,11 @@ Exit reason codes (added by this strategy):
     ``initial_stop``     — bar low touched the FVG-producing low
     ``breakeven_stop``   — armed at +1R, pulled back to entry
     ``bos_trail_stop``   — BOS happened, then bar low pierced FVG mid
-    ``end_of_data``      — window expired with no exit
+    ``session_close``    — last RTH bar of the session, still flat-
+                           less, close at that bar's close price
+    ``end_of_data``      — window expired with no exit (only fires
+                           when ``force_close_at_session_end`` is OFF
+                           or there's no RTH bar after entry)
 
 ETH stop gate (``disable_stops_outside_rth``, default ON)
     Bars outside 09:30–16:00 NY local are allowed to fire take-profit
@@ -59,6 +63,15 @@ ETH stop gate (``disable_stops_outside_rth``, default ON)
     a depth that wouldn't fill in practice; deferring stops to the
     next RTH open produces fills that match what the user would
     actually see live.
+
+Session-end forced close (``force_close_at_session_end``, default ON)
+    The framework is intraday by design — most live FVG traders flat
+    the position at the cash close rather than carry overnight gap
+    risk. With this on, any trade still open on the last RTH bar of
+    its NY session (e.g., the 15:45 15m bar or the 15:59 1m bar) is
+    closed at that bar's CLOSE price, regardless of whether TP / stop
+    fired. Off → trade can run across multiple sessions until TP /
+    stop / max-holding-bars / end-of-data resolves it.
 """
 
 from __future__ import annotations
@@ -100,6 +113,7 @@ class FairValueGapStrategy(StrategyRunnerPort):
         breakeven_exit_offset_r: float = 0.0,
         enable_bos_trail: bool = True,
         disable_stops_outside_rth: bool = True,
+        force_close_at_session_end: bool = True,
     ) -> None:
         self._market_data = market_data
         self._detector = detector
@@ -108,13 +122,21 @@ class FairValueGapStrategy(StrategyRunnerPort):
         self.breakeven_arm_r_multiple = breakeven_arm_r_multiple
         self.breakeven_exit_offset_r = breakeven_exit_offset_r
         self.enable_bos_trail = enable_bos_trail
-        # When True, ETH bars (pre/post-market) can fire take-profit
-        # exits but never stop exits (initial / BE / BOS trail). The
-        # framework targets liquid RTH structure; thin after-hours
-        # prints regularly stop-out by spike-then-revert and the user
-        # ends up with worse fills than letting the position breathe
-        # to the next RTH open.
+        # When True, ETH bars (pre/post-market) cannot fire stop
+        # exits (initial / BE / BOS trail). Thin after-hours prints
+        # regularly stop-out by spike-then-revert and the user ends
+        # up with worse fills than letting the position breathe to
+        # the next RTH open.
         self.disable_stops_outside_rth = disable_stops_outside_rth
+        # Session-bound day-trading semantics. When True (default),
+        # any position still open at the last RTH bar of the session
+        # closes at that bar's CLOSE price ("session_close" exit
+        # reason). Matches how most ICT/SMC FVG traders run the
+        # framework — they don't carry the structural thesis past
+        # the cash close because pre/post liquidity invalidates the
+        # OHLC backtest fills and overnight gap risk is unrelated
+        # to the intraday setup.
+        self.force_close_at_session_end = force_close_at_session_end
 
     # ---- public API -----------------------------------------------------
 
@@ -303,6 +325,19 @@ class FairValueGapStrategy(StrategyRunnerPort):
             df, left=1, right=_SWING_RIGHT
         ).to_numpy()
         rth_bar_mask = self._rth_mask(df)
+        # Pre-compute the index of the LAST RTH bar in each NY
+        # session — that's where ``force_close_at_session_end`` fires
+        # if the position is still open. Doing this once outside the
+        # loop avoids an O(n²) per-bar scan; ``last_rth_idx`` is a
+        # set so the per-bar check is O(1).
+        last_rth_idx: set[int] = set()
+        if self.force_close_at_session_end:
+            session_dates_arr = self._session_dates(df)
+            seen: dict[object, int] = {}
+            for j in range(len(df)):
+                if rth_bar_mask[j]:
+                    seen[session_dates_arr[j]] = j
+            last_rth_idx = set(seen.values())
 
         initial_risk = entry_price - stop
         target = entry_price + self.take_profit_r_multiple * initial_risk
@@ -320,17 +355,13 @@ class FairValueGapStrategy(StrategyRunnerPort):
             low_bar = float(lows[i])
             close_bar = float(closes[i])
 
-            # ETH stop gate — when the user opts in (default ON), bars
-            # outside 09:30–16:00 NY local can fire take-profits but
-            # never stop exits. Thin pre/post-market liquidity prints
-            # spike-then-revert wicks that look like stop-outs on OHLC
-            # but rarely fill at that depth in practice; better to let
-            # the position breathe to the next RTH open. ETH bars also
-            # aren't where the framework's structural setup is meant
-            # to play out.
+            # ETH stop gate — when on (default), stop exits fire only
+            # on RTH bars. After-hours spikes look like stop-outs on
+            # OHLC but rarely fill that deep in practice; deferring
+            # to the next RTH open is the realistic read.
+            is_rth_bar = bool(rth_bar_mask[i])
             stops_armed_for_bar = (
-                bool(rth_bar_mask[i])
-                or not self.disable_stops_outside_rth
+                is_rth_bar or not self.disable_stops_outside_rth
             )
 
             # (T+S) Take profit / hard initial stop — joint resolution
@@ -438,8 +469,34 @@ class FairValueGapStrategy(StrategyRunnerPort):
                 ):
                     breakeven_armed = True
 
+            # (SC) Session close — last RTH bar of the NY session and
+            #     the trade is still open. Forces a flat close at the
+            #     bar's CLOSE price, matching how most ICT/SMC FVG
+            #     traders run the framework (intraday day-trade,
+            #     never carry overnight). Runs LAST so TP / stop /
+            #     BE / BOS trail still get a chance on the same bar.
+            if (
+                self.force_close_at_session_end
+                and i > entry_idx
+                and i in last_rth_idx
+            ):
+                return close_bar, i, "session_close"
+
         # No exit fired within the holding window — close at deadline.
         return float(closes[deadline]), deadline, "end_of_data"
+
+    @staticmethod
+    def _session_dates(df: pd.DataFrame) -> np.ndarray:
+        """Per-bar NY calendar date — the session-boundary key the
+        ``force_close_at_session_end`` rule scans against. Tz-aware
+        intraday frames convert to NY local first; tz-naive daily
+        frames return their existing date directly."""
+        idx = df.index
+        if hasattr(idx, "tz") and idx.tz is not None:
+            return np.array(
+                [ts.tz_convert("America/New_York").date() for ts in idx]
+            )
+        return np.array([ts.date() for ts in idx])
 
     @staticmethod
     def _rth_mask(df: pd.DataFrame) -> np.ndarray:

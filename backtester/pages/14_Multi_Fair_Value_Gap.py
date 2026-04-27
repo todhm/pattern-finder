@@ -221,10 +221,17 @@ with st.sidebar:
         "원문 step 4 명시 — default ON.",
     )
     disable_stops_outside_rth = st.checkbox(
-        "Disable stops outside RTH (TP only)",
+        "Disable stops outside RTH",
         value=True,
-        help="정규장(09:30–16:00 ET) 외 봉에서는 TP만 발화하고 모든 stop "
-        "차단. After-hours 저유동성 spike로 인한 false stop-out 방지.",
+        help="정규장 외 봉에서 모든 stop 차단. ETH 저유동성 spike로 "
+        "인한 false stop-out 방지.",
+    )
+    force_close_session_end = st.checkbox(
+        "Force close at session end (day-trade mode)",
+        value=True,
+        help="정규장 마지막 RTH 봉까지 TP에 못 닿으면 그 봉 close에서 "
+        "강제 청산. 대부분의 ICT/SMC FVG 트레이더가 쓰는 intraday "
+        "day-trade 방식 — overnight 갭 리스크 회피.",
     )
 
     st.header("Session")
@@ -289,6 +296,7 @@ per_ticker_strategy = _IntervalScopedFVGStrategy(
     enable_breakeven_stop=enable_breakeven,
     enable_bos_trail=enable_bos_trail,
     disable_stops_outside_rth=disable_stops_outside_rth,
+    force_close_at_session_end=force_close_session_end,
 )
 
 runner = MultiFairValueGapStrategy(

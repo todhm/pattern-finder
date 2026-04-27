@@ -440,7 +440,8 @@ def test_strategy_disable_stops_outside_rth_skips_eth_stop() -> None:
     )
 
     # disable_stops_outside_rth=True → no exit at bar 26, walks to
-    # deadline and closes at the last bar.
+    # deadline. force_close_at_session_end=False to isolate the ETH
+    # stop gate behavior from the session-close rule.
     strat_gated = FairValueGapStrategy(
         market_data=_StubMarket(df),
         detector=detector,
@@ -448,6 +449,7 @@ def test_strategy_disable_stops_outside_rth_skips_eth_stop() -> None:
         enable_breakeven_stop=False,
         enable_bos_trail=False,
         disable_stops_outside_rth=True,
+        force_close_at_session_end=False,
     )
     trade = strat_gated.execute(df, cfg).performance.trades[0]
     assert trade.exit_reason == "end_of_data", (
@@ -464,10 +466,62 @@ def test_strategy_disable_stops_outside_rth_skips_eth_stop() -> None:
         enable_breakeven_stop=False,
         enable_bos_trail=False,
         disable_stops_outside_rth=False,
+        force_close_at_session_end=False,
     )
     trade = strat_open.execute(df, cfg).performance.trades[0]
     assert trade.exit_reason == "initial_stop"
     assert trade.exit_price == pytest.approx(102.0)
+
+
+def test_strategy_force_close_at_session_end() -> None:
+    """``force_close_at_session_end=True`` (default) flats the
+    position at the last RTH bar's close if no TP / stop fired
+    during the session. Off → trade walks to deadline.
+
+    Fixture session = 2024-03-18, RTH bars 0-25 (15:45 last RTH,
+    bar 26 at 16:00 is ETH and excluded). With TP=5R unreachable
+    in the rally and stops not pierced, the only RTH-bound exit
+    path is the session_close at bar 25.
+    """
+    df = _build_choch_fvg_session()
+    cfg = StrategyConfig(
+        ticker="TEST",
+        start_date=df.index[0].date(),
+        end_date=df.index[-1].date(),
+        pattern_name="fair_value_gap",
+        max_holding_days=20,
+    )
+    detector = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1
+    )
+
+    # ON (default): forced flat at bar 25 (last RTH bar) close.
+    strat_on = FairValueGapStrategy(
+        market_data=_StubMarket(df),
+        detector=detector,
+        take_profit_r_multiple=10.0,  # unreachable
+        enable_breakeven_stop=False,
+        enable_bos_trail=False,
+        force_close_at_session_end=True,
+    )
+    trade = strat_on.execute(df, cfg).performance.trades[0]
+    assert trade.exit_reason == "session_close"
+    # Bar 25 close in the fixture is 130.
+    assert trade.exit_price == pytest.approx(130.0)
+    # Exit bar index = 25 (last RTH bar at 15:45).
+    assert trade.exit_ts == pd.Timestamp(df.index[25]).to_pydatetime()
+
+    # OFF: trade runs to end_of_data at deadline.
+    strat_off = FairValueGapStrategy(
+        market_data=_StubMarket(df),
+        detector=detector,
+        take_profit_r_multiple=10.0,
+        enable_breakeven_stop=False,
+        enable_bos_trail=False,
+        force_close_at_session_end=False,
+    )
+    trade = strat_off.execute(df, cfg).performance.trades[0]
+    assert trade.exit_reason == "end_of_data"
 
 
 def test_strategy_initial_stop_fires_when_low_pierces_stop() -> None:
