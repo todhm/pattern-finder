@@ -18,6 +18,7 @@ import streamlit as st
 from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.wikipedia_universe import default_universe_provider
+from data.domain.market_calendar import KR, NY
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pages._shared.wedgepop_results import (
     render_equity_curve,
@@ -77,16 +78,36 @@ st.caption(
 )
 
 with st.sidebar:
-    st.header("Universe")
-    universe = st.selectbox(
-        "Universe",
-        options=["sp500", "nasdaq100", "nasdaq_full"],
+    st.header("Market")
+    market_choice = st.selectbox(
+        "Market",
+        options=["NY", "KR"],
         index=0,
         format_func=lambda x: {
+            "NY": "🇺🇸 US (NYSE / Nasdaq)",
+            "KR": "🇰🇷 Korea (KOSPI)",
+        }[x],
+        help="Detector / strategy / chart 모두 이 calendar에 따라 RTH "
+        "윈도우와 session 경계를 잡아. KR은 09:00–15:30 KST.",
+    )
+    market = NY if market_choice == "NY" else KR
+
+    st.header("Universe")
+    if market_choice == "NY":
+        universe_options = ["sp500", "nasdaq100", "nasdaq_full"]
+        universe_labels = {
             "sp500": "S&P 500 (~500)",
             "nasdaq100": "Nasdaq-100 (~100)",
             "nasdaq_full": "Nasdaq All Common Stocks (~2,200)",
-        }[x],
+        }
+    else:
+        universe_options = ["kospi200"]
+        universe_labels = {"kospi200": "KOSPI 200 (~200)"}
+    universe = st.selectbox(
+        "Universe",
+        options=universe_options,
+        index=0,
+        format_func=lambda x: universe_labels[x],
     )
     max_tickers = st.number_input(
         "Max tickers (0 = all)",
@@ -155,11 +176,25 @@ with st.sidebar:
     )
 
     st.header("Detector")
+    # Per-market default swing fractal width. KR data trades on
+    # KRW-tick increments (Samsung at 219,000 KRW has a 500-KRW tick
+    # = 0.23%) so bar-high ties are common; the strict 2/2 fractal
+    # misses most pivots and the universe scan hits 0 signals. 1/1
+    # gives KOSPI realistic detection without being noisy on US.
+    _swing_default = 1 if market_choice == "KR" else 2
     swing_left = st.number_input(
-        "Swing pivot left (bars)", value=2, min_value=1, max_value=10, step=1
+        "Swing pivot left (bars)",
+        value=_swing_default,
+        min_value=1,
+        max_value=10,
+        step=1,
     )
     swing_right = st.number_input(
-        "Swing pivot right (bars)", value=2, min_value=1, max_value=10, step=1
+        "Swing pivot right (bars)",
+        value=_swing_default,
+        min_value=1,
+        max_value=10,
+        step=1,
     )
     min_gap_pct = st.number_input(
         "Min FVG size (%)",
@@ -195,14 +230,18 @@ with st.sidebar:
         max_value=10,
         step=1,
     )
+    # KR equity intraday swings tend to be smaller in ATR-multiples
+    # than US — 2.0× rejects nearly every ChoCH on KOSPI 15m.
+    _atr_default = 1.0 if market_choice == "KR" else 2.0
     min_choch_swing_atr = st.number_input(
         "Min ChoCH swing magnitude (× ATR)",
-        value=2.0,
+        value=_atr_default,
         min_value=0.0,
         max_value=10.0,
         step=0.5,
         format="%.1f",
-        help="H1-L2 down-leg이 N×ATR 이상이어야 ChoCH로 인정. 작은 반등 거름.",
+        help="H1-L2 down-leg이 N×ATR 이상이어야 ChoCH로 인정. KR은 1.0× "
+        "(KOSPI intraday swing이 미장 대비 작음), NY는 2.0× 권장.",
     )
 
     st.header("Exits")
@@ -241,12 +280,21 @@ with st.sidebar:
     )
 
     st.header("Session")
-    include_pre_post = st.checkbox(
-        "Include pre/post market data",
-        value=True,
-        help="ChoCH가 04:00–09:30 프리마켓에서 형성되는 경우도 잡으려면 ON. "
-        "FVG 자체는 detector가 RTH에서만 형성하도록 강제 (별도 필터).",
-    )
+    if market_choice == "NY":
+        include_pre_post = st.checkbox(
+            "Include pre/post market data",
+            value=True,
+            help="ChoCH가 04:00–09:30 프리마켓에서 형성되는 경우도 잡으려면 ON. "
+            "FVG 자체는 detector가 RTH에서만 형성하도록 강제 (별도 필터).",
+        )
+    else:
+        # Korean cash market has no formal pre/post session that
+        # yfinance reports — leave the toggle off so the upstream
+        # frame is RTH-only by construction.
+        include_pre_post = False
+        st.caption(
+            "🇰🇷 KR: 정규장 외 세션 미지원 (yfinance KR 피드는 RTH-only)."
+        )
 
     fee_schedule = render_toss_fee_inputs(key_prefix="multifvg_")
 
@@ -262,15 +310,16 @@ if not run_btn:
     )
     st.stop()
 
-# Composition: yfinance fetch → cache → conditional RTH filter. When
-# include_pre_post is on, the cache layer feeds the detector all bars
-# (so ChoCH can anchor in pre-market). When off, the filter wrapper
-# strips ETH bars before they ever reach the detector.
+# Composition: yfinance fetch → cache → conditional RTH filter. The
+# RTH filter is calendar-aware so KR tickers (whose bars yfinance
+# normalizes to NY tz) gate against 09:00–15:30 KST not 09:30–16:00
+# ET. Without that, every KR ticker drops every bar and the universe
+# scan reports 0 trades / 100% failures.
 _base_market = CachedMarketDataAdapter(YFinanceAdapter())
 market_data = (
     _base_market
     if include_pre_post
-    else RegularSessionFilterAdapter(_base_market)
+    else RegularSessionFilterAdapter(_base_market, market=market)
 )
 universe_provider = default_universe_provider()
 
@@ -282,6 +331,7 @@ detector = FairValueGapDetector(
     max_retest_bars=int(max_retest_bars),
     max_signals_per_session=int(max_signals_per_session),
     min_choch_swing_atr=float(min_choch_swing_atr),
+    market=market,
 )
 
 
@@ -303,6 +353,7 @@ per_ticker_strategy = _IntervalScopedFVGStrategy(
     enable_bos_trail=enable_bos_trail,
     disable_stops_outside_rth=disable_stops_outside_rth,
     force_close_at_session_end=force_close_session_end,
+    market=market,
 )
 
 runner = MultiFairValueGapStrategy(
@@ -369,5 +420,6 @@ render_per_trade_charts(
     context_before_days=2,
     context_after_days=2,
     warmup_days=5,
+    market=market,
 )
 render_failed_tickers(result)

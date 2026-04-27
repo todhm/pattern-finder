@@ -5,17 +5,11 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from data.domain.market_calendar import NY, MarketCalendar
 from pattern.domain.models import PatternSignal
 from pattern.helpers.pivots import find_swing_highs
 from strategy.domain.models import EquityPoint, MultiTrade, Trade
 from visualization.domain.ports import ChartBuilderPort
-
-# Regular session window for BOS reference filtering. After-hours
-# bars print on thin liquidity and routinely spike above the actual
-# RTH structural pivot — using them as the BOS reference would
-# anchor the line off-screen and make the visualization useless.
-_RTH_OPEN = _dt_time(9, 30)
-_RTH_CLOSE = _dt_time(16, 0)
 
 
 class PlotlyChartBuilder(ChartBuilderPort):
@@ -177,6 +171,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
         title: str = "",
         fvg_signals: list | None = None,
         take_profit_r: float | None = None,
+        market: MarketCalendar = NY,
     ) -> go.Figure:
         """Candlestick chart annotated with executed trades.
 
@@ -203,9 +198,16 @@ class PlotlyChartBuilder(ChartBuilderPort):
         Other strategies (wedgepop, wickplay) leave both arguments
         as ``None`` and render exactly as before.
         """
+        # Strip tz, but FIRST convert to the market's local tz so
+        # the resulting tz-naive timestamps line up with the
+        # market's RTH window. Without this, KR bars (which yfinance
+        # hands us in NY tz) end up at NY 19:00–02:30 — squarely
+        # inside the rangebreak collapse zone for KR's 15:30→09:00
+        # overnight gap, and every candle gets hidden by plotly's
+        # x-axis filter (the user-flagged "no bars" failure).
         if df.index.tz is not None:
             df = df.copy()
-            df.index = df.index.tz_localize(None)
+            df.index = df.index.tz_convert(market.tz).tz_localize(None)
 
         fig = make_subplots(
             rows=2,
@@ -317,8 +319,13 @@ class PlotlyChartBuilder(ChartBuilderPort):
             if ts is None:
                 return None
             stamp = pd.Timestamp(ts)
+            # df.index is tz-naive in ``market.tz`` local time (the
+            # top of the function tz-converted then stripped). Trade
+            # ts often comes in tz-aware NY tz from upstream; align
+            # to the same wall-clock space by converting THROUGH
+            # market.tz first, then dropping tz.
             if df.index.tz is None and stamp.tz is not None:
-                stamp = stamp.tz_localize(None)
+                stamp = stamp.tz_convert(market.tz).tz_localize(None)
             elif df.index.tz is not None and stamp.tz is None:
                 stamp = stamp.tz_localize(df.index.tz)
             elif (
@@ -348,14 +355,15 @@ class PlotlyChartBuilder(ChartBuilderPort):
             return str(d)
 
         def _strip_tz(ts):
-            """The chart's df.index has been tz-stripped at the top of
-            the function; FVG-overlay timestamps coming from detector
-            metadata may still carry tz info. Normalize to tz-naive so
-            ``add_shape`` / ``add_annotation`` x-values land on the
-            right candle."""
+            """Convert to ``market.tz`` and drop the tz so overlay
+            x-values align with ``df.index`` (which we tz-converted
+            at the top of the function). For NY this is a no-op
+            beyond removing tzinfo; for KR it shifts NY-tz timestamps
+            from detector metadata back to KST so annotations land
+            on the right candle."""
             stamp = pd.Timestamp(ts)
             if stamp.tz is not None:
-                stamp = stamp.tz_localize(None)
+                stamp = stamp.tz_convert(market.tz).tz_localize(None)
             return stamp
 
         exit_reason_labels = {
@@ -617,7 +625,9 @@ class PlotlyChartBuilder(ChartBuilderPort):
                     # tells the user *where* the structural pivot
                     # lives even when no trail is configured.
                     bos_swing_ts, bos_event_ts, bos_level = (
-                        self._find_post_entry_bos(df, sig_ts)
+                        self._find_post_entry_bos(
+                            df, sig_ts, market=market
+                        )
                     )
                     if bos_level is not None and bos_swing_ts is not None:
                         # Extent: if the level got broken, stop the
@@ -810,7 +820,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
             height=700,
             margin=dict(l=50, r=50, t=50, b=30),
             xaxis=dict(
-                rangebreaks=self._rangebreaks(df),
+                rangebreaks=self._rangebreaks(df, market=market),
             ),
             yaxis=dict(autorange=True, fixedrange=False),
             yaxis2=dict(autorange=True, fixedrange=False),
@@ -902,29 +912,27 @@ class PlotlyChartBuilder(ChartBuilderPort):
         return [d.strftime("%Y-%m-%d") for d in missing]
 
     @classmethod
-    def _rangebreaks(cls, df: pd.DataFrame) -> list[dict]:
+    def _rangebreaks(
+        cls, df: pd.DataFrame, market: MarketCalendar = NY
+    ) -> list[dict]:
         """Plotly ``xaxis.rangebreaks`` config, picked from the index.
 
         Daily frames get a list of missing calendar dates so weekends
         / holidays collapse on the x-axis. Intraday frames use
         plotly's pattern-based breaks instead — without them the
-        16:00 → next-day 09:30 overnight gap renders as a wide empty
-        stretch and indicator lines (EMA / SMA) appear as flat
+        overnight RTH-close → next-day RTH-open gap renders as a wide
+        empty stretch and indicator lines (EMA / SMA) appear as flat
         horizontal segments crossing it.
 
         Three regimes:
         - **Daily**: ``values=missing_dates`` — collapses weekends /
           holidays.
-        - **Intraday RTH only** (no bar before 09:30 or after 16:00):
-          ``bounds=[16, 9.5]`` hides each day's overnight 16:00–09:30
-          gap. Same as the original 1d-vs-15m split.
-        - **Intraday with extended hours** (any pre-market / after-
-          hours bar present): ``bounds=[20, 4]`` instead, so the
-          chart shows the full 04:00–20:00 trading window and only
-          collapses the true overnight 20:00–04:00 idle. Picked
-          automatically from the time-of-day distribution; FVG
-          callers that need pre-market CHoCH context get the right
-          x-axis without any extra config.
+        - **Intraday RTH only**: collapses each day's overnight gap
+          using the market's RTH window (``[rth_close, rth_open)``).
+        - **Intraday with extended hours** (NY only — KR has no
+          formal pre/post session): ``bounds=[20, 4]`` so the chart
+          shows the full 04:00–20:00 trading window and collapses
+          only the true 20:00–04:00 overnight idle.
         """
         if len(df.index) == 0:
             return [dict(values=cls._missing_dates(df))]
@@ -935,21 +943,29 @@ class PlotlyChartBuilder(ChartBuilderPort):
         if not is_intraday:
             return [dict(values=cls._missing_dates(df))]
 
-        # Detect extended-hours: any bar's time-of-day falls outside
-        # the 09:30–16:00 regular session window. ``hour + minute/60``
-        # makes the comparison exact at quarter-hour boundaries.
-        tods = pd.Series(
-            [t.hour + t.minute / 60.0 for t in df.index]
+        rth_open_h = market.rth_open.hour + market.rth_open.minute / 60.0
+        rth_close_h = (
+            market.rth_close.hour + market.rth_close.minute / 60.0
         )
-        has_pre_post = bool(((tods < 9.5) | (tods >= 16.0)).any())
-        if has_pre_post:
-            return [
-                dict(bounds=["sat", "mon"]),
-                dict(bounds=[20, 4], pattern="hour"),
-            ]
+        # ETH detection only meaningful for NY (Korea has no
+        # standard pre/post session). For NY: any bar outside
+        # 09:30–16:00. For KR: skip the ETH branch and always use
+        # the RTH-only collapse since yfinance KR feed is RTH-only.
+        if market is NY:
+            tods = pd.Series(
+                [t.hour + t.minute / 60.0 for t in df.index]
+            )
+            has_pre_post = bool(
+                ((tods < rth_open_h) | (tods >= rth_close_h)).any()
+            )
+            if has_pre_post:
+                return [
+                    dict(bounds=["sat", "mon"]),
+                    dict(bounds=[20, 4], pattern="hour"),
+                ]
         return [
             dict(bounds=["sat", "mon"]),
-            dict(bounds=[16, 9.5], pattern="hour"),
+            dict(bounds=[rth_close_h, rth_open_h], pattern="hour"),
         ]
 
     @staticmethod
@@ -958,6 +974,7 @@ class PlotlyChartBuilder(ChartBuilderPort):
         sig_ts: pd.Timestamp,
         swing_left: int = 1,
         swing_right: int = 1,
+        market: MarketCalendar = NY,
     ) -> tuple[pd.Timestamp | None, pd.Timestamp | None, float | None]:
         """Locate the FVG strategy's BOS reference (swing high) and
         break event, if any.
@@ -1005,11 +1022,24 @@ class PlotlyChartBuilder(ChartBuilderPort):
         # post-market high at $391 well above the visible RTH peak
         # at ~$382, which set ``bos_level`` off-chart and rendered
         # the line invisible. Daily-resolution frames (all bars at
-        # midnight) are exempt from the time-of-day gate.
-        times = [t.time() for t in post.index]
-        if times and not all(t == _dt_time(0, 0) for t in times):
+        # midnight) are exempt from the time-of-day gate. The RTH
+        # window comes from ``market`` so KR frames gate against
+        # 09:00–15:30 KST instead of NY's 09:30–16:00.
+        if hasattr(post.index, "tz") and post.index.tz is not None:
+            times_local = [
+                t.tz_convert(market.tz).time() for t in post.index
+            ]
+        else:
+            times_local = [t.time() for t in post.index]
+        if times_local and not all(
+            t == _dt_time(0, 0) for t in times_local
+        ):
             rth_mask = np.array(
-                [(_RTH_OPEN <= t < _RTH_CLOSE) for t in times], dtype=bool
+                [
+                    (market.rth_open <= t < market.rth_close)
+                    for t in times_local
+                ],
+                dtype=bool,
             )
             post = post[rth_mask]
         if len(post) < swing_left + swing_right + 1:

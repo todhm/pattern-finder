@@ -22,6 +22,7 @@ import streamlit as st
 from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
+from data.domain.market_calendar import KR, NY, market_for_ticker
 from pages._shared.wedgepop_results import (
     apply_fees_to_trades,
     render_single_ticker_headline_metrics,
@@ -86,6 +87,21 @@ st.caption(
 with st.sidebar:
     st.header("Market")
     ticker = st.text_input("Ticker", value="AAPL")
+    # Market calendar — NY by default, KR auto-selected when ticker
+    # carries a Korean exchange suffix (.KS / .KQ). User can still
+    # override via the dropdown for edge cases.
+    detected_market = market_for_ticker(ticker)
+    market_choice = st.selectbox(
+        "Market calendar",
+        options=["NY", "KR"],
+        index=0 if detected_market.name == "NY" else 1,
+        format_func=lambda x: {
+            "NY": "🇺🇸 US (NYSE / Nasdaq)  — 09:30–16:00 ET",
+            "KR": "🇰🇷 Korea (KOSPI/KOSDAQ) — 09:00–15:30 KST",
+        }[x],
+        help="ticker suffix(.KS/.KQ)로 자동 감지하지만 필요하면 override.",
+    )
+    market = NY if market_choice == "NY" else KR
     interval = st.radio(
         "Bar interval",
         options=["1m", "5m", "15m", "30m"],
@@ -134,8 +150,35 @@ with st.sidebar:
     )
 
     st.header("Detector")
-    swing_left = st.number_input("Swing pivot left (bars)", value=2, min_value=1, max_value=10, step=1)
-    swing_right = st.number_input("Swing pivot right (bars)", value=2, min_value=1, max_value=10, step=1)
+    # KR data trades on KRW-tick increments → bar-high ties common,
+    # strict 2/2 fractal misses pivots. 1/1 default for KR.
+    _swing_default = 1 if market_choice == "KR" else 2
+    swing_left = st.number_input(
+        "Swing pivot left (bars)",
+        value=_swing_default,
+        min_value=1,
+        max_value=10,
+        step=1,
+    )
+    swing_right = st.number_input(
+        "Swing pivot right (bars)",
+        value=_swing_default,
+        min_value=1,
+        max_value=10,
+        step=1,
+    )
+    # KOSPI swings smaller in ATR-multiples than US.
+    _atr_default = 1.0 if market_choice == "KR" else 2.0
+    min_choch_swing_atr = st.number_input(
+        "Min ChoCH swing magnitude (× ATR)",
+        value=_atr_default,
+        min_value=0.0,
+        max_value=10.0,
+        step=0.5,
+        format="%.1f",
+        help="H1-L2 down-leg이 N×ATR 이상이어야 ChoCH 인정. "
+        "KR=1.0, NY=2.0 권장.",
+    )
     min_gap_pct = st.number_input(
         "Min FVG size (%)",
         value=0.30,
@@ -237,7 +280,11 @@ if not run_btn:
 # pre-market window. The cache layer is shared with other pages, so
 # turning the toggle on/off doesn't double-fetch.
 _base_market = CachedMarketDataAdapter(YFinanceAdapter())
-market_data = _base_market if include_pre_post else RegularSessionFilterAdapter(_base_market)
+market_data = (
+    _base_market
+    if include_pre_post
+    else RegularSessionFilterAdapter(_base_market, market=market)
+)
 
 detector = FairValueGapDetector(
     swing_left=int(swing_left),
@@ -246,6 +293,8 @@ detector = FairValueGapDetector(
     max_bars_after_choch=int(max_bars_after_choch),
     max_retest_bars=int(max_retest_bars),
     max_signals_per_session=int(max_signals_per_session),
+    min_choch_swing_atr=float(min_choch_swing_atr),
+    market=market,
 )
 
 
@@ -266,6 +315,7 @@ strategy = _IntervalScopedFVGStrategy(
     enable_bos_trail=enable_bos_trail,
     disable_stops_outside_rth=disable_stops_outside_rth,
     force_close_at_session_end=force_close_session_end,
+    market=market,
 )
 
 config = StrategyConfig(
@@ -330,6 +380,7 @@ else:
         title=f"{ticker.upper()} — {start_date} → {end_date} ({interval} FVG)",
         fvg_signals=chart_signals,
         take_profit_r=float(take_profit_r),
+        market=market,
     )
     full_fig.update_xaxes(range=[str(start_date), str(end_date)])
     st.plotly_chart(full_fig, use_container_width=True)

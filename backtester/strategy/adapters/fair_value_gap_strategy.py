@@ -79,6 +79,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from data.domain.market_calendar import NY, MarketCalendar
 from data.domain.ports import MarketDataPort
 from pattern.domain.models import PatternSignal
 from pattern.domain.ports import PatternDetector
@@ -114,6 +115,7 @@ class FairValueGapStrategy(StrategyRunnerPort):
         enable_bos_trail: bool = True,
         disable_stops_outside_rth: bool = True,
         force_close_at_session_end: bool = True,
+        market: MarketCalendar = NY,
     ) -> None:
         self._market_data = market_data
         self._detector = detector
@@ -122,6 +124,11 @@ class FairValueGapStrategy(StrategyRunnerPort):
         self.breakeven_arm_r_multiple = breakeven_arm_r_multiple
         self.breakeven_exit_offset_r = breakeven_exit_offset_r
         self.enable_bos_trail = enable_bos_trail
+        # Market calendar — drives the RTH stop gate and the
+        # session-end forced close. NY by default; KR (or any
+        # custom calendar) can be injected when running on
+        # non-US data.
+        self.market = market
         # When True, ETH bars (pre/post-market) cannot fire stop
         # exits (initial / BE / BOS trail). Thin after-hours prints
         # regularly stop-out by spike-then-revert and the user ends
@@ -485,37 +492,35 @@ class FairValueGapStrategy(StrategyRunnerPort):
         # No exit fired within the holding window — close at deadline.
         return float(closes[deadline]), deadline, "end_of_data"
 
-    @staticmethod
-    def _session_dates(df: pd.DataFrame) -> np.ndarray:
-        """Per-bar NY calendar date — the session-boundary key the
+    def _session_dates(self, df: pd.DataFrame) -> np.ndarray:
+        """Per-bar local-market date — the session-boundary key the
         ``force_close_at_session_end`` rule scans against. Tz-aware
-        intraday frames convert to NY local first; tz-naive daily
-        frames return their existing date directly."""
+        intraday frames convert to ``self.market.tz`` first; tz-naive
+        daily frames pass through unchanged."""
         idx = df.index
         if hasattr(idx, "tz") and idx.tz is not None:
             return np.array(
-                [ts.tz_convert("America/New_York").date() for ts in idx]
+                [ts.tz_convert(self.market.tz).date() for ts in idx]
             )
         return np.array([ts.date() for ts in idx])
 
-    @staticmethod
-    def _rth_mask(df: pd.DataFrame) -> np.ndarray:
-        """Per-bar RTH boolean. ``True`` when bar START falls in
-        09:30 ≤ t < 16:00 NY local time. Daily frames (every bar at
-        midnight) collapse to all-True so the strategy's BOS gate
-        is a no-op there."""
+    def _rth_mask(self, df: pd.DataFrame) -> np.ndarray:
+        """Per-bar RTH boolean. ``True`` when bar START falls inside
+        ``[market.rth_open, market.rth_close)`` in local time. Daily
+        frames (every bar at midnight) collapse to all-True so the
+        strategy's stop / session-close gates are no-ops there."""
         from datetime import time as _t
 
         idx = df.index
         if hasattr(idx, "tz") and idx.tz is not None:
-            local = idx.tz_convert("America/New_York")
+            local = idx.tz_convert(self.market.tz)
         else:
             local = idx
         times = [ts.time() for ts in local]
         if all(t == _t(0, 0) for t in times):
             return np.ones(len(df), dtype=bool)
-        rth_open = _t(9, 30)
-        rth_close = _t(16, 0)
+        rth_open = self.market.rth_open
+        rth_close = self.market.rth_close
         return np.array(
             [(rth_open <= t < rth_close) for t in times], dtype=bool
         )

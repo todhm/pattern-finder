@@ -66,18 +66,10 @@ from datetime import time as _dt_time
 import numpy as np
 import pandas as pd
 
+from data.domain.market_calendar import NY, MarketCalendar
 from pattern.domain.models import PatternSignal
 from pattern.domain.ports import PatternDetector
 from pattern.helpers.pivots import find_swing_highs, find_swing_lows
-
-# US regular session window. Bars whose START falls inside this window
-# count as RTH (a 15m bar starting at 15:45 covers 15:45–16:00). The
-# detector forms FVGs only within RTH, even though the upstream frame
-# may include pre/post bars — those still flow into ChoCH detection
-# so an early structural break still anchors the session, but the
-# 3-bar gap itself only forms during the high-liquidity window.
-_RTH_OPEN = _dt_time(9, 30)
-_RTH_CLOSE = _dt_time(16, 0)
 
 
 class FairValueGapDetector(PatternDetector):
@@ -101,6 +93,7 @@ class FairValueGapDetector(PatternDetector):
         min_choch_swing_atr: float | None = 2.0,
         atr_period: int = 14,
         max_retest_bars: int = 30,
+        market: MarketCalendar = NY,
     ) -> None:
         # Swing fractal half-widths. Default 2/2 matches Bill Williams'
         # 5-bar fractal — small enough to surface micro-structure on
@@ -141,6 +134,11 @@ class FairValueGapDetector(PatternDetector):
         # bars is essentially a strong directional move that won't
         # come back, no entry available.
         self.max_retest_bars = max_retest_bars
+        # Market calendar — drives RTH gating + session-boundary
+        # rollover. NY by default so existing US-equity callers keep
+        # working unchanged; KR (or any future calendar) can be
+        # injected when the upstream frame is for a non-US ticker.
+        self.market = market
 
     # ---- detection ------------------------------------------------------
 
@@ -466,36 +464,37 @@ class FairValueGapDetector(PatternDetector):
         ).max(axis=1)
         return tr.ewm(span=period, adjust=False).mean()
 
-    @staticmethod
-    def _session_dates(df: pd.DataFrame) -> np.ndarray:
-        """Per-bar NY calendar date. Reused across the detector loop
-        as the session-boundary key — bars on the same date belong to
-        the same session even when the index is tz-naive (daily) or
-        tz-aware (intraday)."""
+    def _session_dates(self, df: pd.DataFrame) -> np.ndarray:
+        """Per-bar local-market calendar date. Reused across the
+        detector loop as the session-boundary key — bars on the same
+        local date belong to the same session even when the index is
+        tz-naive (daily) or tz-aware (intraday). Uses
+        :attr:`self.market.tz` so KR frames roll over at Korean
+        midnight, not New York midnight."""
         idx = df.index
         if hasattr(idx, "tz") and idx.tz is not None:
-            return np.array([ts.tz_convert("America/New_York").date() for ts in idx])
+            return np.array(
+                [ts.tz_convert(self.market.tz).date() for ts in idx]
+            )
         return np.array([ts.date() for ts in idx])
 
-    @staticmethod
-    def _rth_mask(df: pd.DataFrame) -> np.ndarray:
-        """Per-bar RTH boolean. ``True`` when bar START falls in
-        09:30 ≤ t < 16:00 NY local time. Daily frames (where every
-        bar is at midnight) collapse to all-True so the detector's
+    def _rth_mask(self, df: pd.DataFrame) -> np.ndarray:
+        """Per-bar RTH boolean. ``True`` when bar START falls inside
+        ``[market.rth_open, market.rth_close)`` in local time. Daily
+        frames (every bar at midnight) collapse to all-True so the
         FVG step still fires — the RTH gate matters only when the
-        upstream frame mixes pre/post bars with regular session
-        bars (yfinance ``prepost=True``)."""
+        upstream frame mixes pre/post bars with the regular session
+        (yfinance ``prepost=True``)."""
         idx = df.index
         if hasattr(idx, "tz") and idx.tz is not None:
-            local = idx.tz_convert("America/New_York")
+            local = idx.tz_convert(self.market.tz)
         else:
             local = idx
         times = np.array([ts.time() for ts in local])
-        # All bars at midnight → daily frame. Skip the time-of-day
-        # gate so daily callers (tests, future daily detectors)
-        # aren't accidentally filtered out.
         if all(t == _dt_time(0, 0) for t in times):
             return np.ones(len(df), dtype=bool)
+        rth_open = self.market.rth_open
+        rth_close = self.market.rth_close
         return np.array(
-            [(_RTH_OPEN <= t < _RTH_CLOSE) for t in times], dtype=bool
+            [(rth_open <= t < rth_close) for t in times], dtype=bool
         )

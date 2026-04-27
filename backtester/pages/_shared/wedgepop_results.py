@@ -159,6 +159,7 @@ def render_per_trade_charts(
     context_after_days: int = 30,
     warmup_days: int = 400,
     default_expanded: int = 3,
+    market=None,
 ) -> None:
     """Render one candlestick chart per trade.
 
@@ -192,10 +193,14 @@ def render_per_trade_charts(
                 st.warning(f"No data for {t.ticker}")
                 continue
 
+            chart_kwargs: dict = {}
+            if market is not None:
+                chart_kwargs["market"] = market
             fig = chart_builder.build_candlestick_with_trades(
                 ticker_df,
                 [t],
                 title=f"{t.ticker} — {entry_label} → {exit_label}",
+                **chart_kwargs,
             )
             fig.update_xaxes(range=[str(chart_start), str(chart_end)])
             st.plotly_chart(fig, use_container_width=True)

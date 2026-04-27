@@ -13,6 +13,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
+from data.domain.market_calendar import KR
 from data.domain.ports import MarketDataPort
 from pattern.adapters.fair_value_gap import FairValueGapDetector
 from pattern.helpers.sessions import NY_TZ
@@ -397,6 +398,40 @@ def test_detector_rejects_fvg_overlapping_choch_bar() -> None:
         f"FVG completion at choch_bar+{s.metadata['choch_bar_offset']} "
         f"violates the post-ChoCH gating rule"
     )
+
+
+def test_detector_kr_calendar_uses_korean_session_window() -> None:
+    """When the detector is given a KR ``MarketCalendar``, RTH gating
+    runs against 09:00–15:30 KST (not NY 09:30–16:00). Build the
+    standard fixture but stamp it with an Asia/Seoul tz at 09:30
+    KST → all 27 bars land inside the Korean RTH window, so the
+    signal must still fire."""
+    df = _build_choch_fvg_session()
+    # Re-stamp the index from NY to KST at 09:30 local — every bar
+    # then falls inside Korean RTH (09:00–15:30 KST).
+    kst_index = pd.date_range(
+        start="2024-03-18 09:30",
+        periods=len(df),
+        freq="15min",
+        tz="Asia/Seoul",
+    )
+    df_kr = df.copy()
+    df_kr.index = kst_index
+
+    det = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1, market=KR
+    )
+    signals = det.detect(df_kr)
+    assert len(signals) == 1
+    assert signals[0].entry_price == 107.0  # fvg_mid
+
+    # Same fixture passed to a NY-calendar detector — bars are at
+    # KST 09:30+ (tz-converted to NY: 20:30 ET = post-RTH), so
+    # the FVG never forms under NY's 09:30–16:00 ET gate.
+    det_ny = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1
+    )
+    assert det_ny.detect(df_kr) == []
 
 
 def test_detector_skips_fvg_outside_regular_session() -> None:

@@ -247,15 +247,116 @@ class CompositeUniverseAdapter(UniverseProviderPort):
         )
 
 
+class KrxWikipediaUniverseAdapter(UniverseProviderPort):
+    """Resolves Korean equity universes by scraping the English
+    Wikipedia KOSPI 200 constituents table.
+
+    Supports:
+        - ``kospi200`` — KOSPI 200 constituents (~200 tickers).
+
+    Wikipedia stores Korean tickers as bare 6-digit codes (e.g.
+    ``005930`` for Samsung Electronics). yfinance expects them with
+    a market-suffix: ``.KS`` for KOSPI and ``.KQ`` for KOSDAQ. This
+    adapter only knows about KOSPI, so it always appends ``.KS`` —
+    KOSDAQ would need its own source (KRX official listing file or
+    similar) and lives in a separate adapter.
+
+    No KOSDAQ here because the English Wikipedia ``KOSDAQ_150`` page
+    does not include a constituents table at the time of writing,
+    and we don't want to silently produce a partial / stale list.
+    """
+
+    KOSPI200_URL = "https://en.wikipedia.org/wiki/KOSPI_200"
+    KOSPI200_ALIASES = {"kospi200", "kospi_200", "kospi-200", "kospi"}
+    USER_AGENT = "Mozilla/5.0 (compatible; pattern-finder/1.0)"
+
+    def __init__(self, http_client: httpx.Client | None = None):
+        self._client = http_client or httpx.Client(
+            headers={"User-Agent": self.USER_AGENT},
+            follow_redirects=True,
+            timeout=30.0,
+        )
+
+    def get_tickers(self, universe: str) -> list[str]:
+        key = universe.strip().lower().replace(" ", "")
+        if key in self.KOSPI200_ALIASES:
+            tickers = self._fetch_constituents()
+            return [self._yf_suffix(t) for t in tickers]
+        raise ValueError(
+            f"Unknown universe: {universe!r}. Expected one of "
+            f"{sorted(self.KOSPI200_ALIASES)}"
+        )
+
+    # ---- internals ----
+
+    def _fetch_constituents(self) -> list[str]:
+        """Scrape the constituents table off the KOSPI 200 page.
+
+        The page has two ``wikitable`` elements: a small annual-
+        levels summary and the constituents list. We pick the one
+        that has both a ``Company`` and a ``Symbol`` header, which
+        uniquely identifies the constituents table without
+        depending on table order.
+        """
+        resp = self._client.get(self.KOSPI200_URL)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for table in soup.find_all("table", class_="wikitable"):
+            tickers = self._extract_symbol_column(table)
+            if tickers:
+                return tickers
+        raise RuntimeError(
+            f"Could not locate the constituents table on "
+            f"{self.KOSPI200_URL}"
+        )
+
+    @staticmethod
+    def _extract_symbol_column(table) -> list[str]:
+        header_row = table.find("tr")
+        if header_row is None:
+            return []
+        headers = [
+            c.get_text(strip=True)
+            for c in header_row.find_all(["th", "td"])
+        ]
+        if "Symbol" not in headers or "Company" not in headers:
+            return []
+        sym_idx = headers.index("Symbol")
+        out: list[str] = []
+        for row in table.find_all("tr")[1:]:
+            cells = row.find_all(["td", "th"])
+            if sym_idx >= len(cells):
+                continue
+            text = cells[sym_idx].get_text(strip=True)
+            text = text.split("[", 1)[0].strip()
+            # KRX symbols are 6-digit numeric — guards against
+            # accidental footnote / sector rows polluting the list.
+            if text.isdigit() and len(text) == 6:
+                out.append(text)
+        return out
+
+    @staticmethod
+    def _yf_suffix(symbol: str) -> str:
+        """Append yfinance's KOSPI suffix. KOSDAQ codes (which
+        nominally collide with KOSPI in the 6-digit space) aren't
+        sourced here, so the assumption is safe within this adapter."""
+        return f"{symbol}.KS"
+
+
 def default_universe_provider() -> UniverseProviderPort:
-    """Factory: composite of NasdaqTrader + Wikipedia.
+    """Factory: composite of NasdaqTrader + Wikipedia + KRX-Wikipedia.
 
     NasdaqTrader is tried first so ``nasdaq_full`` / ``nasdaq_all``
-    resolve there; everything else falls through to Wikipedia
-    (``sp500``, ``nasdaq100``).
+    resolve there; ``kospi200`` falls through to the KRX adapter;
+    everything else (``sp500``, ``nasdaq100``) goes to the original
+    Wikipedia adapter.
     """
     return CompositeUniverseAdapter(
-        [NasdaqTraderUniverseAdapter(), WikipediaUniverseAdapter()]
+        [
+            NasdaqTraderUniverseAdapter(),
+            KrxWikipediaUniverseAdapter(),
+            WikipediaUniverseAdapter(),
+        ]
     )
 
 
