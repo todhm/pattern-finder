@@ -17,7 +17,7 @@ import streamlit as st
 
 from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
-from data.adapters.wikipedia_universe import WikipediaUniverseAdapter
+from data.adapters.wikipedia_universe import default_universe_provider
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pages._shared.wedgepop_results import (
     render_equity_curve,
@@ -80,17 +80,23 @@ with st.sidebar:
     st.header("Universe")
     universe = st.selectbox(
         "Universe",
-        options=["sp500", "nasdaq100"],
+        options=["sp500", "nasdaq100", "nasdaq_full"],
         index=0,
-        format_func=lambda x: "S&P 500" if x == "sp500" else "Nasdaq-100",
+        format_func=lambda x: {
+            "sp500": "S&P 500 (~500)",
+            "nasdaq100": "Nasdaq-100 (~100)",
+            "nasdaq_full": "Nasdaq All Common Stocks (~2,200)",
+        }[x],
     )
     max_tickers = st.number_input(
         "Max tickers (0 = all)",
         value=30,
         min_value=0,
-        max_value=600,
+        max_value=2_500,
         step=10,
-        help="처음엔 작게(20~50) 시작해서 동작 확인 후 늘려.",
+        help="처음엔 작게(20~50) 시작해서 동작 확인 후 늘려. "
+        "nasdaq_full은 ~2,200 종목 — 1m 캡 7일 / 15m 캡 60일 안에서 "
+        "병렬 호출이 많아지므로 max_workers 신중히.",
     )
     max_workers = st.number_input(
         "Parallel workers",
@@ -266,7 +272,7 @@ market_data = (
     if include_pre_post
     else RegularSessionFilterAdapter(_base_market)
 )
-universe_provider = WikipediaUniverseAdapter()
+universe_provider = default_universe_provider()
 
 detector = FairValueGapDetector(
     swing_left=int(swing_left),
