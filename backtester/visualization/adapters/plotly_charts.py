@@ -346,10 +346,14 @@ class PlotlyChartBuilder(ChartBuilderPort):
 
         def _hover_when(ts, d):
             """Display label — ``YYYY-MM-DD HH:MM`` if intraday ts is
-            available, else ISO date. Keeps daily-trade hovers exactly
-            as before while 15m trades surface the bar time."""
+            available, else ISO date. Converts tz-aware timestamps
+            to ``market.tz`` first so KR users see 15:15 KST instead
+            of 01:15 NY (the same moment in two clocks). Keeps
+            daily-trade hovers exactly as before."""
             if ts is not None:
                 stamp = pd.Timestamp(ts)
+                if stamp.tz is not None:
+                    stamp = stamp.tz_convert(market.tz).tz_localize(None)
                 if stamp.time().hour != 0 or stamp.time().minute != 0:
                     return stamp.strftime("%Y-%m-%d %H:%M")
             return str(d)

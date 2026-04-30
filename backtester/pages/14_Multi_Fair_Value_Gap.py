@@ -68,6 +68,26 @@ INTERVAL_CHOCH_FVG_DEFAULTS = {
     "30m": 4,
 }
 
+# KOSPI-tuned defaults. KR data moves slower in % terms and the strict
+# 3-bar bullish FVG rule is sparse on a 60-day 15m window (90
+# queued / 199 tickers). Looser CHoCH→FVG window, looser retest
+# window, and a 0.10% min-gap (vs NY's 0.30%) bring the universe
+# scan from ~2 to ~10 confirmed signals on a 55-day 15m run, while
+# keeping the strict ICT all-3-bullish-bar requirement intact.
+KR_INTERVAL_RETEST_DEFAULTS = {
+    "1m": 60,
+    "5m": 30,
+    "15m": 15,
+    "30m": 8,
+}
+KR_INTERVAL_CHOCH_FVG_DEFAULTS = {
+    "1m": 90,
+    "5m": 30,
+    "15m": 20,
+    "30m": 10,
+}
+KR_MIN_GAP_PCT = 0.10  # vs NY default 0.30
+
 st.set_page_config(page_title="Multi Fair Value Gap", layout="wide")
 st.title("Multi-Ticker Fair Value Gap Strategy")
 st.caption(
@@ -139,10 +159,12 @@ with st.sidebar:
     cap_days = INTRADAY_CAPS[interval]
     st.caption(f"yfinance {interval} cap = 최근 {cap_days} calendar days.")
 
+    # ``cap_days - 1`` margin so the UI lower-bound doesn't land on
+    # yfinance's strict boundary (the request would silently fail).
     start_date = st.date_input(
         "Start Date",
-        value=date.today() - timedelta(days=min(7, cap_days)),
-        min_value=date.today() - timedelta(days=cap_days),
+        value=date.today() - timedelta(days=min(7, cap_days - 1)),
+        min_value=date.today() - timedelta(days=cap_days - 1),
         max_value=date.today(),
     )
     end_date = st.date_input(
@@ -196,32 +218,44 @@ with st.sidebar:
         max_value=10,
         step=1,
     )
+    _min_gap_default = KR_MIN_GAP_PCT if market_choice == "KR" else 0.30
     min_gap_pct = st.number_input(
         "Min FVG size (%)",
-        value=0.30,
+        value=_min_gap_default,
         min_value=0.0,
         max_value=5.0,
         step=0.05,
         format="%.2f",
-        help="close 대비 FVG 폭 최소값. 0.30 (= 0.3%) = detector default.",
+        help="close 대비 FVG 폭 최소값. NY=0.30%, KR=0.10% 권장 "
+        "(KOSPI 가격 변동이 % 단위로 미장보다 작음).",
+    )
+    _choch_fvg_table = (
+        KR_INTERVAL_CHOCH_FVG_DEFAULTS
+        if market_choice == "KR"
+        else INTERVAL_CHOCH_FVG_DEFAULTS
     )
     max_bars_after_choch = st.number_input(
         "Max bars CHoCH → FVG",
-        value=INTERVAL_CHOCH_FVG_DEFAULTS[interval],
+        value=_choch_fvg_table[interval],
         min_value=3,
         max_value=200,
         step=1,
         help="CHoCH 이후 N bar 안에 FVG가 형성돼야 valid. "
-        "1m=60, 5m=20, 15m=8, 30m=4 (1-2시간).",
+        "NY 15m=8, KR 15m=20 (KR이 시간상 더 천천히 형성).",
+    )
+    _retest_table = (
+        KR_INTERVAL_RETEST_DEFAULTS
+        if market_choice == "KR"
+        else INTERVAL_RETEST_DEFAULTS
     )
     max_retest_bars = st.number_input(
         "Max bars FVG → retest entry",
-        value=INTERVAL_RETEST_DEFAULTS[interval],
+        value=_retest_table[interval],
         min_value=1,
         max_value=200,
         step=1,
         help="FVG 형성 후 N bar 안에 midpoint retest 못하면 만료. "
-        "1m=40, 5m=15, 15m=5, 30m=3 (대략 30~90분 윈도우).",
+        "NY 15m=5, KR 15m=15.",
     )
     max_signals_per_session = st.number_input(
         "Max signals per session (per ticker)",
@@ -411,7 +445,7 @@ render_equity_curve(
 )
 render_top_trades(chart_builder, result)
 render_ticker_contribution(chart_builder, result)
-render_trade_table(result)
+render_trade_table(result, market_tz=market.tz)
 render_per_trade_charts(
     chart_builder,
     market_data,
@@ -421,5 +455,6 @@ render_per_trade_charts(
     context_after_days=2,
     warmup_days=5,
     market=market,
+    market_tz=market.tz,
 )
 render_failed_tickers(result)

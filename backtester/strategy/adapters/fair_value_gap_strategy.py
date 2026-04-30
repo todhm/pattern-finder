@@ -476,15 +476,25 @@ class FairValueGapStrategy(StrategyRunnerPort):
                 ):
                     breakeven_armed = True
 
-            # (SC) Session close — last RTH bar of the NY session and
+            # (SC) Session close — last RTH bar of the session and
             #     the trade is still open. Forces a flat close at the
             #     bar's CLOSE price, matching how most ICT/SMC FVG
             #     traders run the framework (intraday day-trade,
-            #     never carry overnight). Runs LAST so TP / stop /
-            #     BE / BOS trail still get a chance on the same bar.
+            #     never carry overnight). Uses ``i >= entry_idx`` so
+            #     this also fires when the *entry itself* lands on
+            #     the last RTH bar — without this, the trade carries
+            #     overnight and a gap-down on the next session's
+            #     open stops it out below the original stop (the
+            #     014820.KS 2026-03-05 case: entry at 15:15 KST = NY
+            #     01:15, no exit fires before next session, gap-down
+            #     to $23,800 on 03-06 09:00 KST blows through stop).
+            #     Same-bar session_close at entry-bar close is safe:
+            #     by the retest contract that close is *above* the
+            #     fvg_mid entry, so it banks a small profit instead
+            #     of carrying overnight risk.
             if (
                 self.force_close_at_session_end
-                and i > entry_idx
+                and i >= entry_idx
                 and i in last_rth_idx
             ):
                 return close_bar, i, "session_close"

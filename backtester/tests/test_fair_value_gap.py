@@ -450,6 +450,70 @@ def test_detector_skips_fvg_outside_regular_session() -> None:
     assert det.detect(shifted) == []
 
 
+def test_strategy_force_close_fires_when_entry_is_last_rth_bar() -> None:
+    """When the FVG retest fires on the *last* RTH bar of the
+    session, ``force_close_at_session_end`` must close at that bar's
+    close instead of carrying the trade overnight. The 014820.KS
+    2026-03-05 case: entry at 15:15 KST (last 15m bar before 15:30
+    cash close) → without same-bar session_close the trade carries
+    to 03-06 09:00 and a gap-down through the stop wipes out the
+    setup.
+
+    Build a fixture whose retest fires on bar 25 (15:45 ET in the
+    session — the last 09:30-15:45 bar). Verify same-bar
+    session_close at the bar's close.
+    """
+    df = _build_choch_fvg_session().copy().astype(float)
+    # Disable the original retest at bar 19 (low 105 ≤ mid 107) by
+    # raising bar 19's low above mid; force the retest to land on
+    # bar 25 (the last RTH bar in the fixture's intraday index).
+    # fvg_mid = 107, fvg_low = 104.
+    for idx, o, h, l, c in [
+        (19, 112, 113, 108, 112),  # low 108 > mid 107 → no retest here
+        (20, 112, 113, 108, 112),
+        (21, 112, 117, 111, 116),
+        (22, 116, 122, 115, 121),
+        (23, 121, 124, 120, 123),
+        (24, 123, 128, 122, 127),
+        # bar 25 (15:45 ET = last RTH 15m start): retest fires —
+        # low 105 ≤ mid 107, close 113 > mid 107, low 105 ≥ fvg_low 104.
+        (25, 127, 113, 105, 113),
+    ]:
+        df.iat[idx, df.columns.get_loc("Open")] = o
+        df.iat[idx, df.columns.get_loc("High")] = h
+        df.iat[idx, df.columns.get_loc("Low")] = l
+        df.iat[idx, df.columns.get_loc("Close")] = c
+
+    cfg = StrategyConfig(
+        ticker="TEST",
+        start_date=df.index[0].date(),
+        end_date=df.index[-1].date(),
+        pattern_name="fair_value_gap",
+        max_holding_days=20,
+    )
+    detector = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1
+    )
+    strat = FairValueGapStrategy(
+        market_data=_StubMarket(df),
+        detector=detector,
+        take_profit_r_multiple=10.0,  # unreachable
+        enable_breakeven_stop=False,
+        enable_bos_trail=False,
+        force_close_at_session_end=True,
+    )
+    res = strat.execute(df, cfg)
+    assert res.performance.total_trades == 1
+    trade = res.performance.trades[0]
+    assert trade.exit_reason == "session_close"
+    # Entry on bar 25, exit on bar 25 (same bar) at close.
+    assert trade.entry_ts == pd.Timestamp(df.index[25]).to_pydatetime()
+    assert trade.exit_ts == pd.Timestamp(df.index[25]).to_pydatetime()
+    # Close = 113, entry (fvg_mid) = 107 → small profit.
+    assert trade.exit_price == pytest.approx(113.0)
+    assert trade.entry_price == pytest.approx(107.0)
+
+
 def test_strategy_disable_stops_outside_rth_skips_eth_stop() -> None:
     """When ``disable_stops_outside_rth=True`` (default), an ETH bar
     (16:00 ET = post-RTH in our fixture) whose low pierces the stop

@@ -111,19 +111,24 @@ def render_ticker_contribution(
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_trade_table(result: MultiStrategyResult) -> None:
+def render_trade_table(
+    result: MultiStrategyResult, market_tz: str | None = None
+) -> None:
     """Detail table — same columns the daily page has always shown.
 
     Uses ``entry_ts`` / ``exit_ts`` when populated (always true after
     the strategy generalization) so intraday trades display the exact
     bar time; falls back to ``entry_date`` / ``exit_date`` for rows
     coming from old code paths.
+
+    ``market_tz`` lets KR pages render times in KST instead of the
+    default NY clock.
     """
     st.subheader("Trades — Details")
     rows = []
     for t in result.trades:
-        entry_label = _format_trade_time(t.entry_ts, t.entry_date)
-        exit_label = _format_trade_time(t.exit_ts, t.exit_date)
+        entry_label = _format_trade_time(t.entry_ts, t.entry_date, market_tz)
+        exit_label = _format_trade_time(t.exit_ts, t.exit_date, market_tz)
         rows.append(
             {
                 "Ticker": t.ticker,
@@ -160,6 +165,7 @@ def render_per_trade_charts(
     warmup_days: int = 400,
     default_expanded: int = 3,
     market=None,
+    market_tz: str | None = None,
 ) -> None:
     """Render one candlestick chart per trade.
 
@@ -172,8 +178,8 @@ def render_per_trade_charts(
     st.subheader("Trade Charts")
     for i, t in enumerate(result.trades):
         pnl_sign = "+" if t.pnl >= 0 else ""
-        entry_label = _format_trade_time(t.entry_ts, t.entry_date)
-        exit_label = _format_trade_time(t.exit_ts, t.exit_date)
+        entry_label = _format_trade_time(t.entry_ts, t.entry_date, market_tz)
+        exit_label = _format_trade_time(t.exit_ts, t.exit_date, market_tz)
         label = (
             f"{t.ticker} — {entry_label} → {exit_label}  "
             f"({pnl_sign}{t.pnl_pct:.2%})"
@@ -379,16 +385,24 @@ def render_single_ticker_trade_table(fee_rows: list[dict]) -> None:
     st.dataframe(rendered, use_container_width=True)
 
 
-def _format_trade_time(ts, fallback_date: date) -> str:
+def _format_trade_time(
+    ts, fallback_date: date, market_tz: str | None = None
+) -> str:
     """Prefer the exact bar timestamp when the strategy populated it
     (always the case after the interval generalization), fall back to
-    the session date for legacy rows."""
+    the session date for legacy rows.
+
+    ``market_tz`` (e.g. ``"Asia/Seoul"``) converts a tz-aware NY
+    timestamp into the market's local clock before formatting, so
+    KR trades surface as 15:15 KST rather than 01:15 NY (same
+    moment, two clocks). When ``None`` we strip tz keeping the wall
+    clock intact — the original behavior for US tickers.
+    """
     if ts is None:
         return fallback_date.isoformat()
-    # Normalize to NY tz for display — intraday bars are always NY
-    # session time in this project; daily bars are effectively tz-
-    # naive midnight which ``strftime`` renders as just the date.
     stamp = pd.Timestamp(ts)
+    if market_tz is not None and stamp.tz is not None:
+        stamp = stamp.tz_convert(market_tz).tz_localize(None)
     if stamp.time().hour == 0 and stamp.time().minute == 0:
         return stamp.date().isoformat()
     return stamp.strftime("%Y-%m-%d %H:%M")

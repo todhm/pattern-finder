@@ -7,6 +7,24 @@ from data.domain.ports import MarketDataPort
 
 NY_TZ = "America/New_York"
 
+# yfinance enforces a strict cap on sub-hour history: anything older
+# than ~60 days for 5m/15m/30m, ~7 days for 1m. Their endpoint is
+# *boundary-exclusive* — passing ``start = today - 60d`` typically
+# fails with ``"must be within the last 60 days"`` because the
+# computed UTC ``startTime`` lands a few seconds outside the cap. We
+# nudge the floor inward by one calendar day per interval so a user
+# picking the maximum window in the UI doesn't trip the boundary.
+_INTRADAY_CAP_DAYS = {
+    "1m": 7,
+    "2m": 60,
+    "5m": 60,
+    "15m": 60,
+    "30m": 60,
+    "60m": 730,
+    "1h": 730,
+    "90m": 60,
+}
+
 
 class YFinanceAdapter(MarketDataPort):
     def fetch_ohlcv(
@@ -40,6 +58,17 @@ class YFinanceAdapter(MarketDataPort):
         cap on sub-hour intervals; wider windows raise from the
         upstream call.
         """
+        # Clamp the requested ``start`` inside the interval's cap so a
+        # caller picking ``today - 60d`` for a 15m fetch doesn't fail
+        # the upstream's strict boundary check. ``cap_days - 1`` is
+        # enough margin in practice — yfinance fails on exact-day
+        # boundaries because its UTC startTime lands a few seconds
+        # before the cap; one calendar day of slack avoids that.
+        if interval in _INTRADAY_CAP_DAYS:
+            cap = _INTRADAY_CAP_DAYS[interval]
+            floor = date.today() - timedelta(days=cap - 1)
+            if start < floor:
+                start = floor
         ticker = yf.Ticker(symbol)
         df = ticker.history(
             start=start.isoformat(),
