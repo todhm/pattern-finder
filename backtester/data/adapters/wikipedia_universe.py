@@ -343,21 +343,150 @@ class KrxWikipediaUniverseAdapter(UniverseProviderPort):
         return f"{symbol}.KS"
 
 
-def default_universe_provider() -> UniverseProviderPort:
-    """Factory: composite of NasdaqTrader + Wikipedia + KRX-Wikipedia.
+class KrxEodhdUniverseAdapter(UniverseProviderPort):
+    """Resolves Korean equity universes from EODHD's exchange-symbol-list.
 
-    NasdaqTrader is tried first so ``nasdaq_full`` / ``nasdaq_all``
-    resolve there; ``kospi200`` falls through to the KRX adapter;
-    everything else (``sp500``, ``nasdaq100``) goes to the original
-    Wikipedia adapter.
+    Endpoints used::
+
+        GET https://eodhd.com/api/exchange-symbol-list/KO  →  KOSPI  (~2,400)
+        GET https://eodhd.com/api/exchange-symbol-list/KQ  →  KOSDAQ (~1,900)
+
+    Returns yfinance-style suffixes (``.KS`` for KOSPI, ``.KQ`` for
+    KOSDAQ) so downstream routing + market_for_ticker keep working
+    unchanged. The EODHD adapter itself translates ``.KS`` → ``.KO``
+    when actually fetching aggregates.
+
+    Aliases handled:
+
+    - ``kospi_full`` — every KOSPI common-stock code (2,398 as of
+      2026-05). Far broader than the Wikipedia KOSPI 200 list (199).
+    - ``kosdaq_full`` — every KOSDAQ code (1,940).
+    - ``krx_all`` — KOSPI + KOSDAQ combined (4,338).
+
+    Auth: ``EODHD_API_KEY`` env var (same key used by EODHDAdapter,
+    loaded from ``secrets/secret.env``).
     """
-    return CompositeUniverseAdapter(
-        [
-            NasdaqTraderUniverseAdapter(),
-            KrxWikipediaUniverseAdapter(),
-            WikipediaUniverseAdapter(),
-        ]
-    )
+
+    DEFAULT_BASE_URL = "https://eodhd.com/api"
+    KOSPI_ALIASES = {
+        "kospi_full",
+        "kospifull",
+        "kospi-full",
+        "kospi_all",
+        "kospi_eodhd",
+    }
+    KOSDAQ_ALIASES = {
+        "kosdaq_full",
+        "kosdaqfull",
+        "kosdaq-full",
+        "kosdaq_all",
+        "kosdaq_eodhd",
+    }
+    KRX_ALL_ALIASES = {"krx_all", "krxall", "krx-all", "krx_full", "krx"}
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        http_client: httpx.Client | None = None,
+    ) -> None:
+        import os as _os
+
+        self._api_key = api_key or _os.environ.get("EODHD_API_KEY")
+        if not self._api_key:
+            raise ValueError(
+                "KrxEodhdUniverseAdapter requires the EODHD_API_KEY "
+                "env var (loaded from secrets/secret.env)."
+            )
+        self._base_url = (
+            base_url
+            or _os.environ.get("EODHD_API_BASE")
+            or self.DEFAULT_BASE_URL
+        ).rstrip("/")
+        self._client = http_client or httpx.Client(timeout=60.0)
+
+    @classmethod
+    def handles(cls, universe: str) -> bool:
+        key = cls._normalize_key(universe)
+        return (
+            key in cls.KOSPI_ALIASES
+            or key in cls.KOSDAQ_ALIASES
+            or key in cls.KRX_ALL_ALIASES
+        )
+
+    def get_tickers(self, universe: str) -> list[str]:
+        key = self._normalize_key(universe)
+        if key in self.KOSPI_ALIASES:
+            return self._fetch_exchange("KO", yf_suffix=".KS")
+        if key in self.KOSDAQ_ALIASES:
+            return self._fetch_exchange("KQ", yf_suffix=".KQ")
+        if key in self.KRX_ALL_ALIASES:
+            kospi = self._fetch_exchange("KO", yf_suffix=".KS")
+            kosdaq = self._fetch_exchange("KQ", yf_suffix=".KQ")
+            return kospi + kosdaq
+        raise ValueError(
+            f"Unknown universe: {universe!r}. Expected one of "
+            f"{sorted(self.KOSPI_ALIASES | self.KOSDAQ_ALIASES | self.KRX_ALL_ALIASES)}"
+        )
+
+    # ---- internals ----
+
+    @staticmethod
+    def _normalize_key(universe: str) -> str:
+        return universe.strip().lower().replace(" ", "_")
+
+    def _fetch_exchange(self, code: str, *, yf_suffix: str) -> list[str]:
+        url = f"{self._base_url}/exchange-symbol-list/{code}"
+        resp = self._client.get(
+            url, params={"api_token": self._api_key, "fmt": "json"}
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"EODHD exchange-symbol-list/{code}: HTTP "
+                f"{resp.status_code} {resp.text[:200]}"
+            )
+        rows = resp.json()
+        if not isinstance(rows, list):
+            raise RuntimeError(
+                f"Unexpected payload from EODHD for {code}: "
+                f"{type(rows).__name__}"
+            )
+        # Keep only common-stock-like rows. EODHD lists ETFs / preferred
+        # stocks / mutual funds in the same response — those don't fit
+        # the FVG framework (the strategy targets liquid single-name
+        # equity structure).
+        out: list[str] = []
+        for row in rows:
+            sym = row.get("Code", "")
+            kind = row.get("Type", "")
+            if not sym or kind != "Common Stock":
+                continue
+            out.append(f"{sym}{yf_suffix}")
+        return out
+
+
+def default_universe_provider() -> UniverseProviderPort:
+    """Factory: composite of NasdaqTrader + KRX (EODHD) + KRX (Wiki)
+    + Wikipedia.
+
+    Resolution order:
+    - ``nasdaq_full`` / ``nasdaq_all`` → NasdaqTrader
+    - ``kospi_full`` / ``kosdaq_full`` / ``krx_all`` → KRX EODHD
+    - ``kospi200`` → KRX Wikipedia
+    - ``sp500`` / ``nasdaq100`` → Wikipedia
+
+    The EODHD KRX adapter is skipped when ``EODHD_API_KEY`` isn't
+    set so dev / CI environments without secrets still resolve the
+    other universes.
+    """
+    adapters: list[UniverseProviderPort] = [NasdaqTraderUniverseAdapter()]
+    try:
+        adapters.append(KrxEodhdUniverseAdapter())
+    except ValueError:
+        pass  # no API key — KRX EODHD aliases will fall through
+    adapters.append(KrxWikipediaUniverseAdapter())
+    adapters.append(WikipediaUniverseAdapter())
+    return CompositeUniverseAdapter(adapters)
 
 
 class StaticUniverseAdapter(UniverseProviderPort):

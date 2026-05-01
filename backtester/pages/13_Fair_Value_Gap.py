@@ -19,9 +19,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from data.adapters.cached_market_data import CachedMarketDataAdapter
+from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
-from data.adapters.yfinance_adapter import YFinanceAdapter
 from data.domain.market_calendar import KR, NY, market_for_ticker
 from pages._shared.wedgepop_results import (
     apply_fees_to_trades,
@@ -34,14 +33,12 @@ from strategy.adapters.fair_value_gap_strategy import FairValueGapStrategy
 from strategy.domain.models import StrategyConfig
 from visualization.adapters.plotly_charts import PlotlyChartBuilder
 
-# yfinance intraday history caps. Anything older fails silently with
-# "data not available" — the sidebar uses these to clamp Start Date.
-INTRADAY_CAPS = {
-    "1m": 7,
-    "5m": 60,
-    "15m": 60,
-    "30m": 60,
-}
+# Sub-daily fetches go through Massive (Polygon-compatible), which
+# carries 10+ years of intraday history. The yfinance caps that used
+# to clamp Start Date here no longer apply — the sidebar lets the
+# user pick any start back to 2003 (Polygon's earliest stocks
+# coverage). The constant stays around for the caption text below.
+INTRADAY_HISTORY_FLOOR = date(2003, 1, 1)
 
 # Default ``max_retest_bars`` per interval. Scaled so the wall-clock
 # window stays in the 30–90 minute range across timeframes:
@@ -95,6 +92,20 @@ KR_INTERVAL_CHOCH_FVG_DEFAULTS = {
 }
 KR_MIN_GAP_PCT = 0.10
 
+# Per-interval default for "minimum bars left in session before
+# accepting a retest entry". Roughly 1 hour of wall-clock so the
+# trade has room for TP / stop / BOS to play out before the
+# session-close forced-flat fires. Calendar-aware filtering
+# happens inside the detector — it counts session bars in the
+# market's local tz, so KR's 09:00–15:00 (15 hours-ish gap to next
+# session) and NY's 09:30–16:00 (extended hours optional) both work.
+INTERVAL_MIN_BARS_TO_CLOSE = {
+    "1m": 60,    # 1h
+    "5m": 12,    # 1h
+    "15m": 4,    # 1h
+    "30m": 2,    # 1h
+}
+
 st.set_page_config(page_title="Fair Value Gap", layout="wide")
 st.title("Fair Value Gap Strategy")
 st.caption(
@@ -102,9 +113,79 @@ st.caption(
     "초기 stop은 FVG-producing candle 바깥, 옵션으로 BOS 트레일 (close가 CHoCH high 돌파 시 stop을 FVG midpoint로)."
 )
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _search_kr_eodhd(query: str) -> list[tuple[str, str, str]]:
+    """EODHD `/api/search/{q}` filtered to Korean common stocks.
+
+    Returns ``[(code, name, yfinance_suffix), ...]`` — empty when
+    EODHD_API_KEY isn't loaded, the call fails, or no KR matches
+    surface. Cached for 1 h so successive keystrokes on the same
+    query don't hammer the API.
+    """
+    import os
+    import httpx
+
+    key = os.environ.get("EODHD_API_KEY")
+    if not key or len(query.strip()) < 2:
+        return []
+    try:
+        resp = httpx.get(
+            f"https://eodhd.com/api/search/{query.strip()}",
+            params={"api_token": key, "fmt": "json"},
+            timeout=10.0,
+        )
+    except Exception:
+        return []
+    if resp.status_code != 200:
+        return []
+    out: list[tuple[str, str, str]] = []
+    for row in resp.json():
+        if row.get("Type") != "Common Stock":
+            continue
+        if row.get("Country") != "Korea":
+            continue
+        code = row.get("Code") or ""
+        exchange = row.get("Exchange") or ""
+        if not code:
+            continue
+        # EODHD's exchange code → yfinance suffix used by the rest
+        # of the system. KO (KOSPI) maps back to .KS, KQ stays.
+        if exchange == "KO":
+            suffix = ".KS"
+        elif exchange == "KQ":
+            suffix = ".KQ"
+        else:
+            continue
+        out.append((code, row.get("Name", ""), suffix))
+    return out
+
+
 with st.sidebar:
     st.header("Market")
-    ticker = st.text_input("Ticker", value="AAPL")
+    if "ticker" not in st.session_state:
+        st.session_state.ticker = "AAPL"
+    ticker = st.text_input("Ticker", key="ticker")
+    with st.expander("🔍 Search Korean ticker"):
+        query = st.text_input(
+            "회사명 (English)",
+            placeholder="samsung, kakao, hyundai, naver, sk hynix...",
+            key="kr_search_query",
+            help="EODHD `/search` 엔드포인트 — 한글은 미지원이라 영문으로. "
+            "결과 클릭 시 위 Ticker 박스에 자동 입력.",
+        )
+        if query and query.strip():
+            hits = _search_kr_eodhd(query)
+            if not hits:
+                st.caption("No KR Common-Stock matches.")
+            for code, name, suffix in hits[:12]:
+                full = f"{code}{suffix}"
+                if st.button(
+                    f"**{full}** — {name}",
+                    key=f"kr_pick_{full}",
+                    use_container_width=True,
+                ):
+                    st.session_state.ticker = full
+                    st.rerun()
     # Market calendar — NY by default, KR auto-selected when ticker
     # carries a Korean exchange suffix (.KS / .KQ). User can still
     # override via the dropdown for edge cases.
@@ -128,16 +209,14 @@ with st.sidebar:
         help="원문의 'time frame'은 1M (1분봉)이지만 yfinance 1m cap이 "
         "7일이라 백테스트엔 15m이 현실적. 1m은 실시간 시그널용.",
     )
-    cap_days = INTRADAY_CAPS[interval]
-    st.caption(f"yfinance {interval} cap = 최근 {cap_days} calendar days.")
+    st.caption(
+        f"{interval}봉은 Massive(Polygon)에서 가져오므로 기간 제한 없음."
+    )
 
-    # ``cap_days - 1`` margin: yfinance rejects the exact-day cap
-    # boundary because its UTC startTime lands a few seconds outside,
-    # so we clamp UI selection one day inside.
     start_date = st.date_input(
         "Start Date",
-        value=date.today() - timedelta(days=min(7, cap_days - 1)),
-        min_value=date.today() - timedelta(days=cap_days - 1),
+        value=date.today() - timedelta(days=30),
+        min_value=INTRADAY_HISTORY_FLOOR,
         max_value=date.today(),
     )
     end_date = st.date_input(
@@ -245,6 +324,17 @@ with st.sidebar:
         max_value=10,
         step=1,
     )
+    min_bars_to_session_close = st.number_input(
+        "Min bars left to session close (entry filter)",
+        value=INTERVAL_MIN_BARS_TO_CLOSE.get(interval, 4),
+        min_value=0,
+        max_value=200,
+        step=1,
+        help="Retest entry가 정규장 마감까지 N bar 미만 남았을 때 발동되면 "
+        "force_close_at_session_end가 거의 즉시 청산해서 의미 없는 trade가 됨. "
+        "1m=60, 5m=12, 15m=4, 30m=2 (≈1시간). 0이면 필터 끔. "
+        "캘린더(NY 16:00 ET / KR 15:00 KST)는 자동.",
+    )
 
     st.header("Exits")
     take_profit_r = st.number_input(
@@ -299,8 +389,7 @@ with st.sidebar:
 
 if not run_btn:
     st.info(
-        "좌측에서 ticker / interval / 기간을 설정하고 **Run FVG Backtest**를 눌러. "
-        f"yfinance {interval} 캡이 {cap_days}일이라 더 긴 기간을 보려면 다른 데이터 어댑터가 필요해."
+        "좌측에서 ticker / interval / 기간을 설정하고 **Run FVG Backtest**를 눌러."
     )
     st.stop()
 
@@ -309,7 +398,7 @@ if not run_btn:
 # the detector can see CHoCH structures forming in the 04:00–09:30
 # pre-market window. The cache layer is shared with other pages, so
 # turning the toggle on/off doesn't double-fetch.
-_base_market = CachedMarketDataAdapter(YFinanceAdapter())
+_base_market = build_default_market_data()
 market_data = (
     _base_market
     if include_pre_post
@@ -324,7 +413,14 @@ detector = FairValueGapDetector(
     max_retest_bars=int(max_retest_bars),
     max_signals_per_session=int(max_signals_per_session),
     min_choch_swing_atr=float(min_choch_swing_atr),
+    min_bars_to_session_close=int(min_bars_to_session_close),
     market=market,
+    # KR has no pre-market feed in EODHD; let yesterday's PM
+    # structure carry into today's session so 6h RTH isn't the
+    # only window for ChoCH+FVG+retest to form. NY already gets
+    # 04:00–09:30 ET pre-market via include_pre_post=True so it
+    # doesn't need the carryover.
+    allow_cross_session_carryover=(market_choice == "KR"),
 )
 
 

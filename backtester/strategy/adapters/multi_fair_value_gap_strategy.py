@@ -60,12 +60,14 @@ from strategy.domain.models import (
 class MultiFairValueGapStrategy:
     """Single-portfolio FVG strategy across a ticker universe."""
 
-    # 1m interval caps at 7 calendar days on yfinance, 15m / 5m / 30m
-    # at 60. ``_max_fetch_lookback_days`` clamps warmup so a user
-    # picking a window near the cap boundary still gets a successful
-    # fetch instead of a "data not available" silent fail.
+    # Warmup days fetched before ``config.start_date`` so detector
+    # state (swing pivots, ATR) converges before signals start
+    # firing. Massive carries 10+ years of intraday history so we
+    # no longer need an outer ``_max_fetch_lookback_days`` clamp —
+    # the underlying YFinanceAdapter still self-clamps for KR
+    # tickers (which fall back to yfinance's 60-day cap) so that
+    # path stays safe too.
     _warmup_days: int = 5
-    _max_fetch_lookback_days: int = 58
 
     def __init__(
         self,
@@ -138,15 +140,11 @@ class MultiFairValueGapStrategy:
     def _scan_ticker(
         self, ticker: str, config: MultiStrategyConfig
     ) -> dict[str, Any] | None:
-        # Clamp the start to the upstream's intraday cap so a window
-        # set at the boundary still resolves to a valid fetch range.
-        floor_start = date.today() - timedelta(
-            days=self._max_fetch_lookback_days
-        )
-        fetch_start = max(
-            config.start_date - timedelta(days=self._warmup_days),
-            floor_start,
-        )
+        # Sub-daily history goes through Massive (10+ years) so no
+        # outer cap is needed; the underlying yfinance adapter still
+        # self-clamps for any tickers that fall back to its 60-day
+        # window.
+        fetch_start = config.start_date - timedelta(days=self._warmup_days)
         try:
             df = self._market_data.fetch_ohlcv(
                 ticker,

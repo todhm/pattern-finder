@@ -28,12 +28,24 @@ with st.sidebar:
     st.header("Universe")
     universe = st.selectbox(
         "Universe",
-        options=["sp500", "nasdaq100", "nasdaq_full"],
+        options=[
+            "sp500",
+            "nasdaq100",
+            "nasdaq_full",
+            "kospi200",
+            "kospi_full",
+            "kosdaq_full",
+            "krx_all",
+        ],
         index=0,
         format_func=lambda x: {
-            "sp500": "S&P 500 (~500)",
-            "nasdaq100": "Nasdaq-100 (~100)",
-            "nasdaq_full": "Nasdaq All Common Stocks (~2,200)",
+            "sp500": "🇺🇸 S&P 500 (~500)",
+            "nasdaq100": "🇺🇸 Nasdaq-100 (~100)",
+            "nasdaq_full": "🇺🇸 Nasdaq All Common Stocks (~2,200)",
+            "kospi200": "🇰🇷 KOSPI 200 (~200, Wikipedia)",
+            "kospi_full": "🇰🇷 KOSPI All (~1,400, EODHD)",
+            "kosdaq_full": "🇰🇷 KOSDAQ All (~1,900, EODHD)",
+            "krx_all": "🇰🇷 KRX Full (~3,300)",
         }[x],
     )
     max_tickers = st.number_input(

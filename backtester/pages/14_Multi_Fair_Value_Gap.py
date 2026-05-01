@@ -15,11 +15,10 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from data.adapters.cached_market_data import CachedMarketDataAdapter
+from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.wikipedia_universe import default_universe_provider
 from data.domain.market_calendar import KR, NY
-from data.adapters.yfinance_adapter import YFinanceAdapter
 from pages._shared.wedgepop_results import (
     render_equity_curve,
     render_failed_tickers,
@@ -38,14 +37,11 @@ from strategy.adapters.multi_fair_value_gap_strategy import (
 from strategy.domain.models import MultiStrategyConfig
 from visualization.adapters.plotly_charts import PlotlyChartBuilder
 
-# yfinance intraday history caps. Sidebar uses these to clamp Start
-# Date so the user can't pick a window the upstream silently rejects.
-INTRADAY_CAPS = {
-    "1m": 7,
-    "5m": 60,
-    "15m": 60,
-    "30m": 60,
-}
+# Sub-daily fetches go through Massive (Polygon-compatible), which
+# carries 10+ years of intraday history — so the old yfinance caps
+# (1m=7d, 15m=60d, …) no longer constrain the date picker. Floor
+# stays at 2003 (Polygon's earliest stocks coverage).
+INTRADAY_HISTORY_FLOOR = date(2003, 1, 1)
 
 # Default ``max_retest_bars`` per interval. Scaled to a roughly 30–90
 # minute wall-clock window across timeframes (1m=40min, 5m=75min,
@@ -88,6 +84,15 @@ KR_INTERVAL_CHOCH_FVG_DEFAULTS = {
 }
 KR_MIN_GAP_PCT = 0.10  # vs NY default 0.30
 
+# Per-interval bars-to-close gate (≈1 hour wall-clock). Calendar-
+# aware filtering happens inside the detector.
+INTERVAL_MIN_BARS_TO_CLOSE = {
+    "1m": 60,
+    "5m": 12,
+    "15m": 4,
+    "30m": 2,
+}
+
 st.set_page_config(page_title="Multi Fair Value Gap", layout="wide")
 st.title("Multi-Ticker Fair Value Gap Strategy")
 st.caption(
@@ -121,8 +126,18 @@ with st.sidebar:
             "nasdaq_full": "Nasdaq All Common Stocks (~2,200)",
         }
     else:
-        universe_options = ["kospi200"]
-        universe_labels = {"kospi200": "KOSPI 200 (~200)"}
+        universe_options = [
+            "kospi200",
+            "kospi_full",
+            "kosdaq_full",
+            "krx_all",
+        ]
+        universe_labels = {
+            "kospi200": "KOSPI 200 (~200, Wikipedia)",
+            "kospi_full": "KOSPI All Common Stocks (~2,400, EODHD)",
+            "kosdaq_full": "KOSDAQ All Common Stocks (~1,900, EODHD)",
+            "krx_all": "KRX Full (KOSPI + KOSDAQ ~4,300, EODHD)",
+        }
     universe = st.selectbox(
         "Universe",
         options=universe_options,
@@ -156,15 +171,14 @@ with st.sidebar:
         horizontal=True,
         help="1m은 7일 캡, 나머지는 60일.",
     )
-    cap_days = INTRADAY_CAPS[interval]
-    st.caption(f"yfinance {interval} cap = 최근 {cap_days} calendar days.")
+    st.caption(
+        f"{interval}봉은 Massive(Polygon)에서 가져오므로 기간 제한 없음."
+    )
 
-    # ``cap_days - 1`` margin so the UI lower-bound doesn't land on
-    # yfinance's strict boundary (the request would silently fail).
     start_date = st.date_input(
         "Start Date",
-        value=date.today() - timedelta(days=min(7, cap_days - 1)),
-        min_value=date.today() - timedelta(days=cap_days - 1),
+        value=date.today() - timedelta(days=30),
+        min_value=INTRADAY_HISTORY_FLOOR,
         max_value=date.today(),
     )
     end_date = st.date_input(
@@ -264,6 +278,16 @@ with st.sidebar:
         max_value=10,
         step=1,
     )
+    min_bars_to_session_close = st.number_input(
+        "Min bars left to session close (entry filter)",
+        value=INTERVAL_MIN_BARS_TO_CLOSE.get(interval, 4),
+        min_value=0,
+        max_value=200,
+        step=1,
+        help="정규장 마감까지 N bar 미만 남았을 때 retest 발동되면 즉시 "
+        "session_close가 청산해서 의미 없는 trade. 1m=60, 5m=12, 15m=4, 30m=2 "
+        "(≈1시간). 캘린더 자동 (NY 16:00 ET / KR 15:00 KST).",
+    )
     # KR equity intraday swings tend to be smaller in ATR-multiples
     # than US — 2.0× rejects nearly every ChoCH on KOSPI 15m.
     _atr_default = 1.0 if market_choice == "KR" else 2.0
@@ -338,9 +362,7 @@ with st.sidebar:
 
 if not run_btn:
     st.info(
-        f"좌측에서 universe / interval / 기간을 설정하고 **Run FVG Universe "
-        f"Scan**을 눌러. yfinance {interval} 캡이 {cap_days}일이라 그 이상의 "
-        "기간을 보려면 다른 데이터 어댑터가 필요해."
+        "좌측에서 universe / interval / 기간을 설정하고 **Run FVG Universe Scan**을 눌러."
     )
     st.stop()
 
@@ -349,7 +371,7 @@ if not run_btn:
 # normalizes to NY tz) gate against 09:00–15:30 KST not 09:30–16:00
 # ET. Without that, every KR ticker drops every bar and the universe
 # scan reports 0 trades / 100% failures.
-_base_market = CachedMarketDataAdapter(YFinanceAdapter())
+_base_market = build_default_market_data()
 market_data = (
     _base_market
     if include_pre_post
@@ -364,6 +386,10 @@ detector = FairValueGapDetector(
     max_bars_after_choch=int(max_bars_after_choch),
     max_retest_bars=int(max_retest_bars),
     max_signals_per_session=int(max_signals_per_session),
+    min_bars_to_session_close=int(min_bars_to_session_close),
+    # KR mode: previous-session afternoon seeds today's structure
+    # (compensates for the absence of an EODHD pre-market feed).
+    allow_cross_session_carryover=(market_choice == "KR"),
     min_choch_swing_atr=float(min_choch_swing_atr),
     market=market,
 )

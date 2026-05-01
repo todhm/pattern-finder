@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import streamlit as st
 
 from data.adapters.cached_market_data import CachedMarketDataAdapter
-from data.adapters.wikipedia_universe import WikipediaUniverseAdapter
+from data.adapters.wikipedia_universe import default_universe_provider
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
@@ -34,9 +34,25 @@ with st.sidebar:
     st.header("Universe")
     universe = st.selectbox(
         "Universe",
-        options=["sp500", "nasdaq100"],
+        options=[
+            "sp500",
+            "nasdaq100",
+            "nasdaq_full",
+            "kospi200",
+            "kospi_full",
+            "kosdaq_full",
+            "krx_all",
+        ],
         index=0,
-        format_func=lambda x: "S&P 500" if x == "sp500" else "Nasdaq-100",
+        format_func=lambda x: {
+            "sp500": "🇺🇸 S&P 500 (~500)",
+            "nasdaq100": "🇺🇸 Nasdaq-100 (~100)",
+            "nasdaq_full": "🇺🇸 Nasdaq All Common Stocks (~2,200)",
+            "kospi200": "🇰🇷 KOSPI 200 (~200, Wikipedia)",
+            "kospi_full": "🇰🇷 KOSPI All (~1,400, EODHD)",
+            "kosdaq_full": "🇰🇷 KOSDAQ All (~1,900, EODHD)",
+            "krx_all": "🇰🇷 KRX Full (KOSPI + KOSDAQ ~3,300)",
+        }[x],
     )
     max_tickers = st.number_input(
         "Max tickers (0 = all)",
@@ -544,7 +560,7 @@ if not run_btn:
     st.stop()
 
 market_data = CachedMarketDataAdapter(YFinanceAdapter())
-universe_provider = WikipediaUniverseAdapter()
+universe_provider = default_universe_provider()
 
 # Fetch SPY once up-front when the market-regime filter is on so
 # every per-ticker WedgepopStrategy reuses the same regime lookup

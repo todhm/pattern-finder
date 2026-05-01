@@ -94,6 +94,8 @@ class FairValueGapDetector(PatternDetector):
         atr_period: int = 14,
         max_retest_bars: int = 30,
         market: MarketCalendar = NY,
+        min_bars_to_session_close: int = 0,
+        allow_cross_session_carryover: bool = False,
     ) -> None:
         # Swing fractal half-widths. Default 2/2 matches Bill Williams'
         # 5-bar fractal — small enough to surface micro-structure on
@@ -139,6 +141,30 @@ class FairValueGapDetector(PatternDetector):
         # working unchanged; KR (or any future calendar) can be
         # injected when the upstream frame is for a non-US ticker.
         self.market = market
+        # Reject retest signals that fire with fewer than N bars left
+        # in the current session — by the time the strategy enters
+        # at next-bar logic, ``force_close_at_session_end`` would
+        # immediately exit at the closing bar with no room for TP /
+        # stop / BOS to play out, producing a meaningless near-zero
+        # PnL trade. Calendar-aware: ``session_dates`` is computed in
+        # market-local time, so this filters by KR end-of-session
+        # (15:00 KST) on KR frames and NY end-of-session (16:00 ET)
+        # on NY frames automatically. ``0`` (default) keeps the
+        # previous behavior (no filtering).
+        self.min_bars_to_session_close = min_bars_to_session_close
+        # When True, swing pivot tracking + CHoCH state + pending FVG
+        # queue are NOT reset at session boundaries — yesterday's
+        # late-afternoon structure can anchor today's break and
+        # FVG retest. This mimics how US data with prepost=True
+        # behaves: pre-market 04:00–09:30 ET bars belong to the
+        # same session date as the regular 09:30–16:00 RTH window,
+        # so structure formed pre-market flows naturally into the
+        # session. KR has no equivalent ETH feed in EODHD, so
+        # without carryover the detector restarts cold every 09:00
+        # KST and barely has time to form ChoCH+FVG+retest within
+        # 6 hours. ``max_signals_per_session`` still resets per-
+        # session so signals don't compound across days.
+        self.allow_cross_session_carryover = allow_cross_session_carryover
 
     # ---- detection ------------------------------------------------------
 
@@ -171,6 +197,12 @@ class FairValueGapDetector(PatternDetector):
         # naturally map 1 bar → 1 date; intraday frames map ~26 bars
         # (15m) or ~390 bars (1m) → 1 date.
         session_dates = self._session_dates(df)
+        # Highest bar index per session — used to gate retest emissions
+        # by remaining session length. ``min_bars_to_session_close``
+        # rejects setups where ``last_idx_in_session - i`` is too small.
+        last_bar_idx_in_session: dict[object, int] = {}
+        for _j in range(n):
+            last_bar_idx_in_session[session_dates[_j]] = _j
         # RTH mask: True when the bar's start falls inside 09:30–16:00
         # NY local time. Pre/post bars still flow into ChoCH state
         # (they print swing highs/lows like any other bar) but the
@@ -200,13 +232,29 @@ class FairValueGapDetector(PatternDetector):
             sess = session_dates[i]
             if sess != current_session:
                 current_session = sess
-                sess_swing_highs = []
-                sess_swing_lows = []
-                choch_bar = None
-                choch_high = None
-                choch_break_level_start_idx = None
+                # Per-session signal cap always resets — daily limit
+                # by intent, regardless of the carryover knob.
                 sess_signal_count = 0
+                # Pending FVGs ALWAYS clear at the session boundary.
+                # An FVG queued yesterday afternoon shouldn't fire
+                # a retest entry the next morning — by then the
+                # gap is structurally stale and the buy lands far
+                # from where the setup originally formed (035720.KS
+                # 04-01 14:05 FVG fired on 04-02 10:00 retest with
+                # a bad price). With carryover ON this restriction
+                # still applies; only swing pivots + CHoCH state
+                # carry over.
                 pending_fvgs = []
+                if not self.allow_cross_session_carryover:
+                    sess_swing_highs = []
+                    sess_swing_lows = []
+                    choch_bar = None
+                    choch_high = None
+                    choch_break_level_start_idx = None
+                # else: swing pivots + CHoCH state persist so
+                # yesterday's afternoon structure can anchor today's
+                # break + a freshly-formed FVG (NOT yesterday's FVG)
+                # — mirrors how US pre-market data seeds RTH setups.
 
             # Confirm pivots ``swing_right`` bars after the fact.
             confirm_idx = i - self.swing_right
@@ -353,9 +401,13 @@ class FairValueGapDetector(PatternDetector):
                     continue  # drop — stale
                 if lows[i] < fvg["fvg_low"]:
                     continue  # drop — gap filled
+                bars_remaining = (
+                    last_bar_idx_in_session.get(current_session, i) - i
+                )
                 if (
                     sess_signal_count < self.max_signals_per_session
                     and rth_mask[i]
+                    and bars_remaining >= self.min_bars_to_session_close
                     and lows[i] <= fvg["fvg_mid"]
                     and closes[i] > fvg["fvg_mid"]
                 ):

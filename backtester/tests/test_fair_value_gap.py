@@ -434,6 +434,90 @@ def test_detector_kr_calendar_uses_korean_session_window() -> None:
     assert det_ny.detect(df_kr) == []
 
 
+def test_detector_pending_fvg_clears_at_session_boundary_even_with_carryover() -> None:
+    """Even with ``allow_cross_session_carryover=True``, a pending
+    FVG queued in session 1 must NOT fire as a retest entry in
+    session 2. The 035720.KS 2026-04-01 case: an FVG formed at
+    14:05 KST sat unfilled into 04-02 09:00 open and triggered a
+    buy at 04-02 10:00 retest — that's a stale-FVG bug. Carryover
+    is for *swing/CHoCH structure* (so today can use yesterday's
+    afternoon to build the break), not for resurrecting yesterday's
+    pending entries.
+    """
+    df_session1 = _build_choch_fvg_session().copy().astype(float)
+    # Suppress retest at bar 19 so FVG #1 carries unfilled into
+    # session 2 (raise low above mid=107).
+    df_session1.iat[19, df_session1.columns.get_loc("Low")] = 110.0
+    df_session1.iat[19, df_session1.columns.get_loc("Close")] = 115.0
+    # Build session 2: a single retest bar where the bar low DOES
+    # pierce the session-1 FVG midpoint (107). Without the boundary
+    # clear, the carryover'd pending FVG from session 1 would fire.
+    follow_on = pd.DataFrame(
+        [_bar(108, 110, 106, 109)]  # low 106 ≤ mid 107, close > mid
+    )
+    follow_on.index = pd.date_range(
+        start=df_session1.index[-1] + pd.Timedelta(days=1),
+        periods=1,
+        freq="15min",
+        tz=NY_TZ,
+    )
+    df = pd.concat([df_session1, follow_on])
+
+    det = FairValueGapDetector(
+        min_gap_pct=0.0,
+        max_signals_per_session=1,
+        max_retest_bars=200,  # generous so staleness doesn't drop it
+        allow_cross_session_carryover=True,  # the regression-relevant flag
+    )
+    sigs = det.detect(df)
+    # Crucially: no signal in session 2. The pending FVG from
+    # session 1 was flushed at the boundary.
+    sess2_date = follow_on.index[0].date()
+    sess2_signals = [s for s in sigs if s.date == sess2_date]
+    assert sess2_signals == [], (
+        f"FVG queued in session 1 must not fire in session 2 "
+        f"even with carryover ON; got: {sess2_signals}"
+    )
+
+
+def test_detector_skips_retest_too_close_to_session_close() -> None:
+    """``min_bars_to_session_close=N`` rejects retest emissions when
+    the bar fires with fewer than N bars remaining in the session.
+    The 000080.KS 2026-01-30 case: a retest 1 bar before close left
+    no room for the trade to play out — ``force_close_at_session_end``
+    would immediately exit at the closing bar with near-zero PnL.
+    """
+    df = _build_choch_fvg_session()
+    # Standard fixture: ChoCH at bar 15, FVG completes at bar 18,
+    # retest at bar 19. Session has 27 bars total (last index = 26).
+    # Bar 19 is at fixture index 19, last bar in session is 26 (or
+    # 25 if the last bar 16:00 is filtered as ETH, but with default
+    # NY rth_close=16:00 the half-open check excludes bar 26).
+    # Bars remaining from bar 19 = 26 - 19 = 7 (or 25-19 = 6).
+
+    # With min_bars_to_session_close=0 (default), signal fires.
+    det_off = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1,
+        min_bars_to_session_close=0,
+    )
+    assert len(det_off.detect(df)) == 1
+
+    # With a threshold of 10 bars, the retest at bar 19 is too late
+    # in the session (only 6-7 bars left) → no signal.
+    det_on = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1,
+        min_bars_to_session_close=10,
+    )
+    assert det_on.detect(df) == []
+
+    # With threshold = 5, signal still fires (6+ bars remain).
+    det_loose = FairValueGapDetector(
+        min_gap_pct=0.0, max_signals_per_session=1,
+        min_bars_to_session_close=5,
+    )
+    assert len(det_loose.detect(df)) == 1
+
+
 def test_detector_skips_fvg_outside_regular_session() -> None:
     """Pre/post bars can supply ChoCH structure (early swings flow
     into the same session), but the 3-bar bullish FVG itself only

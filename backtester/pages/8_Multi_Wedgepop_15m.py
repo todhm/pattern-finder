@@ -33,9 +33,9 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from data.adapters.cached_market_data import CachedMarketDataAdapter
+from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
-from data.adapters.wikipedia_universe import WikipediaUniverseAdapter
+from data.adapters.wikipedia_universe import default_universe_provider
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pages._shared.wedgepop_results import (
     render_equity_curve,
@@ -68,9 +68,25 @@ with st.sidebar:
     st.header("Universe")
     universe = st.selectbox(
         "Universe",
-        options=["sp500", "nasdaq100"],
+        options=[
+            "sp500",
+            "nasdaq100",
+            "nasdaq_full",
+            "kospi200",
+            "kospi_full",
+            "kosdaq_full",
+            "krx_all",
+        ],
         index=0,
-        format_func=lambda x: "S&P 500" if x == "sp500" else "Nasdaq-100",
+        format_func=lambda x: {
+            "sp500": "🇺🇸 S&P 500 (~500)",
+            "nasdaq100": "🇺🇸 Nasdaq-100 (~100)",
+            "nasdaq_full": "🇺🇸 Nasdaq All Common Stocks (~2,200)",
+            "kospi200": "🇰🇷 KOSPI 200 (~200, Wikipedia)",
+            "kospi_full": "🇰🇷 KOSPI All (~1,400, EODHD)",
+            "kosdaq_full": "🇰🇷 KOSDAQ All (~1,900, EODHD)",
+            "krx_all": "🇰🇷 KRX Full (~3,300)",
+        }[x],
     )
     max_tickers = st.number_input(
         "Max tickers (0 = all)",
@@ -92,11 +108,11 @@ with st.sidebar:
     )
 
     st.header("Period")
-    st.caption("yfinance 15m 캡 = 최근 60 calendar days.")
+    st.caption("15분봉은 Massive(Polygon)에서 가져오므로 기간 제한 없음.")
     start_date = st.date_input(
         "Start Date",
         value=date.today() - timedelta(days=30),
-        min_value=date.today() - timedelta(days=60),
+        min_value=date(2003, 1, 1),
         max_value=date.today(),
     )
     end_date = st.date_input(
@@ -284,9 +300,9 @@ if not run_btn:
 # parquet cache, then RegularSessionFilterAdapter drops non-RTH bars
 # on read. Cache stays raw for future ETH-aware strategies.
 market_data = RegularSessionFilterAdapter(
-    CachedMarketDataAdapter(YFinanceAdapter())
+    build_default_market_data()
 )
-universe_provider = WikipediaUniverseAdapter()
+universe_provider = default_universe_provider()
 
 detector = WedgePopDetector(
     lookback=int(detect_lookback),

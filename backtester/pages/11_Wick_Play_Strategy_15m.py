@@ -6,17 +6,16 @@ rule from the daily strategy) plus the
 :func:`build_wickplay_15m_detector` factory which rescales the
 detector's daily-named lookbacks to session-count units.
 
-yfinance caps 15m history at 60 calendar days — the period picker
-reflects that.
+Sub-daily fetches go through Massive (Polygon-compatible) so the
+period picker is no longer capped at yfinance's 60-day window.
 """
 
 from datetime import date, timedelta
 
 import streamlit as st
 
-from data.adapters.cached_market_data import CachedMarketDataAdapter
+from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
-from data.adapters.yfinance_adapter import YFinanceAdapter
 from pages._shared.wedgepop_results import (
     apply_fees_to_trades,
     render_single_ticker_headline_metrics,
@@ -35,7 +34,7 @@ st.set_page_config(page_title="Wick Play — 15m", layout="wide")
 st.title("Wick Play Strategy — 15-Minute Bars")
 st.caption(
     "단일 ticker에 대한 15분봉 Wick Play 백테스트 (Oliver Kell 카피튜레이션 "
-    "리버설). ⚠️ yfinance 15분봉 캡 = 최근 60일."
+    "리버설). 15분봉은 Massive에서 가져오므로 기간 제한 없음."
 )
 
 with st.sidebar:
@@ -43,8 +42,8 @@ with st.sidebar:
     ticker = st.text_input("Ticker", value="AAPL")
     start_date = st.date_input(
         "Start Date",
-        value=date.today() - timedelta(days=7),
-        min_value=date.today() - timedelta(days=60),
+        value=date.today() - timedelta(days=30),
+        min_value=date(2003, 1, 1),
         max_value=date.today(),
     )
     end_date = st.date_input(
@@ -121,7 +120,7 @@ if not run_btn:
     st.stop()
 
 market_data = RegularSessionFilterAdapter(
-    CachedMarketDataAdapter(YFinanceAdapter())
+    build_default_market_data()
 )
 
 detector = build_wickplay_15m_detector(

@@ -71,14 +71,22 @@ NY = MarketCalendar(
 )
 
 
-# Korea — KOSPI / KOSDAQ. Continuous since the 2000-05 abolishment of
-# the 12:00–13:00 lunch break, so a single open/close pair captures
-# the whole session.
+# Korea — KOSPI / KOSDAQ. The official session is 09:00–15:30 KST
+# (continuous 09:00–15:20 + closing auction 15:20–15:30), but our
+# data path through EODHD only carries clean continuous-bar data up
+# to the 14:45 bar (covering 14:45–15:00). The 15:00–15:30 window is
+# represented in EODHD only as a single placeholder bar at 15:00
+# with ``V=None`` and OHLC all equal to the auction close — that's
+# already filtered by ``EODHDAdapter`` and would be empty anyway.
+# Setting ``rth_close = 15:00`` here keeps the RTH gate, session-
+# boundary detection, and ``force_close_at_session_end`` aligned
+# with what bars actually exist; revisit if/when we add a richer
+# KR data source (KIS / KRX direct).
 KR = MarketCalendar(
     name="KR",
     tz="Asia/Seoul",
     rth_open=time(9, 0),
-    rth_close=time(15, 30),
+    rth_close=time(15, 0),
 )
 
 

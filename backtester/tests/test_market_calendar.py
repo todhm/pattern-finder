@@ -17,7 +17,10 @@ def test_kr_calendar_describes_korean_continuous_session() -> None:
     assert KR.name == "KR"
     assert KR.tz == "Asia/Seoul"
     assert KR.rth_open == time(9, 0)
-    assert KR.rth_close == time(15, 30)
+    # 15:00 (not 15:30) — matches the depth EODHD's intraday feed
+    # actually carries; everything past 15:00 is the closing-auction
+    # window that EODHD only surfaces as a placeholder bar.
+    assert KR.rth_close == time(15, 0)
     assert KR.zoneinfo.key == "Asia/Seoul"
 
 

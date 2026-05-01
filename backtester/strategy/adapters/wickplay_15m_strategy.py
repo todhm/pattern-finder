@@ -142,12 +142,11 @@ class MultiWickplay15mStrategy(MultiWickPlayStrategy):
     """
 
     # 10 calendar days warmup covers the 26-EMA / 26-ATR convergence
-    # comfortably (~7 trading sessions × 26 bars/session = 180 bars)
-    # while leaving the user's window room inside yfinance's 60-day
-    # 15m cap. ``_max_fetch_lookback_days=58`` clamps warmup so a
-    # user picking a window near the cap boundary still gets data.
+    # comfortably (~7 trading sessions × 26 bars/session = 180 bars).
+    # Sub-daily history now flows through Massive (10+ years) so we
+    # no longer need an outer fetch-lookback clamp.
     _warmup_days: int = 10
-    _max_fetch_lookback_days: int = 58
+    _max_fetch_lookback_days: int | None = None
 
     def __init__(
         self,

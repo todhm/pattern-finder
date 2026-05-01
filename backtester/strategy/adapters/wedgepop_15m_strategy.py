@@ -193,13 +193,12 @@ class MultiWedgepop15mStrategy(MultiWedgepopStrategy):
 
     # 10 calendar days ≈ 7 trading sessions ≈ 180 15m bars — enough
     # warmup for the 78-bar slow EMA and 26-bar ATR to converge
-    # before the user's window starts, while leaving room for the
-    # user's window itself to extend up to ~50 days inside yfinance's
-    # 60-day intraday cap. ``_max_fetch_lookback_days=58`` gives a
-    # 2-day margin against the cap so users picking a window near
-    # the boundary still get data.
+    # before the user's window starts. Sub-daily history flows through
+    # Massive (10+ years) so we don't cap fetch lookback any more;
+    # the underlying yfinance adapter still self-clamps anything
+    # that falls back to its 60-day window.
     _warmup_days: int = 10
-    _max_fetch_lookback_days: int = 58
+    _max_fetch_lookback_days: int | None = None
 
     def __init__(
         self,

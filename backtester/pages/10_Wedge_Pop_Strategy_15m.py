@@ -17,9 +17,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from data.adapters.cached_market_data import CachedMarketDataAdapter
+from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
-from data.adapters.yfinance_adapter import YFinanceAdapter
 from pages._shared.wedgepop_results import (
     apply_fees_to_trades,
     render_single_ticker_headline_metrics,
@@ -35,18 +34,17 @@ from visualization.adapters.plotly_charts import PlotlyChartBuilder
 st.set_page_config(page_title="Wedge Pop — 15m", layout="wide")
 st.title("Wedge Pop Strategy — 15-Minute Bars")
 st.caption(
-    "단일 ticker에 대한 15분봉 Wedge Pop 백테스트. ⚠️ yfinance 15분봉 캡 = "
-    "최근 60일. 더 긴 기간은 별도 MarketDataPort 어댑터 필요."
+    "단일 ticker에 대한 15분봉 Wedge Pop 백테스트. 15분봉은 Massive에서 "
+    "가져오므로 기간 제한 없음 (KR 티커는 yfinance 60일 캡 적용)."
 )
 
 with st.sidebar:
     st.header("Market")
     ticker = st.text_input("Ticker", value="AAPL")
-    st.caption("yfinance 15m 캡 = 최근 60 calendar days.")
     start_date = st.date_input(
         "Start Date",
-        value=date.today() - timedelta(days=7),
-        min_value=date.today() - timedelta(days=60),
+        value=date.today() - timedelta(days=30),
+        min_value=date(2003, 1, 1),
         max_value=date.today(),
     )
     end_date = st.date_input(
@@ -183,7 +181,7 @@ if not run_btn:
 # read so strategy/chart only see RTH bars. Decoupling lets a future
 # ETH strategy share the same parquet cache.
 market_data = RegularSessionFilterAdapter(
-    CachedMarketDataAdapter(YFinanceAdapter())
+    build_default_market_data()
 )
 
 detector = WedgePopDetector(
