@@ -55,6 +55,23 @@ _INTRADAY_INTERVALS: dict[str, str] = {
     "1h": "1h",
 }
 
+# EODHD caps the per-request span on the intraday endpoint. 1-minute
+# is the tightest at 120 days; coarser intervals get a wider window.
+# Going past these limits returns ``HTTP 422 {"errors":{"to":["Max
+# period length is 120 days"], ...}}``. We chunk requests that exceed
+# the limit and stitch the dataframes together so callers can request
+# arbitrary spans transparently. Values are conservative — a touch
+# below EODHD's documented cap so off-by-one boundary timestamps
+# don't trip the validator.
+_INTRADAY_MAX_DAYS: dict[str, int] = {
+    "1m": 120,
+    "5m": 600,
+    "15m": 600,
+    "30m": 600,
+    "60m": 600,
+    "1h": 600,
+}
+
 # Daily / weekly / monthly through the /eod endpoint.
 _EOD_PERIODS: dict[str, str] = {
     "1d": "d",
@@ -120,6 +137,44 @@ class EODHDAdapter(MarketDataPort):
         end: date,
         interval: str,
     ) -> pd.DataFrame:
+        """Multi-chunk intraday fetch with EODHD's per-request window cap.
+
+        EODHD's intraday endpoint rejects requests longer than its
+        per-interval limit (1m → 120 days). We split the requested
+        span into windows of ``_INTRADAY_MAX_DAYS[interval]`` and
+        concatenate the per-window dataframes. Single-window requests
+        cost the same as before; only oversized spans pay the
+        extra round-trips.
+
+        On the upper-side cache layer this is invisible — one cache
+        miss → one parquet, regardless of how many sub-requests went
+        out underneath.
+        """
+        max_days = _INTRADAY_MAX_DAYS.get(interval, 120)
+        spans = list(_split_intraday_span(start, end, max_days))
+        frames: list[pd.DataFrame] = []
+        for span_start, span_end in spans:
+            df_chunk = self._fetch_intraday_window(
+                eodhd_symbol, original_symbol, span_start, span_end, interval
+            )
+            frames.append(df_chunk)
+        # ``concat`` keeps the per-chunk DatetimeIndexes; the boundary
+        # day is included in each adjacent chunk so a duplicate row
+        # at exactly the cutover timestamp is possible. ``~duplicated``
+        # drops the second copy. ``sort_index`` defends against any
+        # out-of-order chunks (shouldn't happen, but cheap insurance).
+        out = pd.concat(frames)
+        out = out[~out.index.duplicated(keep="first")].sort_index()
+        return out
+
+    def _fetch_intraday_window(
+        self,
+        eodhd_symbol: str,
+        original_symbol: str,
+        start: date,
+        end: date,
+        interval: str,
+    ) -> pd.DataFrame:
         from_ts = int(
             datetime.combine(
                 start, datetime.min.time(), tzinfo=timezone.utc
@@ -150,9 +205,13 @@ class EODHDAdapter(MarketDataPort):
             )
         rows = resp.json()
         if not isinstance(rows, list) or not rows:
-            raise ValueError(
-                f"No data found for {original_symbol} between "
-                f"{start} and {end} ({interval}) [EODHD]"
+            # Empty windows are fine when chunking — the symbol may
+            # have had no trading on that span (holidays, weekend-
+            # only chunks, etc.). Return an empty frame and let the
+            # caller stitch.
+            return pd.DataFrame(
+                columns=["Open", "High", "Low", "Close", "Volume"],
+                index=pd.DatetimeIndex([], tz=NY_TZ),
             )
         df = pd.DataFrame(rows)
         df.rename(
@@ -254,3 +313,26 @@ class EODHDAdapter(MarketDataPort):
         if upper.endswith(".KS"):
             return upper[:-3] + ".KO"
         return upper
+
+
+def _split_intraday_span(
+    start: date, end: date, max_days: int
+) -> "list[tuple[date, date]]":
+    """Split ``[start, end]`` (inclusive) into windows of ≤ ``max_days``.
+
+    The span boundary is intentionally exclusive on the upstream side
+    — EODHD's ``to`` parameter already treats the next-day boundary
+    as exclusive, so chunking by adding ``timedelta(days=max_days)``
+    produces non-overlapping native windows. We add 1 day overlap on
+    the rejoin path (``concat`` + ``drop_duplicates``) to defend
+    against off-by-one boundary drift.
+    """
+    spans: list[tuple[date, date]] = []
+    cursor = start
+    while cursor <= end:
+        chunk_end = min(end, cursor + timedelta(days=max_days - 1))
+        spans.append((cursor, chunk_end))
+        if chunk_end == end:
+            break
+        cursor = chunk_end + timedelta(days=1)
+    return spans

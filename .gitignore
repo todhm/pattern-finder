@@ -34,3 +34,4 @@ trades.parquet
 *.csv
 FairGapValue.docx
 secret.env
+ScrafaceTradePattern.docx
