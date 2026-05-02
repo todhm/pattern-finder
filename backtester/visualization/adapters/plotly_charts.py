@@ -940,6 +940,11 @@ class PlotlyChartBuilder(ChartBuilderPort):
         """
         if len(df.index) == 0:
             return [dict(values=cls._missing_dates(df))]
+        # 24/7 markets (crypto) trade weekends + every overnight slot
+        # so collapsing any range produces a misleading chart. Skip
+        # rangebreaks entirely.
+        if market.is_24_7:
+            return []
         is_intraday = (
             df.index.tz is not None
             or df.index.normalize().value_counts().max() > 1
@@ -1029,23 +1034,24 @@ class PlotlyChartBuilder(ChartBuilderPort):
         # midnight) are exempt from the time-of-day gate. The RTH
         # window comes from ``market`` so KR frames gate against
         # 09:00–15:30 KST instead of NY's 09:30–16:00.
-        if hasattr(post.index, "tz") and post.index.tz is not None:
-            times_local = [
-                t.tz_convert(market.tz).time() for t in post.index
-            ]
-        else:
-            times_local = [t.time() for t in post.index]
-        if times_local and not all(
-            t == _dt_time(0, 0) for t in times_local
-        ):
-            rth_mask = np.array(
-                [
-                    (market.rth_open <= t < market.rth_close)
-                    for t in times_local
-                ],
-                dtype=bool,
-            )
-            post = post[rth_mask]
+        if not market.is_24_7:
+            if hasattr(post.index, "tz") and post.index.tz is not None:
+                times_local = [
+                    t.tz_convert(market.tz).time() for t in post.index
+                ]
+            else:
+                times_local = [t.time() for t in post.index]
+            if times_local and not all(
+                t == _dt_time(0, 0) for t in times_local
+            ):
+                rth_mask = np.array(
+                    [
+                        (market.rth_open <= t < market.rth_close)
+                        for t in times_local
+                    ],
+                    dtype=bool,
+                )
+                post = post[rth_mask]
         if len(post) < swing_left + swing_right + 1:
             return None, None, None
         swing_arr = find_swing_highs(

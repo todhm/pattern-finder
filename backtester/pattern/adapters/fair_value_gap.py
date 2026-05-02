@@ -536,7 +536,12 @@ class FairValueGapDetector(PatternDetector):
         frames (every bar at midnight) collapse to all-True so the
         FVG step still fires — the RTH gate matters only when the
         upstream frame mixes pre/post bars with the regular session
-        (yfinance ``prepost=True``)."""
+        (yfinance ``prepost=True``).
+
+        When ``market.is_24_7`` (crypto), the gate is a no-op — every
+        bar counts as RTH because the market never closes."""
+        if self.market.is_24_7:
+            return np.ones(len(df), dtype=bool)
         idx = df.index
         if hasattr(idx, "tz") and idx.tz is not None:
             local = idx.tz_convert(self.market.tz)

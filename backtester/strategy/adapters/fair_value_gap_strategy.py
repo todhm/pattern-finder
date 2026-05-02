@@ -516,11 +516,14 @@ class FairValueGapStrategy(StrategyRunnerPort):
 
     def _rth_mask(self, df: pd.DataFrame) -> np.ndarray:
         """Per-bar RTH boolean. ``True`` when bar START falls inside
-        ``[market.rth_open, market.rth_close)`` in local time. Daily
-        frames (every bar at midnight) collapse to all-True so the
-        strategy's stop / session-close gates are no-ops there."""
+        ``[market.rth_open, market.rth_close)`` in local time. For
+        24/7 markets (crypto) every bar is RTH and stop / session-
+        close gates degenerate to no-ops. Daily frames (every bar
+        at midnight) similarly collapse to all-True."""
         from datetime import time as _t
 
+        if self.market.is_24_7:
+            return np.ones(len(df), dtype=bool)
         idx = df.index
         if hasattr(idx, "tz") and idx.tz is not None:
             local = idx.tz_convert(self.market.tz)

@@ -2,7 +2,13 @@
 
 from datetime import time
 
-from data.domain.market_calendar import KR, NY, MarketCalendar, market_for_ticker
+from data.domain.market_calendar import (
+    CRYPTO,
+    KR,
+    NY,
+    MarketCalendar,
+    market_for_ticker,
+)
 
 
 def test_ny_calendar_describes_us_cash_session() -> None:
@@ -59,3 +65,22 @@ def test_market_for_ticker_defaults_to_ny_for_us_symbols() -> None:
     assert market_for_ticker("META") == NY
     assert market_for_ticker("BRK-B") == NY
     assert market_for_ticker("SPY") == NY
+
+
+def test_crypto_calendar_is_24_7() -> None:
+    assert CRYPTO.name == "CRYPTO"
+    assert CRYPTO.tz == "UTC"
+    assert CRYPTO.is_24_7 is True
+    assert CRYPTO.zoneinfo.key == "UTC"
+
+
+def test_ny_and_kr_calendars_are_not_24_7() -> None:
+    """is_24_7 defaults to False for session-bound markets."""
+    assert NY.is_24_7 is False
+    assert KR.is_24_7 is False
+
+
+def test_market_for_ticker_resolves_cc_suffix() -> None:
+    assert market_for_ticker("BTC-USD.CC") == CRYPTO
+    assert market_for_ticker("ETH-USD.CC") == CRYPTO
+    assert market_for_ticker("btc-usd.cc") == CRYPTO

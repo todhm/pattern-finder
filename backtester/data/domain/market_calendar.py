@@ -40,8 +40,7 @@ class MarketCalendar:
     Attributes
     ----------
     name:
-        Human-readable label (``"NY"``, ``"KR"``). Used in chart
-        titles, log lines, and debugging — never as a lookup key.
+        Human-readable label (``"NY"``, ``"KR"``, ``"CRYPTO"``).
     tz:
         IANA timezone identifier. ``ZoneInfo(tz)`` is exposed via
         :attr:`zoneinfo` for callers that need an actual ``tzinfo``.
@@ -49,13 +48,19 @@ class MarketCalendar:
         Regular trading hours in **local** wall-clock time. The RTH
         window is half-open ``[rth_open, rth_close)`` to match the
         existing detector convention (a 15m bar starting exactly at
-        ``rth_close`` is post-RTH).
+        ``rth_close`` is post-RTH). Ignored when ``is_24_7=True``.
+    is_24_7:
+        When True, the market trades continuously (crypto). RTH
+        gating, ETH stop guards, and weekend rangebreaks all become
+        no-ops. Daily session "boundaries" still work via UTC date
+        but no force-flat / out-of-hours logic kicks in.
     """
 
     name: str
     tz: str
     rth_open: time
     rth_close: time
+    is_24_7: bool = False
 
     @property
     def zoneinfo(self) -> ZoneInfo:
@@ -90,15 +95,30 @@ KR = MarketCalendar(
 )
 
 
-def market_for_ticker(ticker: str) -> MarketCalendar:
-    """Resolve the market from a yfinance ticker suffix.
+# Crypto — 24/7 spot markets. EODHD uses the ``.CC`` suffix
+# (Cryptocurrencies exchange) for pairs like ``BTC-USD.CC``,
+# ``ETH-USD.CC``. The ``rth_*`` times are vestigial — ``is_24_7``
+# overrides every gate that would otherwise consult them.
+CRYPTO = MarketCalendar(
+    name="CRYPTO",
+    tz="UTC",
+    rth_open=time(0, 0),
+    rth_close=time(23, 59, 59),
+    is_24_7=True,
+)
 
-    yfinance convention: ``.KS`` for KOSPI, ``.KQ`` for KOSDAQ.
-    Anything else (no suffix or any other suffix) defaults to NY —
-    the vast majority of US-style tickers are bare symbols with no
-    suffix.
+
+def market_for_ticker(ticker: str) -> MarketCalendar:
+    """Resolve the market from a yfinance/EODHD ticker suffix.
+
+    Suffix conventions:
+        - ``.KS`` / ``.KQ``    →  KR (KOSPI / KOSDAQ)
+        - ``.CC``              →  CRYPTO (24/7)
+        - anything else        →  NY (US equity default)
     """
     upper = ticker.upper()
+    if upper.endswith(".CC"):
+        return CRYPTO
     if upper.endswith(".KS") or upper.endswith(".KQ"):
         return KR
     return NY
