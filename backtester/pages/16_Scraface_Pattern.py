@@ -29,10 +29,58 @@ from plotly.subplots import make_subplots
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
-from data.domain.market_calendar import NY
+from data.domain.market_calendar import KR, NY, market_for_ticker
 from pattern.adapters.scraface_orb import ScrafaceORBDetector
 from strategy.adapters.scraface_strategy import ScrafaceORBStrategy
 from strategy.domain.models import StrategyConfig
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _search_kr_eodhd(query: str) -> list[tuple[str, str, str]]:
+    """EODHD `/api/search/{q}` filtered to Korean common stocks.
+
+    Returns ``[(code, name, yfinance_suffix), ...]``. Empty when no
+    EODHD key, query is too short, or no Korean Common-Stock match
+    surfaces. Cached for 1h so successive keystrokes don't hammer
+    the API.
+    """
+    import os
+    import httpx
+
+    key = os.environ.get("EODHD_API_KEY")
+    if not key or len(query.strip()) < 2:
+        return []
+    try:
+        resp = httpx.get(
+            f"https://eodhd.com/api/search/{query.strip()}",
+            params={"api_token": key, "fmt": "json"},
+            timeout=10.0,
+        )
+    except Exception:
+        return []
+    if resp.status_code != 200:
+        return []
+    out: list[tuple[str, str, str]] = []
+    for row in resp.json():
+        if row.get("Type") != "Common Stock":
+            continue
+        if row.get("Country") != "Korea":
+            continue
+        code = row.get("Code") or ""
+        exchange = row.get("Exchange") or ""
+        if not code:
+            continue
+        # EODHD's exchange code → yfinance suffix used elsewhere in
+        # the system. KO (KOSPI) maps back to .KS, KQ stays.
+        if exchange == "KO":
+            suffix = ".KS"
+        elif exchange == "KQ":
+            suffix = ".KQ"
+        else:
+            continue
+        out.append((code, row.get("Name", ""), suffix))
+    return out
+
 
 # EODHD 1m data depth ≈ 2 years; we still let users go further back
 # (the call will simply 422 on too-old start), but cap the date input
@@ -48,7 +96,45 @@ st.caption(
 
 with st.sidebar:
     st.header("Market")
-    ticker = st.text_input("Ticker", value="TSLA")
+    if "scraface_ticker" not in st.session_state:
+        st.session_state.scraface_ticker = "TSLA"
+    ticker = st.text_input("Ticker", key="scraface_ticker")
+    with st.expander("🔍 Search Korean ticker"):
+        query = st.text_input(
+            "회사명 (English)",
+            placeholder="samsung, kakao, hyundai, naver, sk hynix...",
+            key="scraface_kr_query",
+            help="EODHD `/search` 엔드포인트 — 한글은 미지원이라 영문으로. "
+            "결과 클릭 시 위 Ticker 박스에 자동 입력.",
+        )
+        if query and query.strip():
+            hits = _search_kr_eodhd(query)
+            if not hits:
+                st.caption("No KR Common-Stock matches.")
+            for code, name, suffix in hits[:12]:
+                full = f"{code}{suffix}"
+                if st.button(
+                    f"**{full}** — {name}",
+                    key=f"scraface_kr_pick_{full}",
+                    use_container_width=True,
+                ):
+                    st.session_state.scraface_ticker = full
+                    st.rerun()
+    # Market calendar — auto-detect from suffix (.KS/.KQ → KR), let
+    # user override for edge cases. Drives both session_open_local
+    # for box detection and the RegularSessionFilter wrap.
+    detected_market = market_for_ticker(ticker)
+    market_choice = st.selectbox(
+        "Market calendar",
+        options=["NY", "KR"],
+        index=0 if detected_market.name == "NY" else 1,
+        format_func=lambda x: {
+            "NY": "🇺🇸 US (NYSE / Nasdaq)  — 09:30–16:00 ET",
+            "KR": "🇰🇷 Korea (KOSPI/KOSDAQ) — 09:00–15:00 KST",
+        }[x],
+        help="ticker suffix(.KS/.KQ)로 자동 감지하지만 필요하면 override.",
+    )
+    market = NY if market_choice == "NY" else KR
     start_date = st.date_input(
         "Start Date",
         value=date.today() - timedelta(days=14),
@@ -99,8 +185,7 @@ with st.sidebar:
         min_value=1,
         max_value=60,
         step=1,
-        help="해당 당일 + 직전 lookback일 중 N일 이상 close가 SMA 아래여야 "
-        "long 시그널 fire. 기본 7/10.",
+        help="해당 당일 + 직전 lookback일 중 N일 이상 close가 SMA 아래여야 " "long 시그널 fire. 기본 7/10.",
     )
 
     st.header("Box / breakout")
@@ -150,59 +235,92 @@ with st.sidebar:
         help="원문 1:2 R/R 권고. Stop은 entry bar의 low, TP = entry + R × (entry − stop).",
     )
     latest_entry_hour = st.number_input(
-        "Latest entry hour (local, exclusive)",
+        "Latest entry hour (market local, exclusive)",
         value=11,
         min_value=10,
         max_value=16,
         step=1,
-        help="이 시각 이전(09:30 ≤ t < 이 시각)에만 진입 허용. "
-        "기본 11 → 09:30~11:00 morning window. 이후 entry는 reject.",
+        help="시장 local-tz로 이 시각 이전에만 진입 허용. "
+        "NY: 09:30~11:00 ET / KR: 09:00~11:00 KST. 이후 entry는 reject.",
     )
 
-    run_btn = st.button(
-        "Run Scraface Backtest", type="primary", use_container_width=True
-    )
+    run_btn = st.button("Run Scraface Backtest", type="primary", use_container_width=True)
 
 if not run_btn:
     st.info("좌측에서 ticker / 기간을 설정하고 **Run Scraface Backtest**를 눌러.")
     st.stop()
 
 # Session-bound day-trading. Wrap the composed sub-daily/daily router
-# in an RTH filter so 1m bars only contain 09:30–16:00 ET prints
-# (otherwise pre/post-market bars leak in and stop/TP/session-end
-# logic prices off thin extended-hours data).
+# in an RTH filter so intraday bars only contain RTH prints (NY
+# 09:30–16:00 ET / KR 09:00–15:00 KST) — pre/post-market bars would
+# otherwise leak in and stop/TP/session-end logic would price off
+# thin extended-hours data.
 _base_md = build_default_market_data()
-md = RegularSessionFilterAdapter(_base_md, market=NY)
+md = RegularSessionFilterAdapter(_base_md, market=market)
 yf = YFinanceAdapter()
+
+# EODHD doesn't carry 1-minute intraday for KR tickers (the API
+# returns 0 rows on 1m even for liquid names like 005930.KO);
+# 5-minute is the densest interval available there. Force the
+# strategy's base interval to 5m for KR so the page works
+# transparently — for the Scraface pattern the first-5-minute box
+# becomes a single 5m candle, which actually matches the doc's
+# "draw a box on the first 5-minute candle" rule more directly.
+strat_interval = "5m" if market.name == "KR" else "1m"
 
 # Pad daily history so the SMA + the lookback window are converged
 # from the very first session in the user's date range.
 daily_pad_days = int(sma_period) + int(days_below_lookback) + 30
 daily_start = start_date - timedelta(days=daily_pad_days * 2)
 
-with st.spinner(f"Fetching 1m / 5m / daily for {ticker}..."):
+with st.spinner(f"Fetching {strat_interval} / 5m / daily for {ticker}..."):
     try:
-        df_1m = md.fetch_ohlcv(
-            ticker.upper(), start_date, end_date, interval="1m"
-        )
-        df_5m = md.fetch_ohlcv(
-            ticker.upper(), start_date, end_date, interval="5m"
-        )
+        df_strat = md.fetch_ohlcv(ticker.upper(), start_date, end_date, interval=strat_interval)
+        # The dedicated 5m chart is the lower-resolution context view.
+        # For NY (strat=1m) it's a separate fetch; for KR (strat=5m)
+        # it IS the strat frame, so we just alias.
+        if strat_interval == "5m":
+            df_5m = df_strat
+        else:
+            df_5m = md.fetch_ohlcv(ticker.upper(), start_date, end_date, interval="5m")
         df_daily = yf.fetch_ohlcv(ticker.upper(), daily_start, end_date)
     except Exception as exc:
         st.error(f"Data fetch failed: {exc}")
         st.stop()
 
-if df_1m is None or df_1m.empty:
-    st.warning("No 1-minute data returned for that range.")
+if df_strat is None or df_strat.empty:
+    st.warning(
+        f"No {strat_interval} data returned for that range. "
+        "EODHD KR coverage is 5m+ — try a wider window or different ticker."
+    )
     st.stop()
+
+# EODHD hands intraday frames back in NY tz regardless of the
+# underlying market. For KR tickers the detector / strategy need
+# market-local dates and times — converting once here means both
+# the box-time check (09:00 KST) and per-session grouping line up
+# with the user's mental model.
+if df_strat.index.tz is not None and str(df_strat.index.tz) != market.tz:
+    df_strat = df_strat.copy()
+    df_strat.index = df_strat.index.tz_convert(market.tz)
+if (
+    df_5m is not None
+    and not df_5m.empty
+    and df_5m.index.tz is not None
+    and str(df_5m.index.tz) != market.tz
+):
+    df_5m = df_5m.copy()
+    df_5m.index = df_5m.index.tz_convert(market.tz)
 
 detector = ScrafaceORBDetector(
     sma_period=int(sma_period),
     days_below_lookback=int(days_below_lookback),
     min_days_below=int(min_days_below),
     box_minutes=int(box_minutes),
-    session_open_local=time(9, 30),
+    # Box period anchors at the market's local open: NY 09:30 ET,
+    # KR 09:00 KST. The detector reads bar-start times in the same
+    # local tz the data adapter delivers.
+    session_open_local=market.rth_open,
     latest_entry_local=time(int(latest_entry_hour), 0),
     breakout_buffer_atr=float(breakout_buffer),
     retest_tolerance_atr=float(retest_tolerance),
@@ -223,7 +341,7 @@ config = StrategyConfig(
 
 with st.spinner("Running backtest..."):
     try:
-        result = strategy.run(df_1m, df_daily, config)
+        result = strategy.run(df_strat, df_daily, config)
     except Exception as exc:
         st.error(f"Backtest failed: {exc}")
         st.stop()
@@ -233,15 +351,13 @@ perf = result.performance
 # days where the strategy was already in a position (none expected
 # here since we're 1-pos-at-a-time and trades close intraday, but
 # keeps the chart authoritative).
-chart_signals = detector.detect(df_1m, df_daily)
+chart_signals = detector.detect(df_strat, df_daily)
 
 # ---- Headline metrics -----------------------------------------------
 st.subheader(f"{ticker.upper()} — Scraface ORB")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Trades", perf.total_trades)
-m2.metric(
-    "Win Rate", f"{perf.win_rate:.0%}" if perf.total_trades else "—"
-)
+m2.metric("Win Rate", f"{perf.win_rate:.0%}" if perf.total_trades else "—")
 m3.metric("Total Return", f"{perf.total_return_pct:.2%}")
 m4.metric("Final Capital", f"${perf.final_capital:,.0f}")
 
@@ -256,9 +372,7 @@ st.subheader("Daily — 50 SMA & qualifying days")
 
 sma = df_daily["Close"].rolling(int(sma_period)).mean()
 below = (df_daily["Close"] < sma).astype(int)
-rolling_below = below.rolling(
-    int(days_below_lookback), min_periods=int(days_below_lookback)
-).sum()
+rolling_below = below.rolling(int(days_below_lookback), min_periods=int(days_below_lookback)).sum()
 qualifying = rolling_below >= int(min_days_below)
 qualifying = qualifying & (below == 1)
 # Slice to the user's display window (we kept the warmup pad just for
@@ -314,8 +428,12 @@ st.plotly_chart(daily_fig, use_container_width=True)
 st.caption("🟢 shaded = 해당 당일 + 직전 N일 중 ≥M일이 50 SMA 아래인 qualifying day.")
 
 # ---- 5-minute chart -------------------------------------------------
-st.subheader("5 minute")
-if df_5m is not None and not df_5m.empty:
+# Skip when strat_interval == "5m" (KR) — the dedicated strat chart
+# below already renders the same frame at higher fidelity (with the
+# opening box overlay).
+_render_5m_context = strat_interval != "5m" and df_5m is not None and not df_5m.empty
+if _render_5m_context:
+    st.subheader("5 minute")
     five_fig = go.Figure()
     five_fig.add_trace(
         go.Candlestick(
@@ -334,7 +452,7 @@ if df_5m is not None and not df_5m.empty:
     qualifying_dates = {ts.date() for ts, q in qualifying.items() if q}
     sigs_by_date = {s.session_date: s for s in chart_signals}
     for ts in df_5m.index:
-        if ts.time() != time(9, 30):
+        if ts.time() != market.rth_open:
             continue
         if ts.date() not in qualifying_dates:
             continue
@@ -355,32 +473,34 @@ if df_5m is not None and not df_5m.empty:
         height=320,
         xaxis_rangeslider_visible=False,
         xaxis_rangebreaks=[
-            dict(bounds=[16, 9.5], pattern="hour"),
+            dict(
+                bounds=[
+                    market.rth_close.hour + market.rth_close.minute / 60,
+                    market.rth_open.hour + market.rth_open.minute / 60,
+                ],
+                pattern="hour",
+            ),
             dict(bounds=["sat", "mon"]),
         ],
         margin=dict(l=10, r=10, t=30, b=10),
     )
     st.plotly_chart(five_fig, use_container_width=True)
     st.caption("🟩 첫 5분봉 (qualifying day, signal fired)  ·  🟧 첫 5분봉 (qualifying, no retest)")
-else:
-    st.caption("5분봉 데이터 없음.")
 
 # ---- 1 minute chart with precise box overlays ----------------------
-st.subheader("1 minute (with opening box highlighted)")
+st.subheader(f"{strat_interval} (with opening box highlighted)")
 
 trades_by_entry = {pd.Timestamp(t.entry_ts): t for t in perf.trades if t.entry_ts}
 
-one_fig = make_subplots(
-    rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.02
-)
+one_fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.02)
 one_fig.add_trace(
     go.Candlestick(
-        x=df_1m.index,
-        open=df_1m["Open"],
-        high=df_1m["High"],
-        low=df_1m["Low"],
-        close=df_1m["Close"],
-        name="1m",
+        x=df_strat.index,
+        open=df_strat["Open"],
+        high=df_strat["High"],
+        low=df_strat["Low"],
+        close=df_strat["Close"],
+        name=strat_interval,
         showlegend=False,
     )
 )
@@ -389,7 +509,7 @@ one_fig.add_trace(
 # extends from box_open_ts to the actual final RTH bar of that day
 # (filter already trimmed pre/post — last bar = ~15:59 ET).
 last_bar_per_date: dict[date, pd.Timestamp] = {}
-for ts in df_1m.index:
+for ts in df_strat.index:
     last_bar_per_date[ts.date()] = ts
 
 for sig in chart_signals:
@@ -460,7 +580,9 @@ for sig in chart_signals:
             y=[sig.entry_price],
             mode="markers",
             marker=dict(
-                symbol="arrow-up", color="#2E7D32", size=14,
+                symbol="arrow-up",
+                color="#2E7D32",
+                size=14,
                 line=dict(color="#1B5E20", width=1.5),
             ),
             name="Retest entry",
@@ -472,14 +594,18 @@ for sig in chart_signals:
     # TP / Stop dotted lines from entry → end of session.
     one_fig.add_shape(
         type="line",
-        x0=sig.entry_ts, x1=end_ts,
-        y0=sig.take_profit, y1=sig.take_profit,
+        x0=sig.entry_ts,
+        x1=end_ts,
+        y0=sig.take_profit,
+        y1=sig.take_profit,
         line=dict(color="#2E7D32", width=1.2, dash="dot"),
     )
     one_fig.add_shape(
         type="line",
-        x0=sig.entry_ts, x1=end_ts,
-        y0=sig.stop_loss, y1=sig.stop_loss,
+        x0=sig.entry_ts,
+        x1=end_ts,
+        y0=sig.stop_loss,
+        y1=sig.stop_loss,
         line=dict(color="#C62828", width=1.2, dash="dot"),
     )
 
@@ -503,9 +629,7 @@ for t in perf.trades:
             marker=dict(symbol=symbol, color=color, size=12),
             name=f"Exit ({t.exit_reason})",
             showlegend=False,
-            hovertemplate=(
-                f"{t.exit_reason} @ $%{{y:.2f}} (PnL ${t.pnl:+.2f})<extra></extra>"
-            ),
+            hovertemplate=(f"{t.exit_reason} @ $%{{y:.2f}} (PnL ${t.pnl:+.2f})<extra></extra>"),
         )
     )
 
