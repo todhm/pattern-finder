@@ -40,7 +40,7 @@ from strategy.adapters.multi_first_candle_strategy import (
 )
 from strategy.domain.models import MultiStrategyConfig
 
-INTRADAY_HISTORY_FLOOR = date(2022, 1, 1)
+INTRADAY_HISTORY_FLOOR = date(2014, 1, 1)
 
 st.set_page_config(page_title="Multi First Candle Rule", layout="wide")
 st.title("Multi First Candle Rule Scan")

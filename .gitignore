@@ -35,3 +35,7 @@ trades.parquet
 FairGapValue.docx
 secret.env
 ScrafaceTradePattern.docx
+*.en.vtt
+video_*.mp4
+ChartPatternsv2.pdf
+20250611*.pdf
