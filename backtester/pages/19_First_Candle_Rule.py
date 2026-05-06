@@ -10,13 +10,14 @@ Smart Trading Blueprint. Two-path entry logic:
     to dip back into the OR → enter on the next post-retest FVG.
 
 **Exit policy (per user pref):** TP touch OR Nth-strike stop.
-Stop = range-break candle's low − 1 tick. The stop fires only
-on the **Nth distinct excursion** of price below it (default
-N=3), letting the first two wicks slide as liquidity grabs.
-Consecutive bars below the stop count as one strike; the streak
-resets when a bar's low climbs back at or above the stop. If TP
-isn't touched and the stop hasn't accumulated enough strikes by
-session end, the trade force-closes at the last bar's close.
+**Stop = first FVG bar's low − 1 tick** (= ``fvg_pre_low``,
+shared across Path A & B). The stop fires only on the **Nth
+distinct excursion** of price below it (default N=3), letting
+the first two wicks slide as liquidity grabs. Consecutive bars
+below the stop count as one strike; the streak resets when a
+bar's low climbs back at or above the stop. If TP isn't touched
+and the stop hasn't accumulated enough strikes by session end,
+the trade force-closes at the last bar's close.
 """
 
 from datetime import date, time, timedelta
@@ -43,8 +44,8 @@ st.caption(
     "첫 5분봉 OR → 1분봉으로 전환 → 박스 밖으로 break하는 bullish FVG → "
     "Path A: range-break 봉이 곧 FVG displacement면 즉시 entry. "
     "Path B: range-break 후 FVG 없으면 retest 후 새 FVG에 entry. "
-    "Exit = TP touch (고정 2:1) / Stop은 N번째 침투에서 발화 (기본 3회) / "
-    "둘 다 안 닿으면 session close."
+    "Exit = TP touch (고정 2:1) / Stop = FVG 첫 봉(bar i-2)의 low − tick, "
+    "N번째 침투에서 발화 (기본 3회) / 둘 다 안 닿으면 session close."
 )
 
 with st.sidebar:
@@ -109,6 +110,29 @@ with st.sidebar:
         "1=즉시 stop, 2=두 번째 wick부터 stop, 3=세 번째 (기본). "
         "연속 봉이 stop 아래에 있는 동안은 같은 strike (1회)로 카운트. "
         "0이면 stop 비활성 (TP 또는 session close만).",
+    )
+    enable_be_time = st.checkbox(
+        "Move stop to break-even after N minutes (Crabel)",
+        value=True,
+        help="진입 후 N분 경과 시 stop을 entry로 끌어올림. "
+        "session_close에서 -1R로 끝나는 trade를 break-even으로 변환. "
+        "Crabel: '이상적 트레이드는 즉시 수익이 보임; 늦게 갈수록 vulnerable'.",
+    )
+    breakeven_after_min = st.number_input(
+        "BE after minutes",
+        value=60, min_value=0, max_value=390, step=15,
+        disabled=not enable_be_time,
+    )
+    enable_be_r = st.checkbox(
+        "Move stop to break-even after R reached",
+        value=False,
+        help="미실현 +N×R 도달 시 stop을 entry로. 1R touch 후 -R로 회귀하는 "
+        "trade를 break-even으로 변환. winner 일부가 BE에서 청산되는 trade-off.",
+    )
+    breakeven_after_r = st.number_input(
+        "BE after R-multiple",
+        value=1.0, min_value=0.0, max_value=5.0, step=0.1, format="%.1f",
+        disabled=not enable_be_r,
     )
 
     st.header("Pattern")
@@ -182,6 +206,67 @@ with st.sidebar:
         help="옵션 — 영상은 daily bias 명시 안 함. ON이면 전날 양봉 마감일에만 진입.",
     )
 
+    st.header("Advanced filters (sweep-tuned)")
+    st.caption(
+        "144-combo grid sweep on NVDA Jan-May 2026 + 6-ticker validation. "
+        "기본값 = 검증된 robust combo (NVDA +0.94pp, TSLA +0.43pp, 평균 +0.17pp)."
+    )
+    enable_gap_filter = st.checkbox(
+        "Skip gap-up days",
+        value=True,
+        help="Today's open vs prev_close 갭이 X% 초과면 그 세션 스킵. "
+        "Gap-and-fade 트랩 회피.",
+    )
+    max_gap_up_pct = st.number_input(
+        "Max gap-up (%)",
+        value=1.5,
+        min_value=0.0,
+        max_value=10.0,
+        step=0.5,
+        format="%.2f",
+        disabled=not enable_gap_filter,
+    )
+    enable_drvol_filter = st.checkbox(
+        "Skip low-volume days",
+        value=True,
+        help="Today's volume / 20-day avg volume < X면 스킵. "
+        "Cross-ticker 검증에서 가장 robust한 단일 필터.",
+    )
+    min_daily_rvol = st.number_input(
+        "Min daily RVOL",
+        value=0.85,
+        min_value=0.0,
+        max_value=3.0,
+        step=0.05,
+        format="%.2f",
+        disabled=not enable_drvol_filter,
+    )
+    enable_sma_filter = st.checkbox(
+        "Require above daily SMA(N)",
+        value=False,
+        help="Today's close > N-day SMA. Bear regime 필터. "
+        "Sweep에서 효과 미미했지만 longer 백테스트 윈도우에서 의미 있을 수 있음.",
+    )
+    sma_period = st.selectbox(
+        "SMA period", options=[50, 200], index=0,
+        disabled=not enable_sma_filter,
+    )
+    enable_brvol_filter = st.checkbox(
+        "Require FVG-bar RVOL",
+        value=False,
+        help="FVG 봉 volume / early-session avg ≥ X. NVDA에 overfit돼서 "
+        "기본 OFF. 변동 큰 종목에 ON 시도 가능.",
+    )
+    min_entry_bar_rvol = st.number_input(
+        "Min FVG-bar RVOL",
+        value=1.0,
+        min_value=0.0,
+        max_value=5.0,
+        step=0.1,
+        format="%.2f",
+        disabled=not enable_brvol_filter,
+    )
+
     run_btn = st.button(
         "Run First Candle Rule Backtest",
         type="primary",
@@ -238,11 +323,29 @@ detector = FirstCandleRuleDetector(
     require_retest_for_path_b=bool(require_retest_for_path_b),
     target_r_multiple=float(target_r_multiple),
     stop_tick_buffer=float(stop_tick_buffer),
+    max_gap_up_pct=(
+        float(max_gap_up_pct) / 100.0 if enable_gap_filter else None
+    ),
+    min_daily_rvol=(
+        float(min_daily_rvol) if enable_drvol_filter else None
+    ),
+    require_above_daily_sma=(
+        int(sma_period) if enable_sma_filter else None
+    ),
+    min_entry_bar_rvol=(
+        float(min_entry_bar_rvol) if enable_brvol_filter else None
+    ),
 )
 strategy = FirstCandleRuleStrategy(
     detector,
     max_position_pct_of_equity=float(max_position_pct) / 100.0,
     max_below_stop_strikes=int(max_below_stop_strikes),
+    breakeven_after_minutes=(
+        int(breakeven_after_min) if enable_be_time else 0
+    ),
+    breakeven_after_r_multiple=(
+        float(breakeven_after_r) if enable_be_r else 0.0
+    ),
 )
 
 config = StrategyConfig(
@@ -503,6 +606,8 @@ for t in perf.trades:
         symbol, color = "diamond-open", color
     elif t.exit_reason == "stop_loss":
         symbol = "x"
+    elif t.exit_reason == "breakeven_stop":
+        symbol = "square-open"
     else:  # take_profit
         symbol = "circle"
     intra_fig.add_trace(go.Scatter(
@@ -540,7 +645,7 @@ st.caption(
     "▲ 청록 = range-break candle (stop reference)  ·  "
     "▽ 파랑 = retest into OR (Path B만)  ·  "
     "⬆ 초록 = entry (Path A=즉시, Path B=retest 후 FVG)  ·  "
-    f"초록 점선 = TP, 빨간 점선 = stop (N={max_below_stop_strikes}회 침투 시 발화)  ·  "
+    f"초록 점선 = TP, 빨간 점선 = stop (FVG 첫봉 low, N={max_below_stop_strikes}회 침투 시 발화)  ·  "
     "⭕ TP 체결, ❌ stop, ◇ session close (TP 미터치)"
 )
 
@@ -550,7 +655,8 @@ if perf.trades:
     EXIT_LABELS = {
         "take_profit": "Take Profit (R-target)",
         "session_close": "Session Close (TP not touched)",
-        "stop_loss": f"Stop Loss ({max_below_stop_strikes}× below stop)",
+        "stop_loss": f"Stop Loss ({max_below_stop_strikes}× below FVG-pre low)",
+        "breakeven_stop": "Break-even stop (BE-armed, ~0R)",
     }
     rows = []
     for t in perf.trades:

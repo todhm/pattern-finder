@@ -32,19 +32,34 @@ class FirstCandleRuleStrategy:
         detector: FirstCandleRuleDetector,
         max_position_pct_of_equity: float = 0.30,
         max_below_stop_strikes: int = 3,
+        breakeven_after_minutes: int = 0,
+        breakeven_after_r_multiple: float = 0.0,
     ) -> None:
         self.detector = detector
         self.max_position_pct_of_equity = max_position_pct_of_equity
-        # **Tolerant stop — N-strike rule.** A bar's low below the
-        # stop level counts as one "strike" (= one distinct excursion
-        # below the line). Consecutive below-stop bars roll into the
-        # same strike; the streak resets when a bar's low climbs
-        # back at or above the stop. The stop fires on the Nth
-        # strike, exiting at the stop price. ``0`` or very large
-        # disables stop firing entirely. Default 3 — first two
-        # excursions are wicks / liquidity grabs the trade absorbs;
-        # the third is real failure.
+        # **Tolerant stop — N-strike rule.**
         self.max_below_stop_strikes = max_below_stop_strikes
+        # **Break-even stop arming (Crabel rule).** Once one of these
+        # triggers fires, the stop level is raised from its initial
+        # value (``fvg_pre_low − tick``) up to entry price. From
+        # then on a tag of entry price closes the trade at $0 PnL
+        # net of fees instead of the original -1R loss.
+        #
+        # Why this matters for FCR specifically: 5-month NASDAQ100
+        # backtest showed 34/85 trades end as ``session_close`` with
+        # avg -0.99R — i.e. they drift down all afternoon without
+        # hitting either TP or initial stop. Arming BE converts a
+        # chunk of those -1R drift losses into ~0R scratches.
+        #
+        # Two arming triggers (whichever fires first wins):
+        #   - ``breakeven_after_minutes``: wall-clock minutes since
+        #     entry. Crabel: "the ideal trade shows profit
+        #     instantaneously; the longer it stays flat, the more
+        #     vulnerable." Default 0 = disabled.
+        #   - ``breakeven_after_r_multiple``: bar high reaches
+        #     ``entry + R × initial_risk``. Default 0 = disabled.
+        self.breakeven_after_minutes = breakeven_after_minutes
+        self.breakeven_after_r_multiple = breakeven_after_r_multiple
 
     def run(
         self,
@@ -115,15 +130,20 @@ class FirstCandleRuleStrategy:
                     open_pos = {
                         "entry_ts": ts,
                         "entry_price": sig.entry_price,
+                        "initial_stop": sig.stop_loss,
                         "stop": sig.stop_loss,
                         "tp": sig.take_profit,
                         "shares": shares,
+                        "initial_risk": risk_per_share,
                         # N-strike stop bookkeeping: ``below_streak``
                         # is True while the current run of bars has
                         # been continuously below the stop; rolls a
                         # single strike per excursion.
                         "below_stop_streak": False,
                         "below_stop_strikes": 0,
+                        # BE arming flag — once True the stop level
+                        # is raised to entry price and stays there.
+                        "be_armed": False,
                     }
             if open_pos is None:
                 continue
@@ -131,21 +151,64 @@ class FirstCandleRuleStrategy:
             exit_price: float | None = None
             exit_reason: str | None = None
             on_entry_bar = ts == open_pos["entry_ts"]
-            # N-strike stop bookkeeping — runs every bar after entry.
-            # Each new excursion below the stop counts as one strike;
-            # the Nth strike fires the exit at the stop price.
+            # ---- Break-even arming (Crabel rule) ----
+            # Two arming triggers, whichever fires first:
+            #   - ``breakeven_after_r_multiple > 0``: bar high
+            #     reaches entry + R × initial_risk
+            #   - ``breakeven_after_minutes > 0``: wall-clock minutes
+            #     since entry exceed the threshold
+            # On arm: raise stop from initial level to entry price.
+            # Idempotent — guarded by ``be_armed``.
+            if not on_entry_bar and not open_pos["be_armed"]:
+                arm = False
+                if self.breakeven_after_r_multiple > 0:
+                    be_target = (
+                        open_pos["entry_price"]
+                        + self.breakeven_after_r_multiple
+                        * open_pos["initial_risk"]
+                    )
+                    if highs[i] >= be_target:
+                        arm = True
+                if not arm and self.breakeven_after_minutes > 0:
+                    elapsed = (ts - open_pos["entry_ts"]).total_seconds() / 60
+                    if elapsed >= self.breakeven_after_minutes:
+                        arm = True
+                if arm:
+                    open_pos["stop"] = open_pos["entry_price"]
+                    open_pos["be_armed"] = True
+
+            # Stop bookkeeping — runs every bar after entry.
+            #
+            # Two modes:
+            #   1. **Initial stop** (be_armed=False): N-strike tolerant.
+            #      Each new excursion below the stop counts as one
+            #      strike; the Nth strike fires the exit. Lets the
+            #      first N-1 wicks slide as liquidity grabs.
+            #   2. **BE-armed stop** (be_armed=True): single-tap.
+            #      Once the stop is at entry price, any touch closes
+            #      the trade at $0 PnL net of fees. The N-strike
+            #      tolerance was designed for the *initial* stop
+            #      below the FVG-pre-low; the BE level represents a
+            #      "scratch the trade" decision and should fire on
+            #      the first tag, not the Nth excursion. Matches
+            #      the comment above: "a tag of entry price closes
+            #      the trade at $0 PnL".
             if not on_entry_bar:
                 if lows[i] < open_pos["stop"]:
-                    if not open_pos["below_stop_streak"]:
-                        open_pos["below_stop_strikes"] += 1
-                        open_pos["below_stop_streak"] = True
-                    if (
-                        self.max_below_stop_strikes > 0
-                        and open_pos["below_stop_strikes"]
-                        >= self.max_below_stop_strikes
-                    ):
+                    if open_pos["be_armed"]:
                         exit_price = open_pos["stop"]
-                        exit_reason = "stop_loss"
+                        exit_reason = "breakeven_stop"
+                    else:
+                        if not open_pos["below_stop_streak"]:
+                            open_pos["below_stop_strikes"] += 1
+                            open_pos["below_stop_streak"] = True
+                        if (
+                            self.max_below_stop_strikes > 0
+                            and open_pos["below_stop_strikes"]
+                            >= self.max_below_stop_strikes
+                        ):
+                            exit_price = open_pos["stop"]
+                            exit_reason = "stop_loss"
                 else:
                     open_pos["below_stop_streak"] = False
 
