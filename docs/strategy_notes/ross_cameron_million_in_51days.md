@@ -125,6 +125,27 @@
 
 매일 아침 이런 스캐너에서 5가지 필터를 만족하는 5~10개 종목으로 좁혀서 트레이딩.
 
+### 3.5 영상에서 직접 인용된 종목 사례
+
+자막을 grep해서 추출한 영상 내 명시 종목 목록.
+
+**A-quality 사례 (영상에서 직접 트레이드 또는 인용):**
+
+| Ticker | 컨텍스트 | 영상 인용 |
+|---|---|---|
+| **OSR** | 영상 촬영 당일 본인이 트레이드한 종목. $2.50 → $5.50, 약 20분 만에 +120% | "Here's a stock that went from $2.50 to 5.50 in about 20 minutes" / "I made on OSR $12,227.82" |
+| **ATNF** | 다른 날 사례. 오버나잇 +564% gap-up, 5800만주 거래량 | "the leading gainer in the entire US stock market was ATNF up 564%" / "$98,754 in one morning day trading" |
+| **MLGO** | Float 약 800K, 거래량 3억주, +430%. **Float<10M의 supply/demand 불균형 대표 사례** (트레이드 X, 설명용) | "MLGO 300 million shares of volume up 430% This had billions of dollars of transaction value" |
+| **IMTE** | MLGO와 함께 인용된 저-Float 케이스 | "how is it that a company like maybe this one here IMTE or maybe this one here MLGO" |
+
+**Counter-example — 절대 트레이드 안 하는 케이스:**
+
+| Ticker | 이유 |
+|---|---|
+| **Ford (F)** | 라지캡 횡보 — 5,500만주 거래량인데도 가격이 횡보. "you don't make money buying and selling a stock that's going sideways" — 데모 목적으로만 매수 시연 |
+
+> 영상 시점 데이터라 OSR/ATNF/MLGO/IMTE 등은 backtest 시점에 이미 위 패턴이 사라졌을 수 있음. 패턴 재현용 후보는 **요즘 시점의 신규 IPO / 바이오 호재 종목 / 마이크로캡** — `signals/adapters/universe_scanner.py`의 5개 필터로 매일 자동 추출하는 게 정석.
+
 ---
 
 ## 4. Entry / Exit — Bull Flag 패턴
@@ -168,12 +189,23 @@
 
 영상의 화이트보드 예시: 진입 $3.06 / 손절 $2.96(10¢ risk) / 1차 목표 $3.26(20¢ profit) → **2:1 R/R**.
 
-### 4.3 시간 프레임
+### 4.3 시간 프레임 — 영상이 사용/추천한 분봉
 
-10초 / 1분 / 5분 / 15분 차트 모두 사용 가능. **첫 풀백이 가장 강하다**.
-- 초기 모멘텀에서 1분 차트의 첫 풀백이 가장 자주 통한다.
-- 첫 5분 풀백, 첫 15분 풀백 모두 양호.
-- 3번째 풀백부터는 보수적으로.
+영상 **46:17~47:02** 구간에서 Ross가 직접 언급:
+
+| 시간 프레임 | 영상에서의 위치 |
+|---|---|
+| **1분봉** | **영상 시연의 디폴트** — "we're on a one minute time frame here" |
+| 10초봉 | 가장 짧은 옵션 |
+| 5분봉 | 사용 가능 |
+| 15분봉 | 사용 가능 |
+
+권장 우선순위:
+- **첫 풀백은 lower timeframe(10초·1분)에서 가장 자주 통한다** — Ross 본인 표현 "first pullbacks on the lower time frames like 10-second, one minute usually work well"
+- 첫 5분 풀백, 첫 15분 풀백도 양호 — "first five minute pullback usually works well and your first 15 minute pullback typically works well"
+- **첫 풀백이 가장 강하다.** 두 번째까지는 매매, 세 번째 풀백부터는 보수적으로 ("by the time we get up to the third I usually try to be a little bit cautious").
+
+> **백테스트 default**: 1분봉. 5/15분봉으로 swing-out 가능하지만 영상의 전형적 표현은 1분 차트 + 첫 풀백.
 
 ### 4.4 실전 차트 예시 (영상 인용)
 
