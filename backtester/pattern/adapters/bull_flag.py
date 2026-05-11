@@ -156,7 +156,7 @@ class BullFlagDetector:
         max_price: float = 20.0,
         max_float_shares: float = 10_000_000.0,
         pole_lookback: int = 7,
-        pole_min_pct: float = 0.04,
+        pole_min_pct: float = 0.08,
         pole_min_green_bars: int = 3,
         flag_max_bars: int = 4,
         flag_max_retrace: float = 0.5,

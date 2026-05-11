@@ -320,7 +320,11 @@ with st.sidebar:
 
 # --- Composition root: build scanner ---
 def build_scanner() -> WickPlayBuySignalScanner:
-    market_data = CachedMarketDataAdapter(YFinanceAdapter())
+    # Signal page: live scan of today's bar — bypass the cache when
+    # end >= today so mid-session refreshes don't serve stale OHLC.
+    market_data = CachedMarketDataAdapter(
+        YFinanceAdapter(), bypass_today=True,
+    )
     universe_provider = default_universe_provider()
 
     regime_df = None

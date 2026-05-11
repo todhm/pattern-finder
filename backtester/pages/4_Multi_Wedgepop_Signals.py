@@ -423,7 +423,11 @@ with st.sidebar:
 
 # --- Composition root: build the scanner from adapters + filter knobs ---
 def build_scanner() -> UniverseBuySignalScanner:
-    market_data = CachedMarketDataAdapter(YFinanceAdapter())
+    # Signal page: live scan of today's bar — bypass the cache when
+    # end >= today so mid-session refreshes don't serve stale OHLC.
+    market_data = CachedMarketDataAdapter(
+        YFinanceAdapter(), bypass_today=True,
+    )
     universe_provider = WikipediaUniverseAdapter()
 
     market_regime_df = None

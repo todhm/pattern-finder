@@ -39,9 +39,20 @@ from data.adapters.yfinance_adapter import YFinanceAdapter
 from data.domain.ports import MarketDataPort
 
 
-def build_default_market_data() -> MarketDataPort:
+def build_default_market_data(
+    *, bypass_today: bool = False
+) -> MarketDataPort:
     """Return the routed + cached market-data stack used by every
     Streamlit page.
+
+    ``bypass_today``:
+        Threaded into every ``CachedMarketDataAdapter`` in the chain.
+        **Signal pages** (live entry-candidate scanners) pass True so
+        a fresh fetch hits the wire whenever the request window
+        includes today — caching a mid-session bar would serve stale
+        OHLC/Volume. Backtest / parameter-sweep pages leave it False
+        (default) so the same parquet is reused across iterations
+        even when ``end`` is today.
 
     Composition::
 
@@ -50,21 +61,34 @@ def build_default_market_data() -> MarketDataPort:
                 primary  = Cached(EODHD,   .../eodhd),
                 fallback = Cached(Massive, .../massive),
             ),
-            daily     = Cached(YFinance, .../),
+            daily     = FallbackMarketDataAdapter(
+                primary  = Cached(YFinance, .../),
+                fallback = Cached(Massive,  .../massive),
+            ),
         )
 
     Each leg degrades gracefully:
-      - No EODHD key   → primary is just Massive (no fallback).
-      - No MASSIVE key → primary is just EODHD (no fallback).
+      - No EODHD key   → sub-daily primary is just Massive (no fallback).
+      - No MASSIVE key → no fallback for either daily or sub-daily.
       - Neither key    → all intervals via yfinance.
+
+    Daily fallback rationale: yfinance daily aggressively rate-limits
+    (HTTP 429) under burst load. When the cache misses for a fresh
+    ticker the page hangs indefinitely on the retry chain. Routing
+    through Massive on yfinance failure keeps the page responsive —
+    Polygon's daily endpoint has 10y+ depth on US equities.
     """
-    yf_cached = CachedMarketDataAdapter(YFinanceAdapter())
+    yf_cached = CachedMarketDataAdapter(
+        YFinanceAdapter(),
+        bypass_today=bypass_today,
+    )
 
     eodhd_cached = None
     try:
         eodhd_cached = CachedMarketDataAdapter(
             EODHDAdapter(),
             cache_dir="/tmp/pattern-finder-cache/eodhd",
+            bypass_today=bypass_today,
         )
     except ValueError:
         pass
@@ -74,6 +98,7 @@ def build_default_market_data() -> MarketDataPort:
         massive_cached = CachedMarketDataAdapter(
             MassiveAdapter(),
             cache_dir="/tmp/pattern-finder-cache/massive",
+            bypass_today=bypass_today,
         )
     except ValueError:
         pass
@@ -96,9 +121,22 @@ def build_default_market_data() -> MarketDataPort:
     else:
         return yf_cached
 
+    # Daily leg: yfinance primary (free, fast when cache hits) + Massive
+    # fallback (paid, separate quota) so a yfinance 429 doesn't kill
+    # the page.
+    if massive_cached is not None:
+        daily: MarketDataPort = FallbackMarketDataAdapter(
+            primary=yf_cached,
+            fallback=massive_cached,
+            primary_label="YFinance",
+            fallback_label="Massive",
+        )
+    else:
+        daily = yf_cached
+
     return IntervalRoutingMarketData(
         sub_daily=sub_daily,
-        daily=yf_cached,
+        daily=daily,
     )
 
 

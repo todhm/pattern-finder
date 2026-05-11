@@ -19,12 +19,11 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import yfinance as yf
 from plotly.subplots import make_subplots
 
+from data.adapters.composed_fundamentals import build_default_fundamentals
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
-from data.adapters.yfinance_adapter import YFinanceAdapter
 from data.domain.market_calendar import NY
 from pattern.adapters.bull_flag import BullFlagDetector
 from strategy.adapters.bull_flag_strategy import BullFlagStrategy
@@ -168,7 +167,7 @@ with st.sidebar:
     )
     pole_min_pct = st.number_input(
         "Pole min rise (%)",
-        value=4.0,
+        value=8.0,
         min_value=0.5,
         max_value=50.0,
         step=0.5,
@@ -316,10 +315,11 @@ with st.sidebar:
     )
     enable_mtf = st.checkbox(
         "Enable MTF check (1m + 5m bull flag alignment)",
-        value=True,
-        help="True(기본 — DP4 영상 정통): 같은 BullFlagDetector를 5m에도 돌려서 "
-        "두 분봉 모두에서 신호가 발생한 시점만 통과. False: 1m만 보고 진입. "
-        "영상 33:30~35:00 VVPR 사례에서 Ross가 직접 강조한 게이트.",
+        value=False,
+        help="False(기본 — 4/11~5/11 nasdaq_full sweep에서 영향 0 확인): "
+        "같은 BullFlagDetector를 5m에도 돌려 두 분봉 모두에서 신호가 잡힌 "
+        "시점만 통과. True로 켜면 영상 DP4 33:30~35:00 VVPR 정통 룰 적용 "
+        "(Ross가 두 화면 동시에 보고 판단) — 보수적이라 trade 수 ↓.",
     )
     mtf_tolerance_seconds = st.number_input(
         "MTF time tolerance (seconds)",
@@ -370,7 +370,6 @@ if not run_btn:
 
 # ---- Data fetch ----------------------------------------------------
 md = RegularSessionFilterAdapter(build_default_market_data(), market=market)
-yf_adapter = YFinanceAdapter()
 
 with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
     try:
@@ -378,7 +377,10 @@ with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
         # 5m: MTF alignment 검증 + 시각화에 사용
         df_5m = md.fetch_ohlcv(ticker.upper(), start_date, end_date, interval="5m")
         # 50일 RVOL 계산을 위해 충분한 daily 히스토리 확보.
-        df_daily = yf_adapter.fetch_ohlcv(ticker.upper(), start_date - timedelta(days=120), end_date)
+        # composed adapter 통해 yfinance primary + Massive fallback.
+        df_daily = md.fetch_ohlcv(
+            ticker.upper(), start_date - timedelta(days=120), end_date, interval="1d",
+        )
     except Exception as exc:
         st.error(f"Data fetch failed: {exc}")
         st.stop()
@@ -399,20 +401,15 @@ else:
     df_5m = None  # 데이터 없으면 MTF check 자동 비활성화
 
 # ---- Float + splits lookup -----------------------------------------
+# EODHD primary + Massive fallback + 7-day disk cache. yfinance
+# rate-limit에 의존하지 않음.
 float_shares: float | None = None
 splits_series = None
 with st.spinner(f"Fetching float / splits for {ticker.upper()}..."):
     try:
-        tk = yf.Ticker(ticker.upper())
-        info = tk.get_info()
-        float_shares = info.get("floatShares")
-        if float_shares is not None:
-            float_shares = float(float_shares)
-        # Splits: pd.Series indexed by datetime, values = ratio.
-        # 비어있으면 None으로 둬서 detector가 split 필터를 스킵하게 함.
-        s = tk.splits
-        if s is not None and len(s) > 0:
-            splits_series = s
+        fund = build_default_fundamentals().fetch(ticker.upper())
+        float_shares = fund.float_shares
+        splits_series = fund.splits
     except Exception as exc:
         st.warning(f"Lookup failed: {exc} — float/split filters may behave conservatively.")
 

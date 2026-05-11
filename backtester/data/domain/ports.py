@@ -1,7 +1,53 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import date
 
 import pandas as pd
+
+
+@dataclass(frozen=True)
+class TickerFundamentals:
+    """Per-ticker fundamentals snapshot used by stock-selection filters.
+
+    Float / splits don't change intra-day so this is fetched once per
+    ticker per scan and cached with a multi-day TTL upstream.
+
+    ``float_shares`` is the *public float* (= shares outstanding minus
+    insider/lock-up/treasury holdings) — the supply-side number Ross's
+    Bull Flag setup keys off of (low float = more % move per dollar
+    of buying pressure).
+
+    ``splits`` matches ``yfinance.Ticker.splits``: a Series indexed by
+    split-effective date, value = ratio (>1 = forward, <1 = reverse).
+    Empty / None means no split history.
+    """
+
+    symbol: str
+    float_shares: float | None
+    splits: pd.Series | None
+
+
+class FundamentalsPort(ABC):
+    """Port: per-ticker fundamentals (float, splits) fetcher.
+
+    Separate from :class:`MarketDataPort` because fundamentals come
+    from different endpoints (EODHD ``/fundamentals``, Polygon
+    ``/v3/reference/tickers``) and have a different cache profile —
+    float updates rarely (weekly at best), so a multi-day TTL on the
+    cache is appropriate.
+    """
+
+    @abstractmethod
+    def fetch(self, symbol: str) -> TickerFundamentals:
+        """Return a snapshot for ``symbol`` (e.g. ``"AAPL"``).
+
+        On any data-source failure (HTTP 4xx/5xx, parse error, missing
+        keys) the implementation returns ``TickerFundamentals(symbol,
+        float_shares=None, splits=None)`` rather than raising — the
+        strategy decides whether missing float disqualifies the ticker
+        via ``require_float_filter``.
+        """
+        ...
 
 
 class MarketDataPort(ABC):
