@@ -3,27 +3,47 @@
 Pages should call :func:`build_default_market_data` instead of
 hand-wiring the adapters. The factory:
 
-1. Wraps each upstream source (yfinance, EODHD, Massive) with its
-   own parquet-cache directory so cached parquets never cross-
-   pollinate. Without per-source caching, a previously-cached
-   yfinance-clamped sub-daily window would be served on subsequent
-   calls even after we started routing sub-daily fetches to a paid
-   provider.
+1. Wraps each upstream source (yfinance, EODHD, Massive) with the
+   **MongoDB-backed cache** (`MongoDayCacheAdapter`). One Mongo
+   collection per source so a cross-source peek can find a hit even
+   if the primary source has only a fail marker.
 
-2. Routes by interval: daily → yfinance (free, sufficient depth),
-   sub-daily → **EODHD with Massive fallback**. When EODHD's daily
-   quota is exhausted (HTTP 402) or any other call fails, the
-   fallback transparently routes to Massive/Polygon — which has
-   10y+ depth on US equities and a separate quota.
+2. Routes by interval:
+     - daily       → yfinance primary + Massive fallback
+     - sub-daily   → EODHD primary + Massive fallback
+
+   When EODHD or yfinance throws (HTTP 402 quota, 429 rate limit),
+   the fallback transparently routes to Massive/Polygon.
 
 3. When neither EODHD nor MASSIVE keys are configured, falls back
-   to yfinance for all intervals.
+   to a single uncached yfinance for all intervals.
 
-Cache layout::
+Storage layout
+--------------
+- OHLCV cache is **day-chunked** — one Mongo doc per
+  (symbol, interval, date) — in collections ``bars_eodhd`` /
+  ``bars_massive`` / ``bars_yfinance`` inside the ``pattern_finder``
+  database (see ``MONGO_DB`` env var). Different windows that share
+  any business days reuse the same per-day docs.
+- Mongo data files are bind-mounted from the host
+  (``./mongodata`` per ``docker-compose.yaml``) — the docker image
+  stays small while the cache survives container rebuilds.
 
-    /tmp/pattern-finder-cache/                 # daily yfinance parquets
-    /tmp/pattern-finder-cache/eodhd/           # EODHD sub-daily parquets
-    /tmp/pattern-finder-cache/massive/         # Massive sub-daily parquets
+Today-partial policy
+--------------------
+A day fetched while it was *today* is stored with
+``is_partial=True``. On the next request after the system date
+advances, that single day is refetched (past days in the same range
+are still served from cache). Past-day entries (``is_partial=False``)
+are permanent.
+
+Signal pages
+------------
+Signal pages (live entry-candidate scanners — e.g.
+``4_Multi_Wedgepop_Signals.py``) keep using the parquet-based
+``CachedMarketDataAdapter`` directly with ``bypass_today=True``. They
+need a clean "always re-fetch the partial day" opt-in and don't
+benefit from cross-machine cache sharing.
 """
 
 from __future__ import annotations
@@ -35,6 +55,7 @@ from data.adapters.interval_routing_market_data import (
     IntervalRoutingMarketData,
 )
 from data.adapters.massive_adapter import MassiveAdapter
+from data.adapters.mongo_day_cache import MongoDayCacheAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from data.domain.ports import MarketDataPort
 
@@ -42,52 +63,46 @@ from data.domain.ports import MarketDataPort
 def build_default_market_data(
     *, bypass_today: bool = False
 ) -> MarketDataPort:
-    """Return the routed + cached market-data stack used by every
-    Streamlit page.
+    """Return the routed + Mongo-cached market-data stack used by every
+    backtest Streamlit page / sweep CLI.
 
     ``bypass_today``:
-        Threaded into every ``CachedMarketDataAdapter`` in the chain.
-        **Signal pages** (live entry-candidate scanners) pass True so
-        a fresh fetch hits the wire whenever the request window
-        includes today — caching a mid-session bar would serve stale
-        OHLC/Volume. Backtest / parameter-sweep pages leave it False
-        (default) so the same parquet is reused across iterations
-        even when ``end`` is today.
+        Threaded into every cache adapter. **Signal pages** that need
+        a fresh fetch when the window includes today should set True
+        — but those pages typically wire ``CachedMarketDataAdapter``
+        themselves rather than going through this factory. Backtest
+        and parameter-sweep pages leave it False (default) so the
+        Mongo cache is reused across iterations.
 
     Composition::
 
         IntervalRoutingMarketData(
             sub_daily = FallbackMarketDataAdapter(
-                primary  = Cached(EODHD,   .../eodhd),
-                fallback = Cached(Massive, .../massive),
+                primary  = MongoDayCache(EODHD,   "bars_eodhd"),
+                fallback = MongoDayCache(Massive, "bars_massive"),
             ),
             daily     = FallbackMarketDataAdapter(
-                primary  = Cached(YFinance, .../),
-                fallback = Cached(Massive,  .../massive),
+                primary  = MongoDayCache(YFinance, "bars_yfinance"),
+                fallback = MongoDayCache(Massive,  "bars_massive"),
             ),
         )
 
     Each leg degrades gracefully:
-      - No EODHD key   → sub-daily primary is just Massive (no fallback).
+      - No EODHD key   → sub-daily primary is just Massive.
       - No MASSIVE key → no fallback for either daily or sub-daily.
-      - Neither key    → all intervals via yfinance.
-
-    Daily fallback rationale: yfinance daily aggressively rate-limits
-    (HTTP 429) under burst load. When the cache misses for a fresh
-    ticker the page hangs indefinitely on the retry chain. Routing
-    through Massive on yfinance failure keeps the page responsive —
-    Polygon's daily endpoint has 10y+ depth on US equities.
+      - Neither key    → all intervals via yfinance (no Mongo wrap).
     """
-    yf_cached = CachedMarketDataAdapter(
+    yf_cached = MongoDayCacheAdapter(
         YFinanceAdapter(),
+        source_name="yfinance",
         bypass_today=bypass_today,
     )
 
     eodhd_cached = None
     try:
-        eodhd_cached = CachedMarketDataAdapter(
+        eodhd_cached = MongoDayCacheAdapter(
             EODHDAdapter(),
-            cache_dir="/tmp/pattern-finder-cache/eodhd",
+            source_name="eodhd",
             bypass_today=bypass_today,
         )
     except ValueError:
@@ -95,9 +110,9 @@ def build_default_market_data(
 
     massive_cached = None
     try:
-        massive_cached = CachedMarketDataAdapter(
+        massive_cached = MongoDayCacheAdapter(
             MassiveAdapter(),
-            cache_dir="/tmp/pattern-finder-cache/massive",
+            source_name="massive",
             bypass_today=bypass_today,
         )
     except ValueError:
@@ -106,7 +121,7 @@ def build_default_market_data(
     # Compose sub-daily source. Prefer EODHD primary (KR coverage,
     # cheaper, well-tested) with Massive fallback for quota-exhaust
     # days. If only one is available, use it directly. If neither,
-    # all intervals go via yfinance.
+    # all intervals go via uncached yfinance.
     if eodhd_cached is not None and massive_cached is not None:
         sub_daily: MarketDataPort = FallbackMarketDataAdapter(
             primary=eodhd_cached,
@@ -119,9 +134,14 @@ def build_default_market_data(
     elif massive_cached is not None:
         sub_daily = massive_cached
     else:
-        return yf_cached
+        # No paid sub-daily source configured — fall back to yfinance
+        # for all intervals. Drop Mongo wrap to avoid a useless
+        # Mongo dependency on the local-dev path.
+        return CachedMarketDataAdapter(
+            YFinanceAdapter(), bypass_today=bypass_today,
+        )
 
-    # Daily leg: yfinance primary (free, fast when cache hits) + Massive
+    # Daily leg: yfinance primary (free, fast on hits) + Massive
     # fallback (paid, separate quota) so a yfinance 429 doesn't kill
     # the page.
     if massive_cached is not None:

@@ -16,10 +16,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mongo:
+        condition: service_started
     env_file:
       - ./secrets/secret.env
     environment:
       - DATABASE_URL=postgresql://backtester:backtester@db:5432/backtester
+      - MONGO_URL=mongodb://mongo:27017
+      - MONGO_DB=pattern_finder
+
+  mongo:
+    image: ${MONGO_BASE_IMAGE:-mongo:7}
+    command: ["mongod", "--bind_ip_all", "--quiet"]
+    ports:
+      - "27017:27017"
+    volumes:
+      # 호스트 bind-mount — 데이터가 이미지에 포함되지 않아 이미지 크기 유지.
+      # ``./mongodata``는 .gitignore에 등록되어 트래킹 안 됨.
+      - ./mongodata:/data/db
 
   db:
     image: ${POSTGRES_BASE_IMAGE:-postgres:16-alpine}
