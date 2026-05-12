@@ -75,6 +75,24 @@ with st.sidebar:
         step=1,
         help="ticker별 1m + 5m + daily + float 병렬 fetch worker 수.",
     )
+    chunk_months = st.number_input(
+        "Chunk size (months)",
+        value=1,
+        min_value=1,
+        max_value=24,
+        step=1,
+        help="긴 윈도우는 N개월씩 chunk로 처리해 메모리 OOM 회피. "
+        "한 chunk 내에선 모든 ticker df_intraday를 메모리에 보관 — "
+        "Mongo cache로 chunk 경계 재호출 비용 ~0.",
+    )
+    skip_prefetch = st.checkbox(
+        "Skip prefetch (assume Mongo cache populated)",
+        value=False,
+        help="True: Phase 1 (DB 적재) 건너뛰고 바로 Phase 2 시뮬레이션. "
+        "이전 run에서 같은 (universe × window)로 prefetch 완료한 상태에서 "
+        "파라미터만 바꿔 다시 돌릴 때 유용. cache miss 시엔 Phase 2가 "
+        "lazy하게 upstream 호출.",
+    )
 
     st.header("Date range")
     start_date = st.date_input(
@@ -146,6 +164,17 @@ with st.sidebar:
     min_bar_range = st.number_input("Min bar range ($)", value=0.001, min_value=0.0, max_value=1.0, step=0.001, format="%.3f")
     max_bar_gap_seconds = st.number_input("Max bar gap (seconds)", value=90, min_value=30, max_value=600, step=15)
 
+    st.header("Quality Filters (CSV 분석 + Ross 영상 추가 룰)")
+    max_rvol_input = st.number_input("Max RVOL (≥30x = over-extended)", value=30.0, min_value=5.0, max_value=100.0, step=5.0, format="%.1f", help="0이면 비활성")
+    max_gap_pct_input = st.number_input("Max gap (%)", value=30.0, min_value=0.0, max_value=500.0, step=5.0, format="%.1f", help="0이면 비활성")
+    max_stop_dist_pct_input = st.number_input("Max stop distance (%)", value=5.0, min_value=0.5, max_value=20.0, step=0.5, format="%.1f")
+    require_9ema = st.checkbox("Require 9 EMA support (Ross)", value=True)
+    ema9_tol_pct = st.number_input("9 EMA tolerance (%)", value=1.5, min_value=0.1, max_value=10.0, step=0.1, format="%.1f", disabled=not require_9ema)
+    require_daily_trend = st.checkbox("Require daily uptrend (Ross)", value=True)
+    daily_sma_period = st.number_input("Daily SMA period", value=50, min_value=10, max_value=200, step=10, disabled=not require_daily_trend)
+    max_nth_pullback = st.number_input("Max N-th pullback (Ross: 1st/2nd OK)", value=2, min_value=1, max_value=5, step=1)
+    use_premarket_high = st.checkbox("Require entry > PM high (Ross)", value=True, help="PM 데이터 자동 fetch")
+
     st.header("Exit / Sizing")
     target_min_r = st.number_input("Min R/R required", value=2.0, min_value=1.0, max_value=10.0, step=0.5, format="%.1f")
     use_fixed_target = st.checkbox("Use fixed R-multiple target", value=True)
@@ -182,7 +211,8 @@ if not run_btn:
     st.stop()
 
 # ---- Build adapters + factories ------------------------------------
-md = RegularSessionFilterAdapter(build_default_market_data(), market=NY)
+md_raw = build_default_market_data()  # PM bars 살아있음 — PM high 계산용
+md = RegularSessionFilterAdapter(md_raw, market=NY)
 md_5m = md  # 같은 어댑터로 5m 호출 (interval만 다름)
 # Daily도 composed adapter 통해 fetch (yfinance primary + Massive fallback)
 md_daily = md
@@ -196,7 +226,7 @@ fee_schedule = TossFeeSchedule(
 )
 
 
-def detector_factory(*, float_shares, splits):
+def detector_factory(*, float_shares, splits, pm_high_by_date=None):
     return BullFlagDetector(
         float_shares=float_shares,
         require_float_filter=bool(require_float),
@@ -218,6 +248,16 @@ def detector_factory(*, float_shares, splits):
         mtf_tolerance_seconds=int(mtf_tolerance_seconds),
         min_bar_range=float(min_bar_range),
         max_bar_gap_seconds=int(max_bar_gap_seconds),
+        # ---- new quality filters ----
+        max_rvol=float(max_rvol_input) if max_rvol_input > 0 else None,
+        max_gap_pct=float(max_gap_pct_input) / 100.0 if max_gap_pct_input > 0 else None,
+        max_stop_distance_pct=float(max_stop_dist_pct_input) / 100.0,
+        require_9ema_support=bool(require_9ema),
+        ema9_tolerance_pct=float(ema9_tol_pct) / 100.0,
+        require_daily_trend=bool(require_daily_trend),
+        daily_trend_sma_period=int(daily_sma_period),
+        max_nth_pullback=int(max_nth_pullback),
+        premarket_high_by_date=pm_high_by_date if use_premarket_high else None,
     )
 
 
@@ -247,6 +287,8 @@ multi = MultiBullFlagStrategy(
     market=NY,
     max_workers=int(max_workers),
     require_float_filter=bool(require_float),
+    chunk_months=int(chunk_months),
+    raw_market_data=md_raw if use_premarket_high else None,
 )
 
 config = MultiStrategyConfig(
@@ -261,12 +303,29 @@ config = MultiStrategyConfig(
     fee_schedule=fee_schedule,
 )
 
-with st.spinner("Scanning universe... (1m+5m+daily fetch + float lookup throttled)"):
-    try:
-        result = multi.run(config)
-    except Exception as exc:
-        st.error(f"Scan failed: {exc}")
-        st.stop()
+try:
+    # Resolve ticker list once so Phase 1 and Phase 2 see the same slice.
+    _resolved_tickers = universe_provider.get_tickers(universe)
+    if max_tickers > 0:
+        _resolved_tickers = _resolved_tickers[: int(max_tickers)]
+
+    if skip_prefetch:
+        with st.spinner(
+            f"Phase 2 only — chunked simulation over {len(_resolved_tickers)} tickers..."
+        ):
+            result = multi.simulate(config, tickers=_resolved_tickers)
+    else:
+        with st.spinner(
+            f"Phase 1 — ingesting {len(_resolved_tickers)} tickers to Mongo..."
+        ):
+            multi.prefetch(_resolved_tickers, config.start_date, config.end_date)
+        with st.spinner(
+            f"Phase 2 — chunked simulation ({chunk_months}-month chunks)..."
+        ):
+            result = multi.simulate(config, tickers=_resolved_tickers)
+except Exception as exc:
+    st.error(f"Scan failed: {exc}")
+    st.stop()
 
 # ---- Render results -------------------------------------------------
 render_headline_metrics(result, universe_label=universe)

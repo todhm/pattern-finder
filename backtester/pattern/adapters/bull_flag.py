@@ -212,6 +212,41 @@ class BullFlagDetector:
         # split-adjusted price가 시간에 따라 점프하는 종목(sub-\$1
         # → \$7+ 같은) 을 catch.
         price_floor_lookback_days: int = 30,
+        # ---- CSV 결과 분석 기반 새 필터 (2026-05 export 분석) ----
+        # 단일 변수 분석에서 가장 임팩트 큰 3가지 — 이 값들을 넘으면
+        # 손실 가능성 대폭 증가 (export CSV 34건 분석 결과 win-rate가
+        # 36%로 떨어짐).
+        #
+        # ``max_rvol`` — RVOL 상한. 영상 정통은 "≥ 5x" 만 명시. 그러나
+        # ≥ 30x는 이미 over-extended → setup played out. 기본 30.0.
+        max_rvol: float | None = 30.0,
+        # ``max_gap_pct`` — pre-market gap 상한. 영상은 "≥ +2%, 이상적
+        # +10%" 만 명시. > 30% gap은 mean-reversion risk. 기본 0.30.
+        max_gap_pct: float | None = 0.30,
+        # ``max_stop_distance_pct`` — entry → stop 거리 (risk %)의 상한.
+        # > 5%이면 entry가 실제 지지선(flag_low)에서 너무 멀어진 셋업 →
+        # wide stop → poor R/R. 기본 0.05.
+        max_stop_distance_pct: float = 0.05,
+        # ---- Ross 영상 정통 추가 룰 ----
+        # ``require_9ema_support`` — "I use 9 EMA on every timeframe"
+        # (Ross). 풀백 저점이 9 EMA에서 받쳐주는 셋업이 정통. 풀백
+        # 저점 봉의 low가 ``ema9_tolerance_pct`` 안에 있어야 통과.
+        require_9ema_support: bool = True,
+        ema9_tolerance_pct: float = 0.015,  # 1.5% — 풀백이 9 EMA 닿음
+        # ``require_daily_trend`` — Ross는 "daily 상승추세인 종목만"
+        # 강조. 진입일 종가가 daily SMA{period} 위에 있어야 통과.
+        require_daily_trend: bool = True,
+        daily_trend_sma_period: int = 50,
+        # ``max_nth_pullback`` — Ross: "1st/2nd pullback work well,
+        # 3rd start to be cautious". 같은 세션 내에서 검출한 풀백 카운트.
+        # 1 = 첫 풀백만, 2 = 첫·둘째, 3 = 셋째까지. 기본 2 (영상 정통).
+        max_nth_pullback: int = 2,
+        # ``premarket_high_by_date`` — Ross는 PM high를 저항/돌파 기준으로 봄.
+        # 페이지/composition root에서 RegularSessionFilter 적용 전 raw
+        # intraday로 (start, end) 동안 세션별 PM high 계산해서 주입.
+        # 진입가 < PM high면 reject. None이면 게이트 비활성 (영상 정통은
+        # PM high를 명시적으로 룰화하지 않으니 기본 None).
+        premarket_high_by_date: dict[date, float] | None = None,
     ) -> None:
         if pole_lookback < 2:
             raise ValueError("pole_lookback must be >= 2")
@@ -242,6 +277,16 @@ class BullFlagDetector:
         self.splits = splits
         self.split_blackout_days = split_blackout_days
         self.price_floor_lookback_days = price_floor_lookback_days
+        # New filters
+        self.max_rvol = max_rvol
+        self.max_gap_pct = max_gap_pct
+        self.max_stop_distance_pct = max_stop_distance_pct
+        self.require_9ema_support = require_9ema_support
+        self.ema9_tolerance_pct = ema9_tolerance_pct
+        self.require_daily_trend = require_daily_trend
+        self.daily_trend_sma_period = daily_trend_sma_period
+        self.max_nth_pullback = max_nth_pullback
+        self.premarket_high_by_date = premarket_high_by_date or {}
 
     # ---- public API ------------------------------------------------
 
@@ -381,6 +426,28 @@ class BullFlagDetector:
             & (df_daily["Open"] <= self.max_price)
             & floor_ok
         )
+        # RVOL upper cap — over-extended momentum (CSV 분석: ≥30x 시
+        # 36% win rate). None이면 비활성.
+        if self.max_rvol is not None:
+            gate = gate & (rvol <= self.max_rvol)
+        # Gap upper cap — too-far gap = mean-reversion risk
+        # (CSV 분석: >30% gap에서 36% win rate).
+        if self.max_gap_pct is not None:
+            gate = gate & (gap_pct <= self.max_gap_pct)
+        # Daily trend filter — Ross: "daily uptrend 상에서만 진입".
+        # 진입일 close > SMA{period} 인지 확인. SMA 계산용 충분한
+        # 히스토리가 없으면 (rolling NaN) 보수적으로 False.
+        if self.require_daily_trend:
+            sma = (
+                df_daily["Close"]
+                .rolling(
+                    self.daily_trend_sma_period,
+                    min_periods=max(10, self.daily_trend_sma_period // 4),
+                )
+                .mean()
+            )
+            trend_ok = (df_daily["Close"] > sma).fillna(False)
+            gate = gate & trend_ok
 
         # Split blackout — split 이벤트 전후 ±N거래일 거름.
         # ``Ticker.splits`` 는 split 발생일을 인덱스로, 비율(>1=forward,
@@ -485,8 +552,22 @@ class BullFlagDetector:
         if n < self.pole_lookback + self.flag_max_bars + 1:
             return []
 
+        # 9 EMA — Ross's "I use this on every time frame". Computed
+        # once per session (instead of per-iteration) for speed.
+        ema9 = (
+            pd.Series(closes).ewm(span=9, adjust=False).mean().to_numpy()
+        )
+        # Pre-market high for this session_date — Ross uses PM high
+        # as resistance/breakout reference. 0.0 = no PM data injected
+        # → the check skips (graceful degradation).
+        pm_high = float(self.premarket_high_by_date.get(sess_date, 0.0))
+
         signals: list[BullFlagSignal] = []
         used_pole_starts: set[int] = set()
+        # N-th pullback counter — Ross: "1st/2nd work well, 3rd start
+        # to be cautious". Increment on every fired signal in this
+        # session; reject when count > max_nth_pullback.
+        pullback_count = 0
         i = self.pole_lookback  # earliest possible pole_end index
 
         while i < n - 1:
@@ -654,6 +735,32 @@ class BullFlagDetector:
                     if entry_price - stop <= 0:
                         break
 
+                    # ---- Stop distance cap (CSV 분석: >5% 시 25% win) ----
+                    risk_pct = (entry_price - stop) / entry_price
+                    if risk_pct > self.max_stop_distance_pct:
+                        break  # wide stop = poor entry vs support
+
+                    # ---- 9 EMA support check (Ross: "9 EMA on every TF") ----
+                    # 풀백 저점 봉의 low가 9 EMA에서 받쳐주는지. low가
+                    # ema9 위/아래로 tolerance% 이내면 통과.
+                    if self.require_9ema_support and flag_low_idx < len(ema9):
+                        ema9_at_low = float(ema9[flag_low_idx])
+                        if ema9_at_low > 0:
+                            ema9_dev = abs(flag_low - ema9_at_low) / ema9_at_low
+                            if ema9_dev > self.ema9_tolerance_pct:
+                                break  # 풀백이 9 EMA에서 벗어나 있음
+
+                    # ---- Pre-market high check ----
+                    # 진입가가 PM high보다 위여야 함 (Ross: "breaking PM
+                    # high = confirmation"). pm_high=0 이면 데이터 없음
+                    # → 게이트 skip.
+                    if pm_high > 0 and entry_price <= pm_high:
+                        break
+
+                    # ---- N-th pullback counter (Ross: 1st/2nd OK) ----
+                    if pullback_count >= self.max_nth_pullback:
+                        break  # 3번째 이후 풀백 reject
+
                     # HoD = 진입 시점까지의 일중 최고가
                     hod = float(np.max(highs[: j + 1]))
                     risk_per_share = entry_price - stop
@@ -686,6 +793,11 @@ class BullFlagDetector:
                             )
                         )
                         used_pole_starts.add(pole_start_idx)
+                    # Increment per-session pullback counter so the
+                    # next signal in this session is checked against
+                    # ``max_nth_pullback`` even if its candidate breaks
+                    # off a different pole.
+                    pullback_count += 1
                     fired = True
                     i = j  # 이 breakout 다음부터 새 폴 검색
                     break

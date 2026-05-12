@@ -235,6 +235,81 @@ with st.sidebar:
         "사이에 자주 형성되는 케이스 catch.",
     )
 
+    st.header("Quality Filters (CSV 분석 + Ross 영상 추가 룰)")
+    max_rvol_input = st.number_input(
+        "Max RVOL (over-extended cap)",
+        value=30.0,
+        min_value=5.0,
+        max_value=100.0,
+        step=5.0,
+        format="%.1f",
+        help="CSV 분석: ≥ 30x는 setup played out → 36% win. "
+        "0으로 두면 비활성.",
+    )
+    max_gap_pct_input = st.number_input(
+        "Max pre-market gap (%)",
+        value=30.0,
+        min_value=0.0,
+        max_value=500.0,
+        step=5.0,
+        format="%.1f",
+        help="CSV 분석: > 30% gap은 mean-reversion risk. 0이면 비활성.",
+    )
+    max_stop_dist_pct_input = st.number_input(
+        "Max stop distance (%)",
+        value=5.0,
+        min_value=0.5,
+        max_value=20.0,
+        step=0.5,
+        format="%.1f",
+        help="entry → stop 거리. > 5% 이면 entry가 지지선에서 너무 멀어진 "
+        "셋업으로 reject. CSV 분석에서 25% win rate.",
+    )
+    require_9ema = st.checkbox(
+        "Require 9 EMA support (Ross 영상)",
+        value=True,
+        help='Ross: "I use 9 EMA on every timeframe". 풀백 저점이 9 EMA '
+        "근방(±tolerance%)에 있어야 통과. False면 게이트 비활성.",
+    )
+    ema9_tol_pct = st.number_input(
+        "9 EMA tolerance (%)",
+        value=1.5,
+        min_value=0.1,
+        max_value=10.0,
+        step=0.1,
+        format="%.1f",
+        disabled=not require_9ema,
+    )
+    require_daily_trend = st.checkbox(
+        "Require daily uptrend (Ross 영상)",
+        value=True,
+        help='Ross: "stock should be in daily uptrend". 진입일 close > '
+        "SMA{period}일 때만 통과.",
+    )
+    daily_sma_period = st.number_input(
+        "Daily trend SMA period",
+        value=50,
+        min_value=10,
+        max_value=200,
+        step=10,
+        disabled=not require_daily_trend,
+    )
+    max_nth_pullback = st.number_input(
+        "Max N-th pullback",
+        value=2,
+        min_value=1,
+        max_value=5,
+        step=1,
+        help='Ross: "1st/2nd pullback work well, 3rd start to be cautious". '
+        "같은 세션 내 N번째 풀백까지만 통과.",
+    )
+    use_premarket_high = st.checkbox(
+        "Require entry > pre-market high (Ross 영상)",
+        value=True,
+        help='Ross: "breaking PM high = confirmation". 진입가가 PM high보다 '
+        "위여야 통과. False면 비활성. PM 데이터 fetch는 자동.",
+    )
+
     st.header("Exit / Sizing")
     target_min_r = st.number_input(
         "Min R/R required to enter",
@@ -369,7 +444,8 @@ if not run_btn:
     st.stop()
 
 # ---- Data fetch ----------------------------------------------------
-md = RegularSessionFilterAdapter(build_default_market_data(), market=market)
+md_raw = build_default_market_data()  # PM bars 살아있음 — PM high 계산용
+md = RegularSessionFilterAdapter(md_raw, market=market)
 
 with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
     try:
@@ -381,9 +457,32 @@ with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
         df_daily = md.fetch_ohlcv(
             ticker.upper(), start_date - timedelta(days=120), end_date, interval="1d",
         )
+        # PM bars (4:00 ~ 9:30 ET) — RegularSessionFilter 우회한 raw 데이터.
+        # 페이지 옵션이 켜져 있을 때만 fetch.
+        df_intraday_raw = None
+        if bool(use_premarket_high):
+            df_intraday_raw = md_raw.fetch_ohlcv(
+                ticker.upper(), start_date, end_date, interval="1m",
+            )
     except Exception as exc:
         st.error(f"Data fetch failed: {exc}")
         st.stop()
+
+# 세션별 PM high 계산 (사용자가 PM high 게이트 켰을 때만).
+premarket_high_by_date: dict = {}
+if bool(use_premarket_high) and df_intraday_raw is not None and not df_intraday_raw.empty:
+    _raw = df_intraday_raw
+    if _raw.index.tz is None:
+        _raw = _raw.copy()
+        _raw.index = _raw.index.tz_localize(market.tz)
+    elif str(_raw.index.tz) != market.tz:
+        _raw = _raw.copy()
+        _raw.index = _raw.index.tz_convert(market.tz)
+    # 4:00 ~ 9:29 ET 범위만 → 세션 일자별 max High
+    _pm = _raw.between_time("04:00", "09:29")
+    if not _pm.empty:
+        for d, group in _pm.groupby(_pm.index.date):
+            premarket_high_by_date[d] = float(group["High"].max())
 
 if df_intraday is None or df_intraday.empty:
     st.warning("No 1m data returned for that range.")
@@ -476,6 +575,16 @@ detector = BullFlagDetector(
     mtf_tolerance_seconds=int(mtf_tolerance_seconds),
     min_bar_range=float(min_bar_range),
     max_bar_gap_seconds=int(max_bar_gap_seconds),
+    # ---- New quality filters ----
+    max_rvol=float(max_rvol_input) if max_rvol_input > 0 else None,
+    max_gap_pct=float(max_gap_pct_input) / 100.0 if max_gap_pct_input > 0 else None,
+    max_stop_distance_pct=float(max_stop_dist_pct_input) / 100.0,
+    require_9ema_support=bool(require_9ema),
+    ema9_tolerance_pct=float(ema9_tol_pct) / 100.0,
+    require_daily_trend=bool(require_daily_trend),
+    daily_trend_sma_period=int(daily_sma_period),
+    max_nth_pullback=int(max_nth_pullback),
+    premarket_high_by_date=premarket_high_by_date if use_premarket_high else None,
 )
 strategy = BullFlagStrategy(
     detector=detector,

@@ -23,12 +23,24 @@ Lifecycle (mirrors Multi FCR / Multi Wedgepop):
 
 from __future__ import annotations
 
+import gc
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as date_t, time, timedelta
 from typing import Any
 
 import pandas as pd
+
+
+class _DailyFiltered:
+    """Sentinel — ticker was successfully fetched + checked but had
+    no qualifying session in this chunk's window. Distinguishes
+    early-skipped tickers from actual data-fetch failures so
+    ``failed_tickers`` doesn't include them.
+    """
+
+
+DAILY_FILTERED = _DailyFiltered()
 
 from data.domain.market_calendar import MarketCalendar, NY
 from data.domain.ports import (
@@ -71,6 +83,12 @@ class MultiBullFlagStrategy:
         max_workers: int = 4,
         min_bars: int = 60,
         require_float_filter: bool = True,
+        chunk_months: int = 1,
+        # Unfiltered intraday source — page wires the composed market
+        # data WITHOUT the RegularSessionFilterAdapter so PM bars
+        # (04:00–09:29 ET) are visible. None disables the PM high
+        # filter (detector skips the gate).
+        raw_market_data: MarketDataPort | None = None,
     ) -> None:
         self._market_data = market_data
         self._market_data_5m = market_data_5m
@@ -86,37 +104,208 @@ class MultiBullFlagStrategy:
         self._max_workers = max_workers
         self._min_bars = min_bars
         self._require_float_filter = require_float_filter
+        self._raw_market_data = raw_market_data
+        # Long windows (e.g. 16 months × 2,262 NASDAQ tickers × 1m
+        # bars ≈ 25GB) OOM-kill the container. ``chunk_months`` splits
+        # the request window into smaller passes so the in-memory
+        # ``ticker_state`` for each pass fits comfortably; Mongo cache
+        # absorbs the re-fetch across chunk boundaries without an
+        # upstream network call.
+        self._chunk_months = chunk_months
 
     # ---- public API ----
 
-    def run(self, config: MultiStrategyConfig) -> MultiStrategyResult:
-        tickers = self._universe_provider.get_tickers(config.universe)
-        if config.max_tickers is not None:
-            tickers = tickers[: config.max_tickers]
+    def prefetch(
+        self,
+        tickers: list[str],
+        start_date: date_t,
+        end_date: date_t,
+    ) -> None:
+        """**Phase 1** — ingest the full window for ``tickers`` into Mongo.
 
-        ticker_state, failed = self._scan_universe(tickers, config)
-        signals_by_date, total_signals = self._collect_signals(
-            ticker_state, config
+        Walks each ticker once, fetching (1m, 5m, daily, fundamentals)
+        through the cache stack so the day-chunked Mongo collection
+        is populated. Per-ticker DataFrames are dropped immediately
+        after the cache write — memory high-water is one ticker's
+        worth of data (~10MB for a 1-year 1m window) × ``max_workers``.
+
+        Idempotent: re-running ``prefetch`` on already-cached data is
+        a no-op aside from Mongo lookups (no upstream calls), so a
+        sweep can call it once per session and re-use the populated
+        cache across every iteration's :meth:`simulate` call.
+
+        ``tickers`` is passed explicitly rather than resolved through
+        ``universe_provider`` so the caller controls (a) the universe
+        selection and (b) the slice (e.g. ``[:max_tickers]``).
+        """
+        daily_start = start_date - timedelta(days=120)
+        intraday_start = start_date - timedelta(days=self._warmup_days)
+
+        def _ingest(ticker: str) -> None:
+            try:
+                self._market_data.fetch_ohlcv(
+                    ticker, intraday_start, end_date, interval="1m"
+                )
+            except Exception:
+                pass
+            try:
+                self._market_data_5m.fetch_ohlcv(
+                    ticker, intraday_start, end_date, interval="5m"
+                )
+            except Exception:
+                pass
+            try:
+                self._daily_market_data.fetch_ohlcv(
+                    ticker, daily_start, end_date
+                )
+            except Exception:
+                pass
+            try:
+                self._fundamentals.fetch(ticker)
+            except Exception:
+                pass
+            # No state retained — return value discarded after Mongo
+            # write. Local DataFrames go out of scope here.
+
+        with ThreadPoolExecutor(max_workers=self._max_workers) as ex:
+            futures = [ex.submit(_ingest, t) for t in tickers]
+            for fut in as_completed(futures):
+                try:
+                    fut.result()
+                except Exception:
+                    pass
+        gc.collect()
+
+    def simulate(
+        self,
+        config: MultiStrategyConfig,
+        tickers: list[str] | None = None,
+    ) -> MultiStrategyResult:
+        """**Phase 2** — run the chunked simulation on already-cached data.
+
+        Assumes :meth:`prefetch` has populated Mongo for the same
+        (tickers × window). If the cache misses for some ticker /
+        day, the wrapped market-data stack will route through its
+        normal upstream path — so a cold call to ``simulate`` still
+        works, it just pays the upstream cost lazily per chunk.
+
+        ``tickers`` defaults to the configured universe slice
+        (``universe_provider.get_tickers(config.universe)[:max_tickers]``)
+        so existing callers don't break — pass explicitly when the
+        caller already has a list (e.g. resolved once for ``prefetch``).
+        """
+        if tickers is None:
+            tickers = self._universe_provider.get_tickers(config.universe)
+            if config.max_tickers is not None:
+                tickers = tickers[: config.max_tickers]
+
+        chunks = self._split_window(
+            config.start_date, config.end_date, self._chunk_months
         )
-        trades, curve, final_capital, max_dd = self._walk_signals(
-            signals_by_date, ticker_state, config
-        )
+
+        all_trades: list[MultiTrade] = []
+        all_failed: set[str] = set()
+        total_signals = 0
+        capital = config.initial_capital
+        peak = capital
+        max_dd = 0.0
+        equity_curve: list[EquityPoint] = [
+            EquityPoint(date=config.start_date, equity=capital)
+        ]
+
+        for chunk_idx, (c_start, c_end) in enumerate(chunks):
+            chunk_cfg = config.model_copy(update={
+                "start_date": c_start, "end_date": c_end,
+                "initial_capital": capital,
+            })
+
+            ticker_state, failed = self._scan_universe(tickers, chunk_cfg)
+            all_failed.update(failed)
+            signals_by_date, sig_count = self._collect_signals(
+                ticker_state, chunk_cfg
+            )
+            total_signals += sig_count
+            trades, curve, capital, chunk_dd = self._walk_signals(
+                signals_by_date, ticker_state, chunk_cfg
+            )
+            all_trades.extend(trades)
+            # Merge equity curve — drop the chunk's seed point (= prior
+            # chunk's final capital) to avoid a duplicate at the boundary.
+            equity_curve.extend(curve[1:])
+            # Track max-DD globally — each chunk reports its own DD but
+            # cross-chunk peaks need running comparison too.
+            peak = max(peak, capital)
+            if peak > 0:
+                running_dd = (peak - capital) / peak
+                max_dd = max(max_dd, max(running_dd, chunk_dd))
+
+            del ticker_state, signals_by_date, trades, curve
+            gc.collect()
+
         return self._build_result(
             config=config,
             tickers_scanned=len(tickers),
             total_signals=total_signals,
-            trades=trades,
-            equity_curve=curve,
-            final_capital=final_capital,
+            trades=all_trades,
+            equity_curve=equity_curve,
+            final_capital=capital,
             max_dd=max_dd,
-            failed=failed,
+            failed=sorted(all_failed),
         )
+
+    def run(self, config: MultiStrategyConfig) -> MultiStrategyResult:
+        """Convenience: :meth:`prefetch` then :meth:`simulate`.
+
+        Used by pages that don't separate ingestion from simulation.
+        Sweep / batch callers should invoke prefetch once + simulate
+        many times for efficiency.
+        """
+        tickers = self._universe_provider.get_tickers(config.universe)
+        if config.max_tickers is not None:
+            tickers = tickers[: config.max_tickers]
+        self.prefetch(tickers, config.start_date, config.end_date)
+        return self.simulate(config, tickers=tickers)
+
+    @staticmethod
+    def _split_window(
+        start: date_t, end: date_t, chunk_months: int
+    ) -> list[tuple[date_t, date_t]]:
+        """Split [start, end] into adjacent windows of ``chunk_months``.
+
+        Last chunk may be shorter. Each (start_i, end_i) pair stays
+        within the original window — no overlap, no gap.
+        """
+        if chunk_months <= 0:
+            return [(start, end)]
+        chunks: list[tuple[date_t, date_t]] = []
+        cursor = start
+        while cursor <= end:
+            # Advance by chunk_months calendar months, clamp to end.
+            year = cursor.year + (cursor.month - 1 + chunk_months) // 12
+            month = ((cursor.month - 1 + chunk_months) % 12) + 1
+            try:
+                next_cursor = date_t(year, month, cursor.day)
+            except ValueError:
+                # day-of-month doesn't exist next month — clamp to 1st.
+                next_cursor = date_t(year, month, 1)
+            chunk_end = min(next_cursor - timedelta(days=1), end)
+            chunks.append((cursor, chunk_end))
+            cursor = chunk_end + timedelta(days=1)
+        return chunks
 
     # ---- phase 1: scan ----
 
     def _scan_universe(
         self, tickers: list[str], config: MultiStrategyConfig
     ) -> tuple[dict[str, dict[str, Any]], list[str]]:
+        """Run per-ticker scan in parallel. Returns (state_dict, failed_list).
+
+        ``failed_list`` only contains tickers with **actual** data-fetch
+        problems — exceptions or missing daily data. Tickers that were
+        successfully checked but didn't pass the daily gate
+        (``DAILY_FILTERED`` sentinel) are silently dropped from both
+        the state dict and the failed list.
+        """
         ticker_state: dict[str, dict[str, Any]] = {}
         failed: list[str] = []
         self._last_fetch_error: str | None = None
@@ -130,6 +319,9 @@ class MultiBullFlagStrategy:
                     self._last_fetch_error = f"{type(exc).__name__}: {exc}"
                     failed.append(t)
                     continue
+                if isinstance(state, _DailyFiltered):
+                    # Verified but no qualifying session — not failed.
+                    continue
                 if state is None:
                     failed.append(t)
                     continue
@@ -138,10 +330,58 @@ class MultiBullFlagStrategy:
 
     def _scan_ticker(
         self, ticker: str, config: MultiStrategyConfig
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any] | None | _DailyFiltered:
         # yfinance daily history padded for RVOL / split-blackout calcs.
         daily_start = config.start_date - timedelta(days=120)
         intraday_start = config.start_date - timedelta(days=self._warmup_days)
+
+        # ============ Phase A — cheap pre-filter ============
+        # Fetch daily + fundamentals FIRST. ~95% of NASDAQ tickers
+        # never pass the 4-criteria gate on a given chunk, and the
+        # intraday/PM fetches dominate Mongo I/O cost. Running the
+        # daily gate up front (same logic as the detector's
+        # ``_qualifying_sessions``) lets us short-circuit those
+        # tickers before paying for 1m/5m/PM reads.
+        try:
+            df_daily = self._daily_market_data.fetch_ohlcv(
+                ticker, daily_start, config.end_date
+            )
+        except Exception:
+            raise
+        if df_daily is None or df_daily.empty:
+            return None
+
+        fundamentals = self._fundamentals.fetch(ticker)
+        float_shares = fundamentals.float_shares
+        splits = fundamentals.splits
+        if float_shares is None and self._require_float_filter:
+            return None
+
+        # Build a probe detector to reuse ``_qualifying_sessions``
+        # logic with the exact same params (max_rvol, max_gap_pct,
+        # daily_trend SMA, splits/price_floor — all the daily-level
+        # gates). pm_high_by_date isn't needed for daily gates.
+        probe = self._detector_factory(
+            float_shares=float_shares,
+            splits=splits,
+            pm_high_by_date={},
+        )
+        qualifying = probe._qualifying_sessions(df_daily)
+        # Trim to chunk window — qualifying dict spans full daily
+        # history (120-day padding), but only signals inside [start, end]
+        # can produce trades for this chunk.
+        in_window = {
+            d: m for d, m in qualifying.items()
+            if config.start_date <= d <= config.end_date
+        }
+        if not in_window:
+            # No qualifying session — short-circuit. NOT a fetch
+            # failure; the daily gate just didn't open. Return the
+            # sentinel so ``_scan_universe`` can keep these out of
+            # the ``failed_tickers`` bucket.
+            return DAILY_FILTERED  # type: ignore[return-value]
+
+        # ============ Phase B — full fetch (qualifying tickers only) ============
         try:
             df_intraday = self._market_data.fetch_ohlcv(
                 ticker, intraday_start, config.end_date, interval="1m"
@@ -149,14 +389,9 @@ class MultiBullFlagStrategy:
             df_5m = self._market_data_5m.fetch_ohlcv(
                 ticker, intraday_start, config.end_date, interval="5m"
             )
-            df_daily = self._daily_market_data.fetch_ohlcv(
-                ticker, daily_start, config.end_date
-            )
         except Exception:
             raise
         if df_intraday is None or df_intraday.empty or len(df_intraday) < self._min_bars:
-            return None
-        if df_daily is None or df_daily.empty:
             return None
 
         # tz-convert intraday once.
@@ -177,18 +412,42 @@ class MultiBullFlagStrategy:
         if df_5m is not None and df_5m.empty:
             df_5m = None
 
-        # Float + splits via FundamentalsPort (EODHD primary +
-        # Massive fallback + 7-day disk cache). No yfinance rate-limit
-        # exposure so this scales to the full NASDAQ universe.
-        # Tickers without float data are dropped if require_float_filter
-        # — Ross's #1 selection criterion.
-        fundamentals = self._fundamentals.fetch(ticker)
-        float_shares = fundamentals.float_shares
-        splits = fundamentals.splits
-        if float_shares is None and self._require_float_filter:
-            return None
+        # Pre-market high per session (Ross: "PM high = breakout
+        # reference"). Only fetched when ``raw_market_data`` is wired
+        # — the same composed adapter but without the RegularSession
+        # filter so 04:00–09:29 bars are visible.
+        pm_high_by_date: dict[date_t, float] = {}
+        if self._raw_market_data is not None:
+            try:
+                raw_df = self._raw_market_data.fetch_ohlcv(
+                    ticker, intraday_start, config.end_date, interval="1m"
+                )
+                if raw_df is not None and not raw_df.empty:
+                    if raw_df.index.tz is None:
+                        raw_df = raw_df.copy()
+                        raw_df.index = raw_df.index.tz_localize(self._market.tz)
+                    elif str(raw_df.index.tz) != self._market.tz:
+                        raw_df = raw_df.copy()
+                        raw_df.index = raw_df.index.tz_convert(self._market.tz)
+                    pm = raw_df.between_time("04:00", "09:29")
+                    if not pm.empty:
+                        for d, group in pm.groupby(pm.index.date):
+                            pm_high_by_date[d] = float(group["High"].max())
+            except Exception:
+                # PM fetch failure → just disable the gate for this
+                # ticker, don't bail the whole scan.
+                pm_high_by_date = {}
 
-        detector = self._detector_factory(float_shares=float_shares, splits=splits)
+        # Rebuild detector with the now-populated pm_high_by_date.
+        # The probe detector with empty PM dict was only used for the
+        # cheap qualifying check; its other gates (RVOL, gap, daily
+        # trend, splits, price-floor) match what ``detect`` will run
+        # again — slight duplication but each path is identical.
+        detector = self._detector_factory(
+            float_shares=float_shares,
+            splits=splits,
+            pm_high_by_date=pm_high_by_date,
+        )
         signals = detector.detect(df_intraday, df_daily, df_5m=df_5m)
 
         # Daily RVOL by date — used for tiebreaker.
@@ -207,6 +466,7 @@ class MultiBullFlagStrategy:
             "drvol_by_date": drvol_by_date,
             "float_shares": float_shares,
             "splits": splits,
+            "pm_high_by_date": pm_high_by_date,
         }
 
     # ---- phase 2a: collect ----
@@ -306,7 +566,9 @@ class MultiBullFlagStrategy:
         # *same* detector that produced this signal so adds / TP /
         # stops behave identically to the single-ticker page.
         detector = self._detector_factory(
-            float_shares=state["float_shares"], splits=state["splits"]
+            float_shares=state["float_shares"],
+            splits=state["splits"],
+            pm_high_by_date=state.get("pm_high_by_date", {}),
         )
         strategy = self._strategy_factory(detector=detector)
         sim_trades, _curve = strategy._simulate(
