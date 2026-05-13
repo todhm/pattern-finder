@@ -6,7 +6,7 @@
 |---|---|
 | `backtester/db/base.py` | `DeclarativeBase` — 모든 ORM 모델의 공통 부모 |
 | `backtester/db/session.py` | `get_engine()`, `session_scope()` — engine/session 싱글톤 |
-| `backtester/signals/adapters/orm.py` | `BuySignalRow` 등 ORM 모델 (각 도메인 어댑터 레이어에 분산 배치) |
+| `backtester/signals/adapters/orm.py` | `BuySignalRow` (각 도메인 어댑터 레이어에 분산 배치) |
 | `backtester/alembic/env.py` | `DATABASE_URL` 환경변수 → `sqlalchemy.url`, `target_metadata = Base.metadata` |
 | `backtester/alembic/versions/` | 마이그레이션 스크립트 |
 | `backtester/alembic.ini` | Alembic 설정 |
@@ -21,6 +21,15 @@ postgresql://backtester:backtester@db:5432/backtester
 
 컨테이너 밖에서 실행하려면 `DATABASE_URL`을 직접 export.
 
+## 현재 마이그레이션 히스토리
+
+| Revision | 설명 |
+|---|---|
+| `342a92059b5f` | `buy_signals` 테이블 생성 (id, ticker, signal_date, pattern_name, entry/stop, metadata JSONB, status, notes, created_at + 인덱스) |
+| `91ee001dc7dd` | `buy_signals` 에 `interval`(server default `"1d"`) + `signal_datetime`(tz-aware, nullable) 컬럼 추가 — intraday(15m) 워치리스트 분리 |
+
+> Mongo는 ORM/Alembic 관리 밖이다. `bars_eodhd` / `bars_massive` / `bars_yfinance` 컬렉션은 `MongoDayCacheAdapter` 가 사용 시점에 인덱스를 보장한다 (마이그레이션 도구 별도 없음).
+
 ## 일상 워크플로우
 
 ### 모델 수정 → 마이그레이션 생성
@@ -32,6 +41,7 @@ docker compose exec backtester alembic revision --autogenerate -m "add column X 
 #    - JSONB 기본값, 서버 side default
 #    - Enum 타입 변경
 #    - 복합 인덱스 이름
+#    - tz-aware DateTime (timezone=True 잊지 말기)
 # 4. 적용
 docker compose exec backtester alembic upgrade head
 ```
@@ -67,6 +77,7 @@ docker compose exec backtester alembic history --verbose      # 전체 히스토
 | `autogenerate` 가 변경사항 안 감지 | 새 모듈의 ORM을 `env.py`에서 import 안 했음. 또는 Base를 상속 안 했음 |
 | `relation "..." already exists` | DB에 수동 생성된 테이블이 먼저 있음 → 수동 drop 후 `alembic upgrade head`, 또는 `alembic stamp head`로 "이미 적용됨" 마킹 |
 | 빈 마이그레이션 (`pass`만 있음) | 스키마 diff 없음. 정상 |
+| `signal_datetime` 이 tz-naive 로 돌아옴 | ORM 컬럼이 `DateTime(timezone=True)` 인지 확인. 마이그레이션에서도 `sa.DateTime(timezone=True)` 명시 |
 
 ## 패턴
 
@@ -74,3 +85,4 @@ docker compose exec backtester alembic history --verbose      # 전체 히스토
 - **도메인 변환기**는 ORM row에 `to_domain()` / `from_domain()` classmethod로 배치
 - **session 수명은 메서드 단위 짧게**. `session_scope()` 문맥 안에서만 open → commit → close
 - **마이그레이션 파일은 review 필수**. autogenerate를 맹신하지 말고 다운그레이드 경로 검증
+- **공용 테이블 + 구분 컬럼** — `buy_signals` 는 여러 전략·캐던스를 같이 담는다. 새 캐던스/전략 추가 시 컬럼 추가 대신 `pattern_name` / `interval` 필터를 우선 검토

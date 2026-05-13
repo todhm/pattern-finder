@@ -37,9 +37,19 @@ trades.parquet
 FairGapValue.docx
 secret.env
 ScrafaceTradePattern.docx
-*.en.vtt
-video_*.mp4
 ChartPatternsv2.pdf
 20250611*.pdf
+
+# ---- Video tutorial work files ----
+# When documenting a YouTube/tutorial video (e.g.
+# docs/strategy_notes/patrick_wieland_bull_flag.md), only the .md +
+# extracted frame images are committed. Raw video downloads and
+# subtitle files stay local — the source is the URL referenced in
+# the doc. Re-fetchable via .claude/scripts/extract_youtube_tutorial.sh.
+*.mp4
 *.mkv
 *.webm
+*.vtt
+*.srt
+# Temp scratch dirs used while pulling a video (e.g. `_tmp_apr3/`)
+docs/strategy_notes/_tmp_*/
