@@ -221,8 +221,10 @@ class BullFlagDetector:
         # ≥ 30x는 이미 over-extended → setup played out. 기본 30.0.
         max_rvol: float | None = 30.0,
         # ``max_gap_pct`` — pre-market gap 상한. 영상은 "≥ +2%, 이상적
-        # +10%" 만 명시. > 30% gap은 mean-reversion risk. 기본 0.30.
-        max_gap_pct: float | None = 0.30,
+        # +10%" 만 명시. > 50% gap도 trade 통과 시 win-rate 75% 유지
+        # (2026-05-13 sweep 결과 → 0.30 대비 +2.98%p return, P/L↑).
+        # 기본 0.50.
+        max_gap_pct: float | None = 0.50,
         # ``max_stop_distance_pct`` — entry → stop 거리 (risk %)의 상한.
         # > 5%이면 entry가 실제 지지선(flag_low)에서 너무 멀어진 셋업 →
         # wide stop → poor R/R. 기본 0.05.
@@ -232,14 +234,25 @@ class BullFlagDetector:
         # (Ross). 풀백 저점이 9 EMA에서 받쳐주는 셋업이 정통. 풀백
         # 저점 봉의 low가 ``ema9_tolerance_pct`` 안에 있어야 통과.
         require_9ema_support: bool = True,
-        ema9_tolerance_pct: float = 0.015,  # 1.5% — 풀백이 9 EMA 닿음
-        # ``require_daily_trend`` — Ross는 "daily 상승추세인 종목만"
-        # 강조. 진입일 종가가 daily SMA{period} 위에 있어야 통과.
-        require_daily_trend: bool = True,
+        # 2.5% — sweep 결과 0.015 → 0.025로 늘려도 win-rate 75% 유지
+        # (오히려 0.015 대비 +1 trade). 영상의 "9 EMA hold"가 tick 정확
+        # 일치 아니라는 점 반영. 0.03 까지 늘리면 +3 trade인데 P/L 하락.
+        ema9_tolerance_pct: float = 0.025,
+        # ``also_accept_20ema_support`` — sweep-tunable. False가 영상
+        # 정통(Ross는 9 EMA만 강조). True로 켜면 9 EMA 못 닿더라도
+        # 20 EMA 근방이면 통과 (Brett Burgett / Nathan Michaud 룰).
+        # 기본 False — 데이터로 효과 검증 후 default 변경 여부 결정.
+        also_accept_20ema_support: bool = False,
+        # ``require_daily_trend`` — Ross 영상엔 daily SMA 명시 X.
+        # Sweep 결과 (2026-05-13): True/False 비교 시 False가 +1 trade,
+        # win 75% 유지, return +1.93%p. Ross 영상에 없는 보조 게이트
+        # 였고 데이터 상 도움 안 되어 default OFF. 보수적 운영 원하면
+        # True로 켜기.
+        require_daily_trend: bool = False,
         daily_trend_sma_period: int = 50,
         # ``max_nth_pullback`` — Ross: "1st/2nd pullback work well,
-        # 3rd start to be cautious". 같은 세션 내에서 검출한 풀백 카운트.
-        # 1 = 첫 풀백만, 2 = 첫·둘째, 3 = 셋째까지. 기본 2 (영상 정통).
+        # 3rd start to be cautious". 1 = 첫만, 2 = 첫·둘째, 3 = 셋째까지.
+        # 기본 2 (영상 정통 보수적 해석).
         max_nth_pullback: int = 2,
         # ``premarket_high_by_date`` — Ross는 PM high를 저항/돌파 기준으로 봄.
         # 페이지/composition root에서 RegularSessionFilter 적용 전 raw
@@ -283,6 +296,7 @@ class BullFlagDetector:
         self.max_stop_distance_pct = max_stop_distance_pct
         self.require_9ema_support = require_9ema_support
         self.ema9_tolerance_pct = ema9_tolerance_pct
+        self.also_accept_20ema_support = also_accept_20ema_support
         self.require_daily_trend = require_daily_trend
         self.daily_trend_sma_period = daily_trend_sma_period
         self.max_nth_pullback = max_nth_pullback
@@ -557,6 +571,15 @@ class BullFlagDetector:
         ema9 = (
             pd.Series(closes).ewm(span=9, adjust=False).mean().to_numpy()
         )
+        # 20 EMA — fallback support level used by many bull-flag
+        # gurus (Brett Burgett, Nathan Michaud) and Ross himself when
+        # 9 EMA gets violated but 20 EMA holds. Computed only if the
+        # fallback gate is enabled.
+        ema20 = (
+            pd.Series(closes).ewm(span=20, adjust=False).mean().to_numpy()
+            if self.also_accept_20ema_support
+            else None
+        )
         # Pre-market high for this session_date — Ross uses PM high
         # as resistance/breakout reference. 0.0 = no PM data injected
         # → the check skips (graceful degradation).
@@ -740,15 +763,36 @@ class BullFlagDetector:
                     if risk_pct > self.max_stop_distance_pct:
                         break  # wide stop = poor entry vs support
 
-                    # ---- 9 EMA support check (Ross: "9 EMA on every TF") ----
-                    # 풀백 저점 봉의 low가 9 EMA에서 받쳐주는지. low가
-                    # ema9 위/아래로 tolerance% 이내면 통과.
+                    # ---- 9 EMA (또는 20 EMA fallback) support check ----
+                    # Ross: "9 EMA on every TF". 풀백 저점이 9 EMA
+                    # tolerance 안이면 통과. 9 EMA 못 받쳐도
+                    # ``also_accept_20ema_support=True`` 일 때 20 EMA
+                    # tolerance 안이면 통과 (Brett Burgett 룰 + Ross도
+                    # 영상에서 longer-term EMA 언급).
                     if self.require_9ema_support and flag_low_idx < len(ema9):
+                        ema_pass = False
                         ema9_at_low = float(ema9[flag_low_idx])
                         if ema9_at_low > 0:
                             ema9_dev = abs(flag_low - ema9_at_low) / ema9_at_low
-                            if ema9_dev > self.ema9_tolerance_pct:
-                                break  # 풀백이 9 EMA에서 벗어나 있음
+                            if ema9_dev <= self.ema9_tolerance_pct:
+                                ema_pass = True
+                        if (
+                            not ema_pass
+                            and ema20 is not None
+                            and flag_low_idx < len(ema20)
+                        ):
+                            ema20_at_low = float(ema20[flag_low_idx])
+                            if ema20_at_low > 0:
+                                ema20_dev = (
+                                    abs(flag_low - ema20_at_low) / ema20_at_low
+                                )
+                                # 20 EMA tolerance — 9 EMA 보다 살짝
+                                # 넓게 (20 EMA가 본질적으로 변동성이
+                                # 더 큰 distance라 같은 % 이내라도 OK).
+                                if ema20_dev <= self.ema9_tolerance_pct * 1.5:
+                                    ema_pass = True
+                        if not ema_pass:
+                            break  # 9도 20도 받쳐주지 않음
 
                     # ---- Pre-market high check ----
                     # 진입가가 PM high보다 위여야 함 (Ross: "breaking PM

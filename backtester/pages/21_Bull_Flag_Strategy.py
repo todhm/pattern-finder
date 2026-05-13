@@ -248,7 +248,7 @@ with st.sidebar:
     )
     max_gap_pct_input = st.number_input(
         "Max pre-market gap (%)",
-        value=30.0,
+        value=50.0,
         min_value=0.0,
         max_value=500.0,
         step=5.0,
@@ -273,16 +273,23 @@ with st.sidebar:
     )
     ema9_tol_pct = st.number_input(
         "9 EMA tolerance (%)",
-        value=1.5,
+        value=2.5,
         min_value=0.1,
         max_value=10.0,
         step=0.1,
         format="%.1f",
         disabled=not require_9ema,
     )
+    also_accept_20ema = st.checkbox(
+        "20 EMA fallback (opt-in)",
+        value=False,
+        help="9 EMA 못 닿더라도 20 EMA 근방이면 통과. Brett Burgett / "
+        "Nathan Michaud 룰. Default OFF — sweep으로 효과 검증 권장.",
+        disabled=not require_9ema,
+    )
     require_daily_trend = st.checkbox(
-        "Require daily uptrend (Ross 영상)",
-        value=True,
+        "Require daily uptrend (Ross 영상 X — sweep default OFF)",
+        value=False,
         help='Ross: "stock should be in daily uptrend". 진입일 close > '
         "SMA{period}일 때만 통과.",
     )
@@ -581,6 +588,7 @@ detector = BullFlagDetector(
     max_stop_distance_pct=float(max_stop_dist_pct_input) / 100.0,
     require_9ema_support=bool(require_9ema),
     ema9_tolerance_pct=float(ema9_tol_pct) / 100.0,
+    also_accept_20ema_support=bool(also_accept_20ema),
     require_daily_trend=bool(require_daily_trend),
     daily_trend_sma_period=int(daily_sma_period),
     max_nth_pullback=int(max_nth_pullback),
