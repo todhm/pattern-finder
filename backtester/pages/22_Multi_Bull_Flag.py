@@ -25,6 +25,7 @@ import streamlit as st
 
 from data.adapters.composed_fundamentals import build_default_fundamentals
 from data.adapters.composed_market_data import build_default_market_data
+from data.adapters.eodhd_realtime import EODHDRealtimeAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.wikipedia_universe import default_universe_provider
 from data.domain.market_calendar import NY
@@ -400,5 +401,38 @@ if result.trades:
         yaxis_title="Net P&L ($)", xaxis_title="Ticker",
     )
     st.plotly_chart(fig, use_container_width=True)
+
+# Live quote panel — for tickers that fired *today*. Only meaningful
+# when end_date >= today; otherwise we'd be showing today's price for
+# a historical backtest run (confusing). Backtest engine itself stays
+# fully historical — this is a sidecar so the user can flip to "what
+# are these tickers doing right now?" without leaving the page.
+if result.trades and end_date >= date.today():
+    today_tickers = sorted({
+        t.ticker for t in result.trades if t.entry_date == date.today()
+    })
+    if today_tickers:
+        st.subheader("📡 Live Quotes — Today's Signals (EODHD real-time)")
+        try:
+            rt_adapter = EODHDRealtimeAdapter()
+            quotes = rt_adapter.fetch_quotes(today_tickers)
+        except Exception as exc:
+            quotes = {}
+            st.caption(f"EODHD real-time 비활성: {type(exc).__name__}")
+        if quotes:
+            df_live = pd.DataFrame([
+                {
+                    "Ticker": s,
+                    "Last $": round(q.last, 2),
+                    "Open $": round(q.open, 2),
+                    "Day H/L": f"${q.high:.2f} / ${q.low:.2f}",
+                    "Day Δ%": round(q.change_pct, 2),
+                    "Gap %": round(q.gap_pct * 100, 2),
+                    "Volume": q.volume,
+                    "Snapshot UTC": q.timestamp.strftime("%H:%M:%S"),
+                }
+                for s, q in quotes.items()
+            ])
+            st.dataframe(df_live, use_container_width=True, hide_index=True)
 
 render_failed_tickers(result)

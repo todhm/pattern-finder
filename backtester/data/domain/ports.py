@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 import pandas as pd
 
@@ -72,6 +72,63 @@ class MarketDataPort(ABC):
         contains only regular US equity session bars (09:30–16:00 ET).
         Daily (``"1d"``) data keeps the legacy tz-naive contract.
         """
+        ...
+
+
+@dataclass(frozen=True)
+class RealtimeQuote:
+    """Live snapshot of the *current session* OHLCV + last print.
+
+    ``open / high / low`` reflect today-so-far, ``last`` is the most
+    recent trade print (EODHD ``/real-time/`` calls this field
+    ``close``, but during a live session it's the latest tick — we
+    rename for clarity). ``volume`` is cumulative day volume.
+
+    Used by Bull Flag live pages to display "current price" without
+    paying for a 1m-bars round-trip, and to evaluate today's gap %
+    when daily OHLCV hasn't settled yet.
+    """
+
+    symbol: str
+    timestamp: datetime  # tz-aware UTC
+    open: float
+    high: float
+    low: float
+    last: float
+    volume: int
+    previous_close: float
+    change: float
+    change_pct: float
+
+    @property
+    def gap_pct(self) -> float:
+        """(open − previousClose) / previousClose — today's gap-up %."""
+        if self.previous_close <= 0:
+            return 0.0
+        return (self.open - self.previous_close) / self.previous_close
+
+
+class RealtimeQuotePort(ABC):
+    """Port: live current-session snapshot fetcher.
+
+    Distinct from :class:`MarketDataPort` — that one returns a
+    DataFrame of historical OHLCV bars. This one returns a single
+    point-in-time quote per ticker (cheap, fast, fits a 5-30 ticker
+    Bull Flag watchlist in one HTTP call when ``fetch_quotes`` is
+    implemented in bulk).
+    """
+
+    @abstractmethod
+    def fetch_quote(self, symbol: str) -> RealtimeQuote:
+        """Return one ticker's live snapshot. Raises on data-source
+        failure — callers wrap in try/except for per-ticker isolation."""
+        ...
+
+    @abstractmethod
+    def fetch_quotes(self, symbols: list[str]) -> dict[str, RealtimeQuote]:
+        """Bulk variant. Returns only successfully fetched symbols
+        (missing keys = per-symbol failure). Implementations should
+        batch when the upstream API supports multi-symbol calls."""
         ...
 
 

@@ -21,9 +21,12 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.composed_fundamentals import build_default_fundamentals
 from data.adapters.composed_market_data import build_default_market_data
+from data.adapters.eodhd_realtime import EODHDRealtimeAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
+from data.adapters.yfinance_adapter import YFinanceAdapter
 from data.domain.market_calendar import NY
 from pattern.adapters.bull_flag import BullFlagDetector
 from strategy.adapters.bull_flag_strategy import BullFlagStrategy
@@ -451,8 +454,33 @@ if not run_btn:
     st.stop()
 
 # ---- Data fetch ----------------------------------------------------
-md_raw = build_default_market_data()  # PM bars 살아있음 — PM high 계산용
-md = RegularSessionFilterAdapter(md_raw, market=market)
+# Daily: composed adapter (yfinance primary + Massive fallback) — has
+# today's daily bar even mid-session.
+md_daily_raw = build_default_market_data()
+md_daily = RegularSessionFilterAdapter(md_daily_raw, market=market)
+
+# Intraday (1m / 5m) routing:
+#   - end_date == today  → bypass composed adapter and go yfinance-direct.
+#     The composed stack routes sub-daily through EODHD primary, but
+#     EODHD's free/standard tiers don't publish today's live intraday
+#     bars — fetches end at yesterday's close, which is why the page
+#     "오늘 데이터가 안 뜬다" with the default routing. yfinance
+#     returns live 1m bars (with ~15min delay on free) so we use it
+#     directly for the current session.
+#   - end_date < today   → use the composed stack as usual (EODHD cache
+#     is fast and historical coverage is good).
+intraday_live = end_date >= date.today()
+if intraday_live:
+    md_intra_raw = CachedMarketDataAdapter(YFinanceAdapter(), bypass_today=True)
+else:
+    md_intra_raw = md_daily_raw
+md_intra = RegularSessionFilterAdapter(md_intra_raw, market=market)
+# Keep ``md`` / ``md_raw`` names so the rest of the page (chart panes,
+# RegularSessionFilter wrapping for the strategy run) doesn't need to
+# change. ``md_raw`` is the source used for PM-high (raw bars before
+# session-filter).
+md = md_intra
+md_raw = md_intra_raw
 
 with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
     try:
@@ -460,12 +488,10 @@ with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
         # 5m: MTF alignment 검증 + 시각화에 사용
         df_5m = md.fetch_ohlcv(ticker.upper(), start_date, end_date, interval="5m")
         # 50일 RVOL 계산을 위해 충분한 daily 히스토리 확보.
-        # composed adapter 통해 yfinance primary + Massive fallback.
-        df_daily = md.fetch_ohlcv(
+        df_daily = md_daily.fetch_ohlcv(
             ticker.upper(), start_date - timedelta(days=120), end_date, interval="1d",
         )
         # PM bars (4:00 ~ 9:30 ET) — RegularSessionFilter 우회한 raw 데이터.
-        # 페이지 옵션이 켜져 있을 때만 fetch.
         df_intraday_raw = None
         if bool(use_premarket_high):
             df_intraday_raw = md_raw.fetch_ohlcv(
@@ -474,6 +500,48 @@ with st.spinner(f"Fetching 1m / 5m / daily for {ticker.upper()}..."):
     except Exception as exc:
         st.error(f"Data fetch failed: {exc}")
         st.stop()
+
+if intraday_live:
+    st.info(
+        "🔴 **Live mode** — end_date 가 오늘이라 1m/5m 은 **yfinance 직접 fetch** "
+        "(EODHD bypass). 라이브 인트라데이는 ~15분 지연으로 들어옴. "
+        "Daily 는 composed adapter 그대로."
+    )
+
+    # EODHD /api/real-time/ snapshot — current-tick price + today's
+    # OHLCV-so-far. Used here as a live status panel (chart data path
+    # is unchanged). Fails silently if EODHD_API_KEY isn't set.
+    try:
+        rt_adapter = EODHDRealtimeAdapter()
+        live_quote = rt_adapter.fetch_quote(ticker.upper())
+    except Exception as exc:
+        live_quote = None
+        st.caption(f"📡 EODHD real-time 비활성: {type(exc).__name__}")
+    if live_quote is not None:
+        st.markdown("### 📡 Live Quote (EODHD real-time)")
+        lq_cols = st.columns(6)
+        lq_cols[0].metric(
+            "Last",
+            f"${live_quote.last:.2f}",
+            delta=f"{live_quote.change_pct:+.2f}% vs prev close",
+        )
+        lq_cols[1].metric("Open", f"${live_quote.open:.2f}")
+        lq_cols[2].metric("High", f"${live_quote.high:.2f}")
+        lq_cols[3].metric("Low", f"${live_quote.low:.2f}")
+        lq_cols[4].metric(
+            "Volume",
+            f"{live_quote.volume/1e6:.2f}M" if live_quote.volume else "—",
+        )
+        lq_cols[5].metric(
+            "Today Gap",
+            f"{live_quote.gap_pct*100:+.2f}%",
+            help="(today open − previous close) / previous close. "
+            "Bull Flag 4-criteria 중 gap 게이트와 동일 정의.",
+        )
+        st.caption(
+            f"Snapshot: {live_quote.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')} · "
+            f"prev close ${live_quote.previous_close:.2f}"
+        )
 
 # 세션별 PM high 계산 (사용자가 PM high 게이트 켰을 때만).
 premarket_high_by_date: dict = {}

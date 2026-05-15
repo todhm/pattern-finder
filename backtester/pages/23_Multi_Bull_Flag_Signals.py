@@ -25,9 +25,11 @@ import streamlit as st
 
 from data.adapters.composed_fundamentals import build_default_fundamentals
 from data.adapters.composed_market_data import build_default_market_data
+from data.adapters.eodhd_realtime import EODHDRealtimeAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.wikipedia_universe import default_universe_provider
 from data.domain.market_calendar import NY
+from data.domain.ports import RealtimeQuote
 from pattern.adapters.bull_flag import BullFlagDetector
 from signals.adapters.bull_flag_scanner import BullFlagBuySignalScanner
 from signals.adapters.in_memory_repo import InMemorySignalRepo
@@ -57,6 +59,30 @@ try:
     )
 except Exception:
     pass
+
+
+# --- Real-time quote provider (EODHD /api/real-time/) ---
+# Scoped to Bull Flag pages only. Falls back gracefully if EODHD_API_KEY
+# isn't configured — pages keep working with their existing data sources.
+if "bf_rt_adapter" not in st.session_state:
+    try:
+        st.session_state.bf_rt_adapter = EODHDRealtimeAdapter()
+        st.session_state.bf_rt_kind = "eodhd"
+    except Exception:
+        st.session_state.bf_rt_adapter = None
+        st.session_state.bf_rt_kind = "disabled"
+rt_adapter: EODHDRealtimeAdapter | None = st.session_state.bf_rt_adapter
+
+
+def _fetch_live_quotes(tickers: list[str]) -> dict[str, RealtimeQuote]:
+    """Wrapper that tolerates a disabled / failing real-time adapter
+    so the rest of the page keeps rendering."""
+    if rt_adapter is None or not tickers:
+        return {}
+    try:
+        return rt_adapter.fetch_quotes(tickers)
+    except Exception:
+        return {}
 
 
 # --- Repository ---
@@ -357,13 +383,28 @@ if wl_rows:
         cap += f" · {age_min:.1f}m ago"
     st.markdown(cap)
 
-    # Compact selectable table
+    # Fetch live quotes for the screened tickers — one EODHD bulk
+    # HTTP for the whole watchlist. Lets the user see "where is this
+    # stock right now vs today's open" before committing to monitor.
+    live_quotes = _fetch_live_quotes([r["ticker"] for r in wl_rows])
     df_wl = pd.DataFrame([
         {
             "Ticker": r["ticker"],
             "Gap %": round(r["gap_pct"] * 100, 1),
             "RVOL ×": round(r["rvol"], 1),
             "Open $": round(r["open_price"], 2),
+            "Live $": (
+                round(live_quotes[r["ticker"]].last, 2)
+                if r["ticker"] in live_quotes else None
+            ),
+            "Day Δ%": (
+                round(live_quotes[r["ticker"]].change_pct, 2)
+                if r["ticker"] in live_quotes else None
+            ),
+            "Day H/L": (
+                f"${live_quotes[r['ticker']].high:.2f} / ${live_quotes[r['ticker']].low:.2f}"
+                if r["ticker"] in live_quotes else None
+            ),
             "Float (M)": (
                 round(r["float_shares"] / 1e6, 2)
                 if r.get("float_shares") else None
@@ -371,6 +412,16 @@ if wl_rows:
         }
         for r in wl_rows
     ])
+    if live_quotes:
+        st.caption(
+            f"📡 EODHD real-time: {len(live_quotes)}/{len(wl_rows)} tickers, "
+            f"snapshot ~ {max(q.timestamp for q in live_quotes.values()).strftime('%H:%M:%S UTC')}"
+        )
+    elif rt_adapter is None:
+        st.caption(
+            "📡 EODHD real-time 비활성 (EODHD_API_KEY 미설정). "
+            "Live $ / Day Δ% 열은 비어있음."
+        )
     st.dataframe(df_wl, use_container_width=True, height=300, hide_index=True)
     # Optional manual prune
     keep = st.multiselect(
@@ -515,6 +566,19 @@ else:
     target_hit = [s for s in monitor_signals if _classify(s) == "target_hit"]
     stopped = [s for s in monitor_signals if _classify(s) == "stopped"]
 
+    # Real-time quotes for the signal tickers — one EODHD bulk call.
+    # ``latest_close`` from the intraday fetch is ~15 min stale if it
+    # routed through yfinance; EODHD real-time is current-tick. Used
+    # to recompute unrealized R / target-hit / stop-tripped one more
+    # time per cycle so BUY NOW cards reflect the freshest price.
+    mon_quotes = _fetch_live_quotes([s.ticker for s in monitor_signals])
+    if mon_quotes:
+        snap_ts = max(q.timestamp for q in mon_quotes.values())
+        st.caption(
+            f"📡 EODHD real-time overlay: {len(mon_quotes)}/{len(monitor_signals)} "
+            f"snapshot ~ {snap_ts.strftime('%H:%M:%S UTC')}"
+        )
+
     # ---- BUY NOW cards (loud) ----
     if buy_now:
         st.markdown("### 🟢 BUY NOW — 신호 발생 직후 (< 10분)")
@@ -535,8 +599,20 @@ else:
             )
             age_min = _signal_age_minutes(sig) or 0
             entry_time_str = meta.get("entry_ts", "")[:16].replace("T", " ")
-            latest_close = meta.get("latest_close")
-            unrealized_r = meta.get("unrealized_r")
+
+            # Prefer EODHD real-time quote (current tick) over the 1m
+            # fetch's latest_close (15-min lagged via yfinance). Fall
+            # back to latest_close when EODHD is disabled / no quote.
+            rt = mon_quotes.get(sig.ticker)
+            risk = sig.entry_price - sig.stop_loss
+            if rt is not None and risk > 0:
+                live_price = rt.last
+                live_unrealized_r = (live_price - sig.entry_price) / risk
+                live_source = "EODHD live"
+            else:
+                live_price = meta.get("latest_close")
+                live_unrealized_r = meta.get("unrealized_r")
+                live_source = "1m fetch"
 
             with st.container(border=True):
                 head_cols = st.columns([2, 3])
@@ -544,11 +620,11 @@ else:
                     f"### 🟢 **{sig.ticker}**\n"
                     f"신호 시각 `{entry_time_str}` · **{age_min:.0f}분 전**"
                 )
-                if latest_close and unrealized_r is not None:
+                if live_price and live_unrealized_r is not None:
                     head_cols[1].metric(
-                        f"Latest ${latest_close:.2f}",
-                        f"{unrealized_r:+.2f}R",
-                        delta=f"{(latest_close - sig.entry_price)/sig.entry_price*100:+.2f}% vs entry",
+                        f"Latest ${live_price:.2f} ({live_source})",
+                        f"{live_unrealized_r:+.2f}R",
+                        delta=f"{(live_price - sig.entry_price)/sig.entry_price*100:+.2f}% vs entry",
                     )
 
                 # Order ticket — copy-able numbers

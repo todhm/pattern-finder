@@ -10,6 +10,8 @@
 | [`strategy_notes/ross_cameron_bull_flag_deep_dive.md`](./strategy_notes/ross_cameron_bull_flag_deep_dive.md) | Bull Flag 전략 리서치 노트 |
 | [`strategy_notes/ross_cameron_million_in_51days.md`](./strategy_notes/ross_cameron_million_in_51days.md) | Ross Cameron 51일 챌린지 노트 |
 | [`strategy_notes/bull_flag_filter_audit.md`](./strategy_notes/bull_flag_filter_audit.md) | Bull Flag 필터 게이트 감사 |
+| [`strategy_notes/bull_flag_video_research_2026_05.md`](./strategy_notes/bull_flag_video_research_2026_05.md) | Bull Flag YouTube 2편 정리 (Chart Mill + Tesla scalper) |
 | [`research/youtube-strategy-extraction.md`](./research/youtube-strategy-extraction.md) | YouTube 전략 추출 워크플로우 |
+| [`backtest_alphafolio.md`](./backtest_alphafolio.md) | Alphafolio 3-서비스 스택의 PIT 백테스트 설계 |
 
 프로젝트 전반 사용법은 루트의 [`README.md`](../README.md), 개발 규칙은 [`CLAUDE.md`](../CLAUDE.md) 참조.
