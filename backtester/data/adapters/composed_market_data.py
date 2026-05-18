@@ -78,8 +78,11 @@ def build_default_market_data(
 
         IntervalRoutingMarketData(
             sub_daily = FallbackMarketDataAdapter(
-                primary  = MongoDayCache(EODHD,   "bars_eodhd"),
-                fallback = MongoDayCache(Massive, "bars_massive"),
+                primary  = FallbackMarketDataAdapter(
+                    primary  = MongoDayCache(EODHD,   "bars_eodhd"),
+                    fallback = MongoDayCache(Massive, "bars_massive"),
+                ),
+                fallback = MongoDayCache(YFinance, "bars_yfinance"),
             ),
             daily     = FallbackMarketDataAdapter(
                 primary  = MongoDayCache(YFinance, "bars_yfinance"),
@@ -88,9 +91,16 @@ def build_default_market_data(
         )
 
     Each leg degrades gracefully:
-      - No EODHD key   → sub-daily primary is just Massive.
-      - No MASSIVE key → no fallback for either daily or sub-daily.
-      - Neither key    → all intervals via yfinance (no Mongo wrap).
+      - No EODHD key   → sub-daily primary is just (Massive → YFinance).
+      - No MASSIVE key → sub-daily is (EODHD → YFinance); daily has no fallback.
+      - Neither paid key → all intervals via yfinance (no Mongo wrap).
+
+    Why yfinance is the *final* sub-daily fallback (added 2026-05):
+        EODHD and Massive both refuse to serve today's not-yet-closed
+        intraday on most of their tiers. yfinance returns live 1m bars
+        (15-min delay on the free tier) — so wiring it at the tail of
+        the sub-daily fallback chain lets ``end_date == today`` pages
+        keep working without each page hand-wiring a yfinance bypass.
     """
     yf_cached = MongoDayCacheAdapter(
         YFinanceAdapter(),
@@ -123,16 +133,16 @@ def build_default_market_data(
     # days. If only one is available, use it directly. If neither,
     # all intervals go via uncached yfinance.
     if eodhd_cached is not None and massive_cached is not None:
-        sub_daily: MarketDataPort = FallbackMarketDataAdapter(
+        sub_daily_paid: MarketDataPort = FallbackMarketDataAdapter(
             primary=eodhd_cached,
             fallback=massive_cached,
             primary_label="EODHD",
             fallback_label="Massive",
         )
     elif eodhd_cached is not None:
-        sub_daily = eodhd_cached
+        sub_daily_paid = eodhd_cached
     elif massive_cached is not None:
-        sub_daily = massive_cached
+        sub_daily_paid = massive_cached
     else:
         # No paid sub-daily source configured — fall back to yfinance
         # for all intervals. Drop Mongo wrap to avoid a useless
@@ -140,6 +150,19 @@ def build_default_market_data(
         return CachedMarketDataAdapter(
             YFinanceAdapter(), bypass_today=bypass_today,
         )
+
+    # Tail the sub-daily chain with yfinance for the today-intraday gap
+    # (EODHD/Massive don't publish live un-closed bars on most tiers).
+    # yfinance only goes back ~30 days on 1m and ~60 days on 5m, but
+    # for those windows it works — and historical sub-daily requests
+    # are served from the upstream paid sources / Mongo cache *before*
+    # we ever fall through to here.
+    sub_daily: MarketDataPort = FallbackMarketDataAdapter(
+        primary=sub_daily_paid,
+        fallback=yf_cached,
+        primary_label="EODHD/Massive",
+        fallback_label="YFinance",
+    )
 
     # Daily leg: yfinance primary (free, fast on hits) + Massive
     # fallback (paid, separate quota) so a yfinance 429 doesn't kill

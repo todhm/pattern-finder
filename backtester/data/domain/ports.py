@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from data.domain.models import EarningsEvent, NewsEvent
 
 
 @dataclass(frozen=True)
@@ -129,6 +135,56 @@ class RealtimeQuotePort(ABC):
         """Bulk variant. Returns only successfully fetched symbols
         (missing keys = per-symbol failure). Implementations should
         batch when the upstream API supports multi-symbol calls."""
+        ...
+
+
+class EarningsCalendarPort(ABC):
+    """Port: per-symbol earnings-announcement date fetcher.
+
+    Used by strategies (notably Matt Diamond bull flag) to gate signals
+    by proximity to earnings — Matt explicitly says earnings season is
+    when catalyst-driven Bull Flags work best.
+
+    Implementation contract: graceful degradation. If the upstream API
+    is unreachable / unconfigured, return an empty list (not raise) so
+    callers can choose to disable the gate rather than crash.
+    """
+
+    @abstractmethod
+    def fetch_earnings(
+        self,
+        symbol: str,
+        start: "date",
+        end: "date",
+    ) -> "list[EarningsEvent]":
+        """Return all earnings reports for ``symbol`` whose
+        ``report_date`` falls inside ``[start, end]``."""
+        ...
+
+
+class NewsCatalystPort(ABC):
+    """Port: per-symbol news-event fetcher for catalyst gates.
+
+    News data is sparse and rate-limited on most APIs, so the
+    contract is windowed-and-paginated under the hood — callers just
+    pass a date range. Returns ``[]`` on failure rather than raising
+    (same graceful-degradation contract as EarningsCalendarPort).
+    """
+
+    @abstractmethod
+    def fetch_news(
+        self,
+        symbol: str,
+        start: "date",
+        end: "date",
+        limit_per_day: int | None = None,
+    ) -> "list[NewsEvent]":
+        """Return news items in ``[start, end]``.
+
+        ``limit_per_day`` caps the items kept per calendar date so
+        a noisy ticker doesn't blow out memory; ``None`` = keep all.
+        Items are sorted by ``published_at`` ascending.
+        """
         ...
 
 
