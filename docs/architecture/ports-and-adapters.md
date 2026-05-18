@@ -13,9 +13,11 @@
 |---|---|
 | `data.domain.ports.MarketDataPort` | `YFinanceAdapter`, `EODHDAdapter`, `MassiveAdapter` (원천) · `CachedMarketDataAdapter`(parquet), `MongoDayCacheAdapter`(Mongo) (캐시 데코레이터) · `FallbackMarketDataAdapter`, `IntervalRoutingMarketData`, `RegularSessionFilter` (라우팅/필터 데코레이터) |
 | `data.domain.ports.FundamentalsPort` | `EODHDFundamentalsAdapter`, `MassiveFundamentalsAdapter`, `FallbackFundamentalsAdapter`, `CachedFundamentalsAdapter`, `ComposedFundamentalsAdapter` |
+| `data.domain.ports.EarningsCalendarPort` | `EODHDEarningsAdapter` (Matt Diamond Bull Flag catalyst gate) |
+| `data.domain.ports.NewsCatalystPort` | `EODHDNewsAdapter` (sentiment-aware news catalyst gate) |
 | `data.domain.ports.UniverseProviderPort` | `WikipediaUniverseAdapter` (S&P 500 / Nasdaq-100 / KOSPI/KOSDAQ 등) |
-| `pattern.domain.ports.PatternDetector` | `WedgePopDetector`, `WedgeDropDetector`, `ExhaustionExtensionTopDetector`, `BaseNBreakDownsideDetector`, `EmaCrossbackDownsideDetector`, `ReversalExtensionDetector`, `BullFlagDetector`, `WickPlayDetector`, `FairValueGapDetector`, `FirstCandleRuleDetector`, `ScrafaceOrbDetector`, `TradeSharpOrbDetector` |
-| `strategy.domain.ports.StrategyRunnerPort` | `WedgepopStrategy`, `Wedgepop15mStrategy`, `MultiWedgepopStrategy`, `WickPlayStrategy`, `WickPlay15mStrategy`, `MultiWickPlayStrategy`, `BullFlagStrategy`, `MultiBullFlagStrategy`, `FairValueGapStrategy`, `MultiFairValueGapStrategy`, `FirstCandleRuleStrategy`, `MultiFirstCandleStrategy`, `ScrafaceStrategy`, `TradeSharpStrategy` |
+| `pattern.domain.ports.PatternDetector` | `WedgePopDetector`, `WedgeDropDetector`, `ExhaustionExtensionTopDetector`, `BaseNBreakDownsideDetector`, `EmaCrossbackDownsideDetector`, `ReversalExtensionDetector`, `BullFlagDetector`, `MattDiamondBullFlagDetector`, `WickPlayDetector`, `FairValueGapDetector`, `FirstCandleRuleDetector`, `ScrafaceOrbDetector`, `TradeSharpOrbDetector` |
+| `strategy.domain.ports.StrategyRunnerPort` | `WedgepopStrategy`, `Wedgepop15mStrategy`, `MultiWedgepopStrategy`, `WickPlayStrategy`, `WickPlay15mStrategy`, `MultiWickPlayStrategy`, `BullFlagStrategy`, `MultiBullFlagStrategy`, `MattDiamondBullFlagStrategy`, `FairValueGapStrategy`, `MultiFairValueGapStrategy`, `FirstCandleRuleStrategy`, `MultiFirstCandleStrategy`, `ScrafaceStrategy`, `TradeSharpStrategy` |
 | `backtest.domain.ports.BacktestEnginePort` | `SimpleBacktestEngine` |
 | `visualization.domain.ports.ChartBuilderPort` | `PlotlyChartBuilder` |
 | `signals.domain.ports.SignalRepositoryPort` | `PostgresSignalRepo`, `InMemorySignalRepo` |
