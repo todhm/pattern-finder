@@ -53,3 +53,4 @@ ChartPatternsv2.pdf
 *.srt
 # Temp scratch dirs used while pulling a video (e.g. `_tmp_apr3/`)
 docs/strategy_notes/_tmp_*/
+alphafolio.env

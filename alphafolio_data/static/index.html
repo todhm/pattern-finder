@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Alphafolio Data Console</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Alphafolio Data Console</h1>
+    <span class="hint">🔐 <code>secrets/alphafolio.env</code>의 <code>API_SECRET_KEY</code> 자동 사용</span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="pipeline">📡 백테스트 파이프라인</button>
+    <button class="tab-btn" data-tab="manual">🔧 단일 수집</button>
+    <button class="tab-btn" data-tab="runs">📋 실행 이력</button>
+  </nav>
+
+  <main>
+    <!-- ============================ 파이프라인 새 실행 ============================ -->
+    <section id="tab-pipeline" class="tab-pane active">
+      <h2>새 파이프라인 실행 (DAG 자동 진행)</h2>
+      <p class="hint">
+        데이터 수집 → 등급 생성 (Pass A) → Top-N 선별 → 옵션 백필 → 등급 재생성 (Pass B) → 백테스트 까지
+        한 번에 실행. 실패 시 그 단계부터 재시작 가능.
+      </p>
+
+      <form id="pipelineForm" class="card">
+        <div class="form-row">
+          <label>Country</label>
+          <select name="country">
+            <option value="US">US (옵션 2-pass 포함)</option>
+            <option value="KR">KR (옵션 없음)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Start Date</label>
+          <input type="date" name="start_date">
+          <span class="hint">비우면 1년 전</span>
+        </div>
+        <div class="form-row">
+          <label>End Date</label>
+          <input type="date" name="end_date">
+          <span class="hint">비우면 오늘</span>
+        </div>
+        <div class="form-row">
+          <label>옵션 top-N (Pass-B)</label>
+          <input type="number" name="option_top_n" value="200" min="50" max="1000">
+          <span class="hint">매 거래일별 final_score 상위 N개만 옵션 수집</span>
+        </div>
+        <div class="form-row">
+          <label>백테스트 top-N</label>
+          <input type="number" name="backtest_top_n" value="10" min="1" max="50">
+        </div>
+        <div class="form-row">
+          <label>리밸런싱 (일)</label>
+          <input type="number" name="rebal_freq_days" value="5" min="1" max="60">
+        </div>
+        <div class="form-row">
+          <label>초기자금</label>
+          <input type="number" name="initial_cash" value="10000000" min="1000000" step="1000000">
+        </div>
+        <button type="submit" class="primary">파이프라인 시작</button>
+      </form>
+
+      <h3>현재 활성 실행</h3>
+      <div id="activeRun"></div>
+    </section>
+
+    <!-- ============================ 단일 수집 (기존 기능) ============================ -->
+    <section id="tab-manual" class="tab-pane">
+      <h2>단일 엔드포인트 호출</h2>
+      <p class="hint">디버깅용 직접 호출. 파이프라인을 쓰는 게 보통 더 편합니다.</p>
+      <div class="group">
+        <h3>🇺🇸 미국 마스터</h3>
+        <div class="btn-row">
+          <button class="bf" data-endpoint="collect/us/stock-listing">Stock Listing</button>
+          <button class="bf" data-endpoint="collect/us/finnhub-symbol">Finnhub Symbol</button>
+          <button class="bf" data-endpoint="collect/us/stock-basic">Stock Basic</button>
+          <button class="bf" data-endpoint="admin/create-partitions">DB 파티션</button>
+        </div>
+      </div>
+      <div class="group">
+        <h3>🇺🇸 미국 일간/매크로</h3>
+        <div class="btn-row">
+          <button class="bf" data-endpoint="collect/us/daily">Daily Pipeline 1~13</button>
+          <button class="bf" data-endpoint="collect/us/financials-core">재무제표 3종</button>
+          <button class="bf" data-endpoint="collect/us/fed-funds-rate">Fed Rate</button>
+          <button class="bf" data-endpoint="collect/us/treasury-yield">Treasury</button>
+          <button class="bf" data-endpoint="collect/us/cpi">CPI</button>
+          <button class="bf" data-endpoint="collect/us/unemployment-rate">Unemployment</button>
+        </div>
+      </div>
+      <div class="group">
+        <h3>🇰🇷 한국</h3>
+        <div class="btn-row">
+          <button class="bf" data-endpoint="collect/kr/daily-complete">일간 종합</button>
+          <button class="bf" data-endpoint="collect/kr/dart/company-info">DART 기업정보</button>
+          <button class="bf" data-endpoint="collect/kr/dart/financial-position">DART 재무</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ 실행 이력 ============================ -->
+    <section id="tab-runs" class="tab-pane">
+      <h2>파이프라인 실행 이력</h2>
+      <button id="refreshRunsBtn">↻ 새로고침</button>
+      <table id="runsTable">
+        <thead>
+          <tr><th>Run ID</th><th>Country</th><th>Range</th><th>Status</th><th>Started</th><th>Action</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- =================== 우측 패널: DAG + 로그 (활성 실행) =================== -->
+  <aside id="dagPanel" class="hidden">
+    <div class="dag-header">
+      <h3 id="dagRunId">Run: <code></code></h3>
+      <div class="dag-actions">
+        <button id="dagRefreshBtn" title="새로고침">↻</button>
+        <button id="dagResumeBtn"  title="실패한 곳부터 재시작">▶ Resume</button>
+        <button id="dagCancelBtn"  title="중단" class="danger">⊘ Cancel</button>
+        <button id="dagCloseBtn"   title="닫기">✕</button>
+      </div>
+    </div>
+    <ol id="dagTasks" class="dag-tasks"></ol>
+    <div class="log-divider">Logs (auto-poll 2초)</div>
+    <pre id="dagLogs"></pre>
+  </aside>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

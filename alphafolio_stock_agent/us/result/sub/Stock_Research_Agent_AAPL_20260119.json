@@ -1,0 +1,84 @@
+{
+  "symbol": "AAPL",
+  "stock_name": "Apple Inc",
+  "analysis_date": "2026-01-13",
+  "sector": "TECHNOLOGY",
+  "overall_sentiment": "positive",
+  "confidence": 0.8,
+  "earnings_outlook": {
+    "direction": "positive",
+    "summary": "Analysts have a moderate buy rating on Apple Inc., and the company achieved an adjusted EPS growth of +13%.",
+    "key_points": [
+      "Analysts have a moderate buy rating on Apple Inc.",
+      "Apple achieved an adjusted EPS growth of +13%."
+    ],
+    "sources": [
+      {
+        "type": "news",
+        "title": "Apple (AAPL) Achieved an Adjusted EPS Growth of +13%",
+        "publisher": "Wedgewood Partners",
+        "date": "2026-01-13"
+      },
+      {
+        "type": "analyst_report",
+        "title": "Analysts Have a Moderate Buy Rating on Apple Inc. (AAPL)",
+        "publisher": "Various",
+        "date": "2026-01-13"
+      }
+    ]
+  },
+  "risk_issues": [
+    {
+      "category": "regulatory",
+      "severity": "medium",
+      "title": "Regulatory Scrutiny in India",
+      "summary": "Apple Inc. faces added uncertainty from regulatory scrutiny in India, which could impact its operations.",
+      "sources": [
+        {
+          "type": "news",
+          "title": "Apple Inc. (AAPL) Faces Added Uncertainty from Regulatory Scrutiny in India",
+          "publisher": "No information available",
+          "date": "2026-01-13"
+        }
+      ]
+    }
+  ],
+  "sector_momentum": {
+    "sector": "TECHNOLOGY",
+    "direction": "neutral",
+    "summary": "The technology sector is experiencing mixed signals, with some stocks gaining while others are falling out of favor.",
+    "related_news_count": 10,
+    "sources": [
+      {
+        "type": "news",
+        "title": "Big Tech stocks are quickly falling out of favor. Here’s the market’s new momentum trade.",
+        "publisher": "No information available",
+        "date": "2026-01-13"
+      }
+    ]
+  },
+  "insider_activity": {
+    "signal": "NEUTRAL",
+    "net_shares": 0,
+    "net_value": 0.0,
+    "summary": "There have been no insider buy or sell transactions in the last 90 days, indicating neutral activity.",
+    "sources": [
+      {
+        "type": "insider_transaction",
+        "title": "No insider transactions",
+        "date": "2026-01-13"
+      }
+    ]
+  },
+  "metadata": {
+    "data_collection": {
+      "analyst_reports": 10,
+      "news_articles": 20,
+      "sec_filings": 9,
+      "insider_transactions": 2
+    },
+    "market_cap_tier": "mid",
+    "collection_date": "2026-01-19",
+    "retry_count": 0
+  }
+}

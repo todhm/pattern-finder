@@ -1,0 +1,229 @@
+{
+  "stock_info": {
+    "symbol": "CPNG",
+    "stock_name": "Coupang LLC",
+    "sector": "CONSUMER CYCLICAL",
+    "industry": "INTERNET RETAIL",
+    "description": "Coupang, Inc. (CPNG) is South Korea's premier e-commerce platform, renowned for its innovative logistics and extensive product offerings via seamless mobile and online shopping experiences. The company excels in customer satisfaction with unique services like same-day and next-day delivery, backed by a sophisticated supply chain that optimizes efficiency and speed. Based in Seoul, Coupang has established itself as a market leader, demonstrating a strong commitment to operational excellence and c"
+  },
+  "quant_summary": {
+    "scores": {
+      "final_grade": "매수 고려",
+      "final_score": 73.7,
+      "value_score": 81.9,
+      "quality_score": 77.4,
+      "momentum_score": 45.8,
+      "growth_score": 85.9,
+      "confidence_score": 54.7,
+      "entry_timing_score": 80.4
+    },
+    "scenarios": {
+      "bullish_prob": 45,
+      "sideways_prob": 29,
+      "bearish_prob": 26,
+      "bullish_return": "+9~+24%",
+      "sideways_return": "-2~+3%",
+      "bearish_return": "-20~-8%",
+      "sample_count": 9139
+    },
+    "sector": {
+      "momentum": 23.08,
+      "rank": 2,
+      "percentile": 14.29
+    },
+    "risk": {
+      "var_95": 3.75,
+      "cvar_95": 4.95,
+      "beta": 1.18,
+      "volatility_annual": 35.86,
+      "max_drawdown_1y": -33.13,
+      "sharpe_ratio": -4.2544,
+      "sortino_ratio": -5.812
+    },
+    "trading": {
+      "stop_loss_pct": -13.42,
+      "take_profit_pct": 20.13,
+      "risk_reward_ratio": 1.5,
+      "position_size_pct": 7.9,
+      "atr_pct": 3.83
+    },
+    "triggers": {
+      "buy": "[\"final_score 79+ (current: 74)\", \"Put/Call < 0.7 (check us_option_daily_summary)\", \"Insider net buy (CEO/CFO acquisition)\", \"EPS revision +3% (check us_earnings_estimates)\"]",
+      "sell": "[\"final_score < 59 (current: 74)\", \"Price hits stop loss -13.4%\", \"Price hits take profit +20.1%\", \"Put/Call > 1.2 (check us_option_daily_summary)\", \"Insider net sell (CEO/CFO disposal)\"]",
+      "hold": "[\"final_score 69~79\", \"Earnings within 1 week (volatility expected)\"]"
+    },
+    "interpretation": {
+      "risk_profile": "Moderate-High Risk - Above average market volatility exposure",
+      "risk_recommendation": "Suitable for balanced investors seeking growth with moderate risk acceptance",
+      "time_series": "Stable - Score relatively unchanged over past 2 weeks",
+      "signal_overall": "Buy - Strong fundamentals with favorable risk-reward profile"
+    },
+    "relative_strength": {
+      "rs_value": -14.81,
+      "rs_rank": "F (Bottom 20%)"
+    }
+  },
+  "technical_summary": {
+    "rsi": {
+      "value": 54.14,
+      "status": "neutral",
+      "trend": "flat"
+    },
+    "macd": {
+      "value": -1.0888,
+      "signal": -1.1926,
+      "histogram": 0.1038,
+      "status": "bullish",
+      "crossover": null
+    },
+    "bollinger": {
+      "upper": 26.53,
+      "middle": 23.87,
+      "lower": 21.21
+    },
+    "stochastic": {
+      "k": 11.21,
+      "d": 30.36,
+      "status": "oversold"
+    },
+    "adx": {
+      "value": 89.64,
+      "status": "strong_trend"
+    },
+    "mfi": {
+      "value": 42.54,
+      "status": "neutral"
+    }
+  },
+  "price_trend": {
+    "current_price": 22.45,
+    "ma5": 23.1,
+    "ma20": 23.87,
+    "ma50": 26.88,
+    "ma200": 27.84,
+    "trend_5d": "down",
+    "trend_20d": "down",
+    "trend_50d": "down",
+    "trend_200d": "down",
+    "change_1d": -3.52,
+    "change_5d": -3.94,
+    "change_20d": -16.64,
+    "volatility_20d": 2.95,
+    "price_position": 0.3,
+    "volume": {
+      "current": 19091154,
+      "avg_20d": 18349994,
+      "ratio": 1.04
+    }
+  },
+  "options_summary": {
+    "put_call_ratio": {
+      "value": 1.0,
+      "signal": "neutral",
+      "put_volume": 0,
+      "call_volume": 0
+    },
+    "implied_volatility": {
+      "current": 0,
+      "percentile": 50.0,
+      "status": "moderate"
+    },
+    "gamma_exposure": {
+      "net_gex": 4799798.48,
+      "gamma_flip_level": null,
+      "signal": "stable"
+    }
+  },
+  "insider_summary": {
+    "signal": "NEUTRAL",
+    "net_shares": 0,
+    "net_value": 0.0,
+    "buy_count": 0,
+    "sell_count": 0,
+    "summary": "0 buys, 0 sells in 90 days"
+  },
+  "news_sentiment": {
+    "overall_sentiment": "neutral",
+    "avg_score": 0.0,
+    "article_count": 0,
+    "bullish_count": 0,
+    "bearish_count": 0,
+    "recent_headlines": []
+  },
+  "market_summary": {
+    "nasdaq": {
+      "current": 23584.28,
+      "change_1d": 0.16,
+      "change_5d": 1.47,
+      "change_20d": 0.16,
+      "trend_20d": "up",
+      "ma20": 23370.9
+    }
+  },
+  "economic_summary": {
+    "us": {
+      "fed_funds_rate": {
+        "value": 4.33,
+        "unit": "%",
+        "date": "2025-09-03"
+      },
+      "treasury_yield_10y": {
+        "value": 4.72,
+        "unit": "%",
+        "date": "2025-10-09"
+      },
+      "cpi": {
+        "value": 324.8,
+        "unit": "%",
+        "date": "2025-09-01"
+      },
+      "unemployment_rate": {
+        "value": 4.3,
+        "unit": "%",
+        "date": "2025-08-01"
+      },
+      "gdp": {
+        "value": 3.8,
+        "unit": "%",
+        "date": "2025-04-01"
+      },
+      "pmi": {
+        "value": 97.7708,
+        "date": "2025-09-01"
+      }
+    },
+    "market_sentiment": {
+      "vix": {
+        "value": 15.78,
+        "status": "moderate",
+        "date": "2025-12-04"
+      },
+      "dollar_index": {
+        "value": 121.4288,
+        "change_5d": -0.81,
+        "trend": "weakening",
+        "date": "2025-11-28"
+      },
+      "credit_spread": {
+        "value": 0.8,
+        "status": "tight",
+        "date": "2025-12-04"
+      },
+      "move_index": {
+        "value": 67.28,
+        "date": "2025-12-05"
+      }
+    }
+  },
+  "data_availability": {
+    "has_indicators": true,
+    "has_prices": true,
+    "has_options": true,
+    "has_insider": true,
+    "has_news": false,
+    "has_financials": true,
+    "indicators_days": 90,
+    "prices_days": 90,
+    "options_days": 252
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "regime": "neutral",
+  "confidence": 0.7,
+  "regime_rationale": "The quantitative signals indicate a neutral market regime due to a lack of clear risk-on or risk-off signals. This is supported by qualitative news suggesting mixed investor sentiment and expectations for economic growth, but also caution regarding high valuations and potential Fed actions.",
+  "global_market": {
+    "us_market_regime": "neutral",
+    "vix_level": 0,
+    "vix_signal": "low_fear",
+    "credit_spread_signal": "normal",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "Minimal flow into safe haven assets as investors remain cautiously optimistic.",
+    "key_indicators": [
+      {
+        "name": "S&P 500 Forecast",
+        "value": 12,
+        "change": "expected increase",
+        "signal": "positive",
+        "interpretation": "Analysts expect a 12% rally in the S&P 500 this year."
+      }
+    ],
+    "summary": "The global market is currently in a neutral state, with stable conditions and no significant risk signals. Economic growth expectations are tempered by high valuations and cautious Fed policy outlook."
+  },
+  "us_market": {
+    "sp500_trend": "sideways",
+    "nasdaq_trend": "uptrend",
+    "market_breadth": "moderate",
+    "sector_rotation": "Technology stocks are showing strength while other sectors remain mixed.",
+    "put_call_ratio": 0,
+    "market_sentiment": "neutral",
+    "key_events": [
+      "Fed interest rate decision upcoming",
+      "Earnings season approaching"
+    ],
+    "summary": "The US market is experiencing a sideways trend in the S&P 500, with technology stocks leading the way. Investor sentiment is neutral as they await further economic indicators and Fed decisions."
+  },
+  "news_sentiment": {
+    "market_news_sentiment": "neutral",
+    "market_news_highlights": [
+      "S&P 500 expected to rally 12% this year",
+      "TSMC boosts AI hopes"
+    ],
+    "fed_policy_sentiment": "dovish",
+    "fed_highlights": [
+      "Fed expected to cut rates once or twice in 2026",
+      "Concerns about labor market influencing Fed decisions"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "moderate",
+    "position_sizing": "Consider moderate position sizes given the neutral outlook.",
+    "sector_preference": [
+      "Technology",
+      "Financials"
+    ],
+    "sectors_to_avoid": [
+      "Consumer Discretionary",
+      "Utilities"
+    ],
+    "hedging_recommendation": "Consider hedging against potential volatility in the market.",
+    "time_horizon": "6-12 months",
+    "key_risks": [
+      "Unexpected Fed policy changes",
+      "Geopolitical tensions affecting market stability"
+    ],
+    "action_triggers": [
+      "Clear risk-on or risk-off signals from quantitative data",
+      "Major economic data releases"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "QUANTITATIVE_SIGNALS",
+      "fact": "Dominant signal is neutral",
+      "interpretation": "Indicates a lack of clear direction in the market."
+    },
+    {
+      "type": "qualitative",
+      "source": "US Market News",
+      "fact": "S&P 500 expected to rally 12% this year",
+      "interpretation": "Positive economic growth expectations but tempered by high valuations."
+    }
+  ],
+  "data_sources": [
+    "serper_us_market",
+    "serper_global",
+    "serper_fed_policy"
+  ],
+  "analysis_timestamp": "2026-01-19T23:59:27.969350"
+}

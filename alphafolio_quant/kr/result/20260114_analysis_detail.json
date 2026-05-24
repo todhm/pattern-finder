@@ -1,0 +1,4575 @@
+{
+  "analysis_date": "2026-01-14",
+  "total_records_analyzed": 290704,
+  "analysis_period_start": "2025-08-01",
+  "analysis_period_end": "2026-01-13",
+  "ic_results": [
+    {
+      "factor_name": "value_score",
+      "period_days": 3,
+      "ic_value": 0.042059,
+      "ic_mean": 0.049659,
+      "ic_std": 0.093538,
+      "icir": 0.5309,
+      "t_statistic": 22.055,
+      "p_value": null,
+      "hit_rate": 0.7,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "value_score",
+      "period_days": 30,
+      "ic_value": 0.069314,
+      "ic_mean": 0.070103,
+      "ic_std": 0.082981,
+      "icir": 0.8448,
+      "t_statistic": 33.9988,
+      "p_value": null,
+      "hit_rate": 0.7444,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "value_score",
+      "period_days": 60,
+      "ic_value": 0.084681,
+      "ic_mean": 0.086909,
+      "ic_std": 0.068385,
+      "icir": 1.2709,
+      "t_statistic": 36.6361,
+      "p_value": null,
+      "hit_rate": 0.9,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "value_score",
+      "period_days": 90,
+      "ic_value": 0.102724,
+      "ic_mean": 0.102763,
+      "ic_std": 0.035351,
+      "icir": 2.9069,
+      "t_statistic": 37.23,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "quality_score",
+      "period_days": 3,
+      "ic_value": 0.025376,
+      "ic_mean": 0.029411,
+      "ic_std": 0.050137,
+      "icir": 0.5866,
+      "t_statistic": 13.2992,
+      "p_value": null,
+      "hit_rate": 0.74,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "quality_score",
+      "period_days": 30,
+      "ic_value": 0.031297,
+      "ic_mean": 0.027988,
+      "ic_std": 0.040647,
+      "icir": 0.6886,
+      "t_statistic": 15.3218,
+      "p_value": null,
+      "hit_rate": 0.7,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "quality_score",
+      "period_days": 60,
+      "ic_value": 0.02881,
+      "ic_mean": 0.027844,
+      "ic_std": 0.029418,
+      "icir": 0.9465,
+      "t_statistic": 12.4248,
+      "p_value": null,
+      "hit_rate": 0.7857,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "quality_score",
+      "period_days": 90,
+      "ic_value": 0.037438,
+      "ic_mean": 0.036956,
+      "ic_std": 0.015249,
+      "icir": 2.4235,
+      "t_statistic": 13.5061,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "momentum_score",
+      "period_days": 3,
+      "ic_value": 0.018499,
+      "ic_mean": -0.014239,
+      "ic_std": 0.078192,
+      "icir": -0.1821,
+      "t_statistic": 9.6935,
+      "p_value": null,
+      "hit_rate": 0.41,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "momentum_score",
+      "period_days": 30,
+      "ic_value": -0.028704,
+      "ic_mean": 0.024358,
+      "ic_std": 0.055055,
+      "icir": 0.4424,
+      "t_statistic": -14.0513,
+      "p_value": null,
+      "hit_rate": 0.6333,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "momentum_score",
+      "period_days": 60,
+      "ic_value": -0.021426,
+      "ic_mean": 0.053393,
+      "ic_std": 0.057949,
+      "icir": 0.9214,
+      "t_statistic": -9.2387,
+      "p_value": null,
+      "hit_rate": 0.7714,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "momentum_score",
+      "period_days": 90,
+      "ic_value": 0.09998,
+      "ic_mean": 0.100853,
+      "ic_std": 0.034731,
+      "icir": 2.9038,
+      "t_statistic": 36.2255,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "growth_score",
+      "period_days": 3,
+      "ic_value": 0.067142,
+      "ic_mean": 0.069784,
+      "ic_std": 0.070682,
+      "icir": 0.9873,
+      "t_statistic": 35.2566,
+      "p_value": null,
+      "hit_rate": 0.86,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "growth_score",
+      "period_days": 30,
+      "ic_value": 0.232118,
+      "ic_mean": 0.23782,
+      "ic_std": 0.067149,
+      "icir": 3.5417,
+      "t_statistic": 116.7693,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "growth_score",
+      "period_days": 60,
+      "ic_value": 0.362564,
+      "ic_mean": 0.366699,
+      "ic_std": 0.04813,
+      "icir": 7.619,
+      "t_statistic": 167.7066,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "growth_score",
+      "period_days": 90,
+      "ic_value": 0.480389,
+      "ic_mean": 0.482723,
+      "ic_std": 0.027835,
+      "icir": 17.3422,
+      "t_statistic": 197.463,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "final_score",
+      "period_days": 3,
+      "ic_value": 0.054443,
+      "ic_mean": 0.049896,
+      "ic_std": 0.064278,
+      "icir": 0.7762,
+      "t_statistic": 28.5663,
+      "p_value": null,
+      "hit_rate": 0.79,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "final_score",
+      "period_days": 30,
+      "ic_value": 0.165628,
+      "ic_mean": 0.165447,
+      "ic_std": 0.065923,
+      "icir": 2.5097,
+      "t_statistic": 82.1805,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "final_score",
+      "period_days": 60,
+      "ic_value": 0.245802,
+      "ic_mean": 0.249203,
+      "ic_std": 0.056898,
+      "icir": 4.3798,
+      "t_statistic": 109.3152,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "final_score",
+      "period_days": 90,
+      "ic_value": 0.333108,
+      "ic_mean": 0.338084,
+      "ic_std": 0.053621,
+      "icir": 6.3051,
+      "t_statistic": 127.3633,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "sector_rotation_score",
+      "period_days": 3,
+      "ic_value": 0.023191,
+      "ic_mean": 0.00832,
+      "ic_std": 0.074741,
+      "icir": 0.1113,
+      "t_statistic": 12.1534,
+      "p_value": null,
+      "hit_rate": 0.5152,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "sector_rotation_score",
+      "period_days": 30,
+      "ic_value": 0.031402,
+      "ic_mean": 0.023251,
+      "ic_std": 0.059613,
+      "icir": 0.39,
+      "t_statistic": 15.3732,
+      "p_value": null,
+      "hit_rate": 0.6322,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "sector_rotation_score",
+      "period_days": 60,
+      "ic_value": 0.063781,
+      "ic_mean": 0.052127,
+      "ic_std": 0.060617,
+      "icir": 0.8599,
+      "t_statistic": 27.5511,
+      "p_value": null,
+      "hit_rate": 0.7353,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "sector_rotation_score",
+      "period_days": 90,
+      "ic_value": 0.093543,
+      "ic_mean": 0.095687,
+      "ic_std": 0.066229,
+      "icir": 1.4448,
+      "t_statistic": 33.872,
+      "p_value": null,
+      "hit_rate": 0.9375,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "factor_combination_bonus",
+      "period_days": 3,
+      "ic_value": 0.037761,
+      "ic_mean": 0.038805,
+      "ic_std": 0.051666,
+      "icir": 0.7511,
+      "t_statistic": 19.7979,
+      "p_value": null,
+      "hit_rate": 0.75,
+      "sample_count": 274498,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "factor_combination_bonus",
+      "period_days": 30,
+      "ic_value": 0.156936,
+      "ic_mean": 0.152312,
+      "ic_std": 0.054779,
+      "icir": 2.7805,
+      "t_statistic": 77.7556,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 239437,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "factor_combination_bonus",
+      "period_days": 60,
+      "ic_value": 0.227773,
+      "ic_mean": 0.227828,
+      "ic_std": 0.04497,
+      "icir": 5.0663,
+      "t_statistic": 100.84,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 185836,
+      "analysis_date": "2026-01-14"
+    },
+    {
+      "factor_name": "factor_combination_bonus",
+      "period_days": 90,
+      "ic_value": 0.297014,
+      "ic_mean": 0.301453,
+      "ic_std": 0.050195,
+      "icir": 6.0056,
+      "t_statistic": 112.1376,
+      "p_value": null,
+      "hit_rate": 1.0,
+      "sample_count": 129971,
+      "analysis_date": "2026-01-14"
+    }
+  ],
+  "grade_results": [
+    {
+      "grade": "매수",
+      "period_days": 3,
+      "avg_return": 0.7448,
+      "median_return": null,
+      "std_return": 6.577,
+      "hit_rate": 0.4811,
+      "win_rate": 0.4811,
+      "sample_count": 13018
+    },
+    {
+      "grade": "중립",
+      "period_days": 3,
+      "avg_return": 0.2491,
+      "median_return": null,
+      "std_return": 11.6204,
+      "hit_rate": 0.4437,
+      "win_rate": 0.4437,
+      "sample_count": 98697
+    },
+    {
+      "grade": "매도",
+      "period_days": 3,
+      "avg_return": -0.3118,
+      "median_return": -0.2985,
+      "std_return": 4.4826,
+      "hit_rate": 0.4032,
+      "win_rate": 0.4032,
+      "sample_count": 16963
+    },
+    {
+      "grade": "매수",
+      "period_days": 30,
+      "avg_return": 6.5896,
+      "median_return": 1.2145,
+      "std_return": 27.7388,
+      "hit_rate": 0.5563,
+      "win_rate": 0.5563,
+      "sample_count": 11664
+    },
+    {
+      "grade": "중립",
+      "period_days": 30,
+      "avg_return": 1.2109,
+      "median_return": -0.9091,
+      "std_return": 18.3006,
+      "hit_rate": 0.4344,
+      "win_rate": 0.4344,
+      "sample_count": 84094
+    },
+    {
+      "grade": "매도",
+      "period_days": 30,
+      "avg_return": -1.7428,
+      "median_return": -2.5102,
+      "std_return": 19.2118,
+      "hit_rate": 0.3497,
+      "win_rate": 0.3497,
+      "sample_count": 14645
+    },
+    {
+      "grade": "매수",
+      "period_days": 60,
+      "avg_return": 11.4302,
+      "median_return": 2.7439,
+      "std_return": 35.893,
+      "hit_rate": 0.577,
+      "win_rate": 0.577,
+      "sample_count": 11031
+    },
+    {
+      "grade": "중립",
+      "period_days": 60,
+      "avg_return": 2.9656,
+      "median_return": -0.8393,
+      "std_return": 28.3865,
+      "hit_rate": 0.4577,
+      "win_rate": 0.4577,
+      "sample_count": 75762
+    },
+    {
+      "grade": "매도",
+      "period_days": 60,
+      "avg_return": -3.0807,
+      "median_return": -5.835,
+      "std_return": 45.2914,
+      "hit_rate": 0.2493,
+      "win_rate": 0.2493,
+      "sample_count": 9909
+    },
+    {
+      "grade": "매수",
+      "period_days": 90,
+      "avg_return": 18.1774,
+      "median_return": 5.5556,
+      "std_return": 46.9463,
+      "hit_rate": 0.6161,
+      "win_rate": 0.6161,
+      "sample_count": 9145
+    },
+    {
+      "grade": "중립",
+      "period_days": 90,
+      "avg_return": 4.6886,
+      "median_return": -0.8028,
+      "std_return": 39.5791,
+      "hit_rate": 0.4659,
+      "win_rate": 0.4659,
+      "sample_count": 61585
+    },
+    {
+      "grade": "매도",
+      "period_days": 90,
+      "avg_return": -9.9551,
+      "median_return": -12.4026,
+      "std_return": 49.4286,
+      "hit_rate": 0.1171,
+      "win_rate": 0.1171,
+      "sample_count": 4638
+    }
+  ],
+  "monotonicity_scores": {
+    "3": 1.0,
+    "30": 1.0,
+    "60": 1.0,
+    "90": 1.0
+  },
+  "scenario_results": [
+    {
+      "scenario_type": "bullish",
+      "period_days": 3,
+      "brier_score": 0.084328,
+      "calibration_error": 0.21659,
+      "resolution": 0.068703,
+      "realization_rate": 0.0742,
+      "predicted_avg_prob": 0.1729,
+      "actual_occurrence_rate": 0.0742,
+      "sample_count": 274478
+    },
+    {
+      "scenario_type": "sideways",
+      "period_days": 3,
+      "brier_score": 0.179946,
+      "calibration_error": 0.312965,
+      "resolution": 0.116941,
+      "realization_rate": 0.8648,
+      "predicted_avg_prob": 0.6193,
+      "actual_occurrence_rate": 0.8648,
+      "sample_count": 274478
+    },
+    {
+      "scenario_type": "bearish",
+      "period_days": 3,
+      "brier_score": 0.084972,
+      "calibration_error": 0.285395,
+      "resolution": 0.057294,
+      "realization_rate": 0.061,
+      "predicted_avg_prob": 0.2078,
+      "actual_occurrence_rate": 0.061,
+      "sample_count": 274478
+    },
+    {
+      "scenario_type": "bullish",
+      "period_days": 30,
+      "brier_score": 0.178112,
+      "calibration_error": 0.048947,
+      "resolution": 0.18157,
+      "realization_rate": 0.2384,
+      "predicted_avg_prob": 0.1742,
+      "actual_occurrence_rate": 0.2384,
+      "sample_count": 239434
+    },
+    {
+      "scenario_type": "sideways",
+      "period_days": 30,
+      "brier_score": 0.262806,
+      "calibration_error": 0.117289,
+      "resolution": 0.249256,
+      "realization_rate": 0.4727,
+      "predicted_avg_prob": 0.6177,
+      "actual_occurrence_rate": 0.4727,
+      "sample_count": 239434
+    },
+    {
+      "scenario_type": "bearish",
+      "period_days": 30,
+      "brier_score": 0.207966,
+      "calibration_error": 0.064817,
+      "resolution": 0.205425,
+      "realization_rate": 0.2889,
+      "predicted_avg_prob": 0.2081,
+      "actual_occurrence_rate": 0.2889,
+      "sample_count": 239434
+    },
+    {
+      "scenario_type": "bullish",
+      "period_days": 60,
+      "brier_score": 0.195205,
+      "calibration_error": 0.103158,
+      "resolution": 0.199818,
+      "realization_rate": 0.276,
+      "predicted_avg_prob": 0.1758,
+      "actual_occurrence_rate": 0.276,
+      "sample_count": 185835
+    },
+    {
+      "scenario_type": "sideways",
+      "period_days": 60,
+      "brier_score": 0.289691,
+      "calibration_error": 0.235197,
+      "resolution": 0.226647,
+      "realization_rate": 0.3472,
+      "predicted_avg_prob": 0.6165,
+      "actual_occurrence_rate": 0.3472,
+      "sample_count": 185835
+    },
+    {
+      "scenario_type": "bearish",
+      "period_days": 60,
+      "brier_score": 0.251937,
+      "calibration_error": 0.197514,
+      "resolution": 0.234829,
+      "realization_rate": 0.3768,
+      "predicted_avg_prob": 0.2077,
+      "actual_occurrence_rate": 0.3768,
+      "sample_count": 185835
+    },
+    {
+      "scenario_type": "bullish",
+      "period_days": 90,
+      "brier_score": 0.199772,
+      "calibration_error": 0.1209,
+      "resolution": 0.205931,
+      "realization_rate": 0.2901,
+      "predicted_avg_prob": 0.1761,
+      "actual_occurrence_rate": 0.2901,
+      "sample_count": 129970
+    },
+    {
+      "scenario_type": "sideways",
+      "period_days": 90,
+      "brier_score": 0.308412,
+      "calibration_error": 0.281919,
+      "resolution": 0.200272,
+      "realization_rate": 0.277,
+      "predicted_avg_prob": 0.6156,
+      "actual_occurrence_rate": 0.277,
+      "sample_count": 129970
+    },
+    {
+      "scenario_type": "bearish",
+      "period_days": 90,
+      "brier_score": 0.278974,
+      "calibration_error": 0.271698,
+      "resolution": 0.245501,
+      "realization_rate": 0.4329,
+      "predicted_avg_prob": 0.2083,
+      "actual_occurrence_rate": 0.4329,
+      "sample_count": 129970
+    }
+  ],
+  "risk_results": [
+    {
+      "metric_name": "var_95",
+      "exceedance_rate": 0.1252,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -5.4761,
+      "predicted_value": -3.4257,
+      "sample_count": 274438
+    },
+    {
+      "metric_name": "cvar_95",
+      "exceedance_rate": 0.05,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -8.7984,
+      "predicted_value": -4.8275,
+      "sample_count": 274419
+    },
+    {
+      "metric_name": "var_95",
+      "exceedance_rate": 0.3901,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -9.1933,
+      "predicted_value": -3.384,
+      "sample_count": 239385
+    },
+    {
+      "metric_name": "cvar_95",
+      "exceedance_rate": 0.05,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -23.0458,
+      "predicted_value": -4.7497,
+      "sample_count": 239383
+    },
+    {
+      "metric_name": "var_95",
+      "exceedance_rate": 0.4576,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -11.959,
+      "predicted_value": -3.3194,
+      "sample_count": 185809
+    },
+    {
+      "metric_name": "cvar_95",
+      "exceedance_rate": 0.05,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -31.3332,
+      "predicted_value": -4.6644,
+      "sample_count": 185809
+    },
+    {
+      "metric_name": "var_95",
+      "exceedance_rate": 0.4965,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -14.1682,
+      "predicted_value": -3.3271,
+      "sample_count": 129953
+    },
+    {
+      "metric_name": "cvar_95",
+      "exceedance_rate": 0.05,
+      "expected_rate": 0.05,
+      "kupiec_statistic": null,
+      "kupiec_p_value": 1.0,
+      "christoffersen_statistic": null,
+      "christoffersen_p_value": 1.0,
+      "avg_exceedance_loss": -37.5587,
+      "predicted_value": -4.6181,
+      "sample_count": 129953
+    }
+  ],
+  "signal_results": [
+    {
+      "signal_type": "stop_loss",
+      "hit_rate": 0.6592,
+      "avg_holding_period": 90.0,
+      "avg_return": 2.8024,
+      "max_adverse_excursion": -13.1725,
+      "max_favorable_excursion": 26.1215,
+      "realized_rr_ratio": 1.983,
+      "sample_count": 5000
+    },
+    {
+      "signal_type": "take_profit",
+      "hit_rate": 0.4942,
+      "avg_holding_period": 90.0,
+      "avg_return": 2.8024,
+      "max_adverse_excursion": null,
+      "max_favorable_excursion": null,
+      "realized_rr_ratio": null,
+      "sample_count": 5000
+    },
+    {
+      "signal_type": "entry_timing",
+      "hit_rate": 0.6603,
+      "avg_holding_period": 30.0,
+      "avg_return": 15.5123,
+      "max_adverse_excursion": null,
+      "max_favorable_excursion": null,
+      "realized_rr_ratio": null,
+      "sample_count": 239434
+    }
+  ],
+  "decay_results": [
+    {
+      "factor_name": "value_score",
+      "ic_series": [
+        [
+          3,
+          0.042059
+        ],
+        [
+          30,
+          0.069314
+        ],
+        [
+          60,
+          0.084681
+        ],
+        [
+          90,
+          0.102724
+        ]
+      ],
+      "half_life_days": 999,
+      "decay_rate": -0.009823,
+      "optimal_rebalance_period": 30,
+      "r_squared": 0.9245
+    },
+    {
+      "factor_name": "quality_score",
+      "ic_series": [
+        [
+          3,
+          0.025376
+        ],
+        [
+          30,
+          0.031297
+        ],
+        [
+          60,
+          0.02881
+        ],
+        [
+          90,
+          0.037438
+        ]
+      ],
+      "half_life_days": 999,
+      "decay_rate": -0.003709,
+      "optimal_rebalance_period": 30,
+      "r_squared": 0.731
+    },
+    {
+      "factor_name": "momentum_score",
+      "ic_series": [
+        [
+          3,
+          0.018499
+        ],
+        [
+          30,
+          -0.028704
+        ],
+        [
+          60,
+          -0.021426
+        ],
+        [
+          90,
+          0.09998
+        ]
+      ],
+      "half_life_days": 999,
+      "decay_rate": -0.016483,
+      "optimal_rebalance_period": 30,
+      "r_squared": 0.6506
+    },
+    {
+      "factor_name": "growth_score",
+      "ic_series": [
+        [
+          3,
+          0.067142
+        ],
+        [
+          30,
+          0.232118
+        ],
+        [
+          60,
+          0.362564
+        ],
+        [
+          90,
+          0.480389
+        ]
+      ],
+      "half_life_days": 999,
+      "decay_rate": -0.021613,
+      "optimal_rebalance_period": 30,
+      "r_squared": 0.8736
+    },
+    {
+      "factor_name": "final_score",
+      "ic_series": [
+        [
+          3,
+          0.054443
+        ],
+        [
+          30,
+          0.165628
+        ],
+        [
+          60,
+          0.245802
+        ],
+        [
+          90,
+          0.333108
+        ]
+      ],
+      "half_life_days": 999,
+      "decay_rate": -0.019852,
+      "optimal_rebalance_period": 30,
+      "r_squared": 0.8873
+    }
+  ],
+  "grade_system_results": [
+    {
+      "system_name": "fixed",
+      "period_days": 3,
+      "ic_value": 0.051111,
+      "monotonicity_score": 0.9524,
+      "hit_rate": 0.4939,
+      "grade_spread": 9.7711
+    },
+    {
+      "system_name": "dynamic",
+      "period_days": 3,
+      "ic_value": 0.051111,
+      "monotonicity_score": 0.9524,
+      "hit_rate": 0.4939,
+      "grade_spread": 9.7711
+    },
+    {
+      "system_name": "percentile",
+      "period_days": 3,
+      "ic_value": 0.048625,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.471,
+      "grade_spread": 1.2949
+    },
+    {
+      "system_name": "fixed",
+      "period_days": 30,
+      "ic_value": 0.163549,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.5876,
+      "grade_spread": 63.1544
+    },
+    {
+      "system_name": "dynamic",
+      "period_days": 30,
+      "ic_value": 0.163549,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.5876,
+      "grade_spread": 63.1544
+    },
+    {
+      "system_name": "percentile",
+      "period_days": 30,
+      "ic_value": 0.157687,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.5423,
+      "grade_spread": 9.5577
+    },
+    {
+      "system_name": "fixed",
+      "period_days": 60,
+      "ic_value": 0.23807,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.5955,
+      "grade_spread": 73.1465
+    },
+    {
+      "system_name": "dynamic",
+      "period_days": 60,
+      "ic_value": 0.23807,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.5955,
+      "grade_spread": 73.1465
+    },
+    {
+      "system_name": "percentile",
+      "period_days": 60,
+      "ic_value": 0.242938,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.5767,
+      "grade_spread": 18.753
+    },
+    {
+      "system_name": "fixed",
+      "period_days": 90,
+      "ic_value": 0.319241,
+      "monotonicity_score": 0.9048,
+      "hit_rate": 0.6781,
+      "grade_spread": 17.501
+    },
+    {
+      "system_name": "dynamic",
+      "period_days": 90,
+      "ic_value": 0.319241,
+      "monotonicity_score": 0.9048,
+      "hit_rate": 0.6781,
+      "grade_spread": 17.501
+    },
+    {
+      "system_name": "percentile",
+      "period_days": 90,
+      "ic_value": 0.331109,
+      "monotonicity_score": 1.0,
+      "hit_rate": 0.6136,
+      "grade_spread": 30.6997
+    }
+  ],
+  "portfolio_results": [
+    {
+      "portfolio_type": "long",
+      "period_days": 3,
+      "total_return": 0.7448,
+      "sharpe_ratio": 1.0373,
+      "sortino_ratio": 1.8856,
+      "mdd": -100.0,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.6256,
+      "win_rate": 0.4811,
+      "pl_ratio": 1.4212,
+      "profit_factor": 1.5005,
+      "var_95": -6.8831,
+      "cvar_95": -10.7366,
+      "alpha": 0.7448,
+      "beta": 1.0,
+      "information_ratio": 1.0373,
+      "sample_count": 13018
+    },
+    {
+      "portfolio_type": "short",
+      "period_days": 3,
+      "total_return": 0.3118,
+      "sharpe_ratio": 0.6367,
+      "sortino_ratio": 0.6143,
+      "mdd": -2.846222591814755e+24,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.5441,
+      "pl_ratio": 0.9514,
+      "profit_factor": 1.2836,
+      "var_95": -5.1451,
+      "cvar_95": -10.2739,
+      "alpha": 0.3118,
+      "beta": 1.0,
+      "information_ratio": 0.6367,
+      "sample_count": 16963
+    },
+    {
+      "portfolio_type": "long_short",
+      "period_days": 3,
+      "total_return": 0.5195,
+      "sharpe_ratio": 1.1961,
+      "sortino_ratio": 1.6999,
+      "mdd": -7.221775472651177e+22,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.5489,
+      "pl_ratio": 1.2606,
+      "profit_factor": 1.5421,
+      "var_95": -4.3289,
+      "cvar_95": -7.2819,
+      "alpha": 0.5195,
+      "beta": 1.0,
+      "information_ratio": 1.1961,
+      "sample_count": 13018
+    },
+    {
+      "portfolio_type": "long",
+      "period_days": 30,
+      "total_return": 6.5896,
+      "sharpe_ratio": 0.6881,
+      "sortino_ratio": 2.5484,
+      "mdd": -100.0,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.5535,
+      "win_rate": 0.5563,
+      "pl_ratio": 2.1918,
+      "profit_factor": 2.8008,
+      "var_95": -17.0119,
+      "cvar_95": -23.64,
+      "alpha": 6.5896,
+      "beta": 1.0,
+      "information_ratio": 0.6881,
+      "sample_count": 11664
+    },
+    {
+      "portfolio_type": "short",
+      "period_days": 30,
+      "total_return": 1.7428,
+      "sharpe_ratio": 0.2623,
+      "sortino_ratio": 0.179,
+      "mdd": -29708425635828.992,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.641,
+      "pl_ratio": 0.8513,
+      "profit_factor": 1.5606,
+      "var_95": -13.9396,
+      "cvar_95": -36.2041,
+      "alpha": 1.7428,
+      "beta": 1.0,
+      "information_ratio": 0.2623,
+      "sample_count": 14645
+    },
+    {
+      "portfolio_type": "long_short",
+      "period_days": 30,
+      "total_return": 4.201,
+      "sharpe_ratio": 0.7105,
+      "sortino_ratio": 0.8391,
+      "mdd": -8657198601051.171,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.627,
+      "pl_ratio": 1.6816,
+      "profit_factor": 2.8271,
+      "var_95": -10.6104,
+      "cvar_95": -20.434,
+      "alpha": 4.201,
+      "beta": 1.0,
+      "information_ratio": 0.7105,
+      "sample_count": 11664
+    },
+    {
+      "portfolio_type": "long",
+      "period_days": 60,
+      "total_return": 11.4302,
+      "sharpe_ratio": 0.6522,
+      "sortino_ratio": 2.5364,
+      "mdd": -99.9514,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.4803,
+      "win_rate": 0.577,
+      "pl_ratio": 2.4985,
+      "profit_factor": 3.4594,
+      "var_95": -21.6284,
+      "cvar_95": -29.5768,
+      "alpha": 11.4302,
+      "beta": 1.0,
+      "information_ratio": 0.6522,
+      "sample_count": 11031
+    },
+    {
+      "portfolio_type": "short",
+      "period_days": 60,
+      "total_return": 3.0807,
+      "sharpe_ratio": 0.139,
+      "sortino_ratio": 0.0741,
+      "mdd": -3.6797294042085795e+26,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.7436,
+      "pl_ratio": 0.537,
+      "profit_factor": 1.602,
+      "var_95": -16.537,
+      "cvar_95": -81.8642,
+      "alpha": 3.0807,
+      "beta": 1.0,
+      "information_ratio": 0.139,
+      "sample_count": 9909
+    },
+    {
+      "portfolio_type": "long_short",
+      "period_days": 60,
+      "total_return": 7.3697,
+      "sharpe_ratio": 0.5227,
+      "sortino_ratio": 0.3968,
+      "mdd": -1.316536994737496e+108,
+      "mdd_recovery_days": 1,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.6915,
+      "pl_ratio": 1.4071,
+      "profit_factor": 3.1549,
+      "var_95": -12.991,
+      "cvar_95": -43.5181,
+      "alpha": 7.3697,
+      "beta": 1.0,
+      "information_ratio": 0.5227,
+      "sample_count": 9909
+    },
+    {
+      "portfolio_type": "long",
+      "period_days": 90,
+      "total_return": 18.1774,
+      "sharpe_ratio": 0.6475,
+      "sortino_ratio": 2.8587,
+      "mdd": -97.9059,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.5199,
+      "win_rate": 0.6161,
+      "pl_ratio": 2.9786,
+      "profit_factor": 4.8487,
+      "var_95": -23.6762,
+      "cvar_95": -32.8983,
+      "alpha": 18.1774,
+      "beta": 1.0,
+      "information_ratio": 0.6475,
+      "sample_count": 9145
+    },
+    {
+      "portfolio_type": "short",
+      "period_days": 90,
+      "total_return": 9.9551,
+      "sharpe_ratio": 0.3366,
+      "sortino_ratio": 0.1244,
+      "mdd": -6.19195062254867e+80,
+      "mdd_recovery_days": 0,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.8818,
+      "pl_ratio": 0.4623,
+      "profit_factor": 3.4818,
+      "var_95": -9.7314,
+      "cvar_95": -74.7364,
+      "alpha": 9.9551,
+      "beta": 1.0,
+      "information_ratio": 0.3366,
+      "sample_count": 4638
+    },
+    {
+      "portfolio_type": "long_short",
+      "period_days": 90,
+      "total_return": 14.6028,
+      "sharpe_ratio": 0.7261,
+      "sortino_ratio": 0.4529,
+      "mdd": -2.7007322407076315e+20,
+      "mdd_recovery_days": 1,
+      "calmar_ratio": 0.0,
+      "win_rate": 0.8258,
+      "pl_ratio": 1.4419,
+      "profit_factor": 6.8347,
+      "var_95": -8.9653,
+      "cvar_95": -40.9763,
+      "alpha": 14.6028,
+      "beta": 1.0,
+      "information_ratio": 0.7261,
+      "sample_count": 4638
+    }
+  ],
+  "market_state_results": [
+    {
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.047798,
+        "quality_score": 0.018532,
+        "momentum_score": -0.003954,
+        "growth_score": 0.076548,
+        "final_score": 0.068431
+      },
+      "grade_performance": {
+        "매수": 0.385,
+        "중립": 0.0674,
+        "매도": -0.27
+      },
+      "optimal_weights": {
+        "value_score": 0.222,
+        "quality_score": 0.0861,
+        "momentum_score": 0.0184,
+        "growth_score": 0.3556,
+        "final_score": 0.3179
+      },
+      "sample_count": 94001
+    },
+    {
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.102877,
+        "quality_score": 0.014257,
+        "momentum_score": -0.031765,
+        "growth_score": 0.221516,
+        "final_score": 0.174251
+      },
+      "grade_performance": {
+        "매수": 2.3491,
+        "중립": 0.1295,
+        "매도": -2.0531
+      },
+      "optimal_weights": {
+        "value_score": 0.1889,
+        "quality_score": 0.0262,
+        "momentum_score": 0.0583,
+        "growth_score": 0.4067,
+        "final_score": 0.3199
+      },
+      "sample_count": 94001
+    },
+    {
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.161284,
+        "quality_score": 0.009988,
+        "momentum_score": 0.00737,
+        "growth_score": 0.364149,
+        "final_score": 0.27535
+      },
+      "grade_performance": {
+        "매수": 5.4951,
+        "중립": 0.3606,
+        "매도": -5.5518
+      },
+      "optimal_weights": {
+        "value_score": 0.1971,
+        "quality_score": 0.0122,
+        "momentum_score": 0.009,
+        "growth_score": 0.4451,
+        "final_score": 0.3366
+      },
+      "sample_count": 94001
+    },
+    {
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.214511,
+        "quality_score": 0.021034,
+        "momentum_score": 0.134788,
+        "growth_score": 0.474562,
+        "final_score": 0.347285
+      },
+      "grade_performance": {
+        "매수": 11.1902,
+        "중립": 0.2634,
+        "매도": -12.1054
+      },
+      "optimal_weights": {
+        "value_score": 0.1799,
+        "quality_score": 0.0176,
+        "momentum_score": 0.1131,
+        "growth_score": 0.3981,
+        "final_score": 0.2913
+      },
+      "sample_count": 94001
+    },
+    {
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.039333,
+        "quality_score": 0.001561,
+        "momentum_score": 0.00183,
+        "growth_score": 0.033842,
+        "final_score": 0.032496
+      },
+      "grade_performance": {
+        "매수": 1.9996,
+        "중립": 0.4658,
+        "매도": -1.0545
+      },
+      "optimal_weights": {
+        "value_score": 0.3606,
+        "quality_score": 0.0143,
+        "momentum_score": 0.0168,
+        "growth_score": 0.3103,
+        "final_score": 0.298
+      },
+      "sample_count": 4734
+    },
+    {
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.062117,
+        "quality_score": -0.010446,
+        "momentum_score": -0.084531,
+        "growth_score": 0.168472,
+        "final_score": 0.118245
+      },
+      "grade_performance": {
+        "매수": 10.2791,
+        "중립": 6.1156,
+        "매도": -1.0363
+      },
+      "optimal_weights": {
+        "value_score": 0.14,
+        "quality_score": 0.0235,
+        "momentum_score": 0.1905,
+        "growth_score": 0.3796,
+        "final_score": 0.2664
+      },
+      "sample_count": 4734
+    },
+    {
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.019087,
+        "quality_score": -0.07884,
+        "momentum_score": -0.078218,
+        "growth_score": 0.304042,
+        "final_score": 0.149705
+      },
+      "grade_performance": {
+        "매수": 19.1062,
+        "중립": 12.8651,
+        "매도": 1.235
+      },
+      "optimal_weights": {
+        "value_score": 0.0303,
+        "quality_score": 0.1252,
+        "momentum_score": 0.1242,
+        "growth_score": 0.4827,
+        "final_score": 0.2377
+      },
+      "sample_count": 4734
+    },
+    {
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.022262,
+        "quality_score": -0.035461,
+        "momentum_score": -0.012304,
+        "growth_score": 0.460766,
+        "final_score": 0.184142
+      },
+      "grade_performance": {
+        "매수": 39.9622,
+        "중립": 30.4689,
+        "매도": 114.1038
+      },
+      "optimal_weights": {
+        "value_score": 0.0311,
+        "quality_score": 0.0496,
+        "momentum_score": 0.0172,
+        "growth_score": 0.6445,
+        "final_score": 0.2576
+      },
+      "sample_count": 4734
+    },
+    {
+      "market_state": "KOSPI중형-둔화공포-혼조형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.047602,
+        "quality_score": 0.013408,
+        "momentum_score": -0.000465,
+        "growth_score": 0.089137,
+        "final_score": 0.049848
+      },
+      "grade_performance": {
+        "매수": 0.3152,
+        "중립": 0.3573,
+        "매도": 0.0663
+      },
+      "optimal_weights": {
+        "value_score": 0.2375,
+        "quality_score": 0.0669,
+        "momentum_score": 0.0023,
+        "growth_score": 0.4447,
+        "final_score": 0.2487
+      },
+      "sample_count": 9107
+    },
+    {
+      "market_state": "KOSPI중형-둔화공포-혼조형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.128854,
+        "quality_score": 0.013821,
+        "momentum_score": 0.020564,
+        "growth_score": 0.285876,
+        "final_score": 0.18883
+      },
+      "grade_performance": {
+        "매수": 11.2859,
+        "중립": 0.5793,
+        "매도": -0.6738
+      },
+      "optimal_weights": {
+        "value_score": 0.202,
+        "quality_score": 0.0217,
+        "momentum_score": 0.0322,
+        "growth_score": 0.4481,
+        "final_score": 0.296
+      },
+      "sample_count": 9107
+    },
+    {
+      "market_state": "KOSPI중형-둔화공포-혼조형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.080068,
+        "quality_score": -0.022362,
+        "momentum_score": 0.030246,
+        "growth_score": 0.448273,
+        "final_score": 0.271564
+      },
+      "grade_performance": {
+        "매수": 12.4093,
+        "중립": 2.759,
+        "매도": -1.6218
+      },
+      "optimal_weights": {
+        "value_score": 0.0939,
+        "quality_score": 0.0262,
+        "momentum_score": 0.0355,
+        "growth_score": 0.5258,
+        "final_score": 0.3185
+      },
+      "sample_count": 9107
+    },
+    {
+      "market_state": "KOSPI중형-둔화공포-혼조형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.049633,
+        "quality_score": -0.094206,
+        "momentum_score": 0.057244,
+        "growth_score": 0.574932,
+        "final_score": 0.332322
+      },
+      "grade_performance": {
+        "매수": 18.356,
+        "중립": 2.6213,
+        "매도": -6.2322
+      },
+      "optimal_weights": {
+        "value_score": 0.0448,
+        "quality_score": 0.085,
+        "momentum_score": 0.0516,
+        "growth_score": 0.5187,
+        "final_score": 0.2998
+      },
+      "sample_count": 9107
+    },
+    {
+      "market_state": "KOSPI대형-확장과열-공격형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.029841,
+        "quality_score": 0.034206,
+        "momentum_score": 0.025597,
+        "growth_score": 0.083166,
+        "final_score": 0.030553
+      },
+      "grade_performance": {
+        "매수": 1.5824,
+        "중립": 0.6908,
+        "매도": -1.3137
+      },
+      "optimal_weights": {
+        "value_score": 0.1467,
+        "quality_score": 0.1682,
+        "momentum_score": 0.1259,
+        "growth_score": 0.409,
+        "final_score": 0.1502
+      },
+      "sample_count": 10240
+    },
+    {
+      "market_state": "KOSPI대형-확장과열-공격형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.073623,
+        "quality_score": 0.106135,
+        "momentum_score": 0.00154,
+        "growth_score": 0.192189,
+        "final_score": 0.096263
+      },
+      "grade_performance": {
+        "매수": 10.1212,
+        "중립": 3.9026,
+        "매도": -9.9501
+      },
+      "optimal_weights": {
+        "value_score": 0.1567,
+        "quality_score": 0.2259,
+        "momentum_score": 0.0033,
+        "growth_score": 0.4091,
+        "final_score": 0.2049
+      },
+      "sample_count": 10240
+    },
+    {
+      "market_state": "KOSPI대형-확장과열-공격형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.029489,
+        "quality_score": 0.076422,
+        "momentum_score": 0.059714,
+        "growth_score": 0.225038,
+        "final_score": 0.046418
+      },
+      "grade_performance": {
+        "매수": 14.084,
+        "중립": 10.0642,
+        "매도": -12.8043
+      },
+      "optimal_weights": {
+        "value_score": 0.0675,
+        "quality_score": 0.1748,
+        "momentum_score": 0.1366,
+        "growth_score": 0.5149,
+        "final_score": 0.1062
+      },
+      "sample_count": 10240
+    },
+    {
+      "market_state": "KOSPI대형-확장과열-공격형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": -0.029779,
+        "quality_score": 0.053684,
+        "momentum_score": 0.00341,
+        "growth_score": 0.307031,
+        "final_score": 0.082465
+      },
+      "grade_performance": {
+        "매수": 19.5467,
+        "중립": 17.725
+      },
+      "optimal_weights": {
+        "value_score": 0.0625,
+        "quality_score": 0.1127,
+        "momentum_score": 0.0072,
+        "growth_score": 0.6445,
+        "final_score": 0.1731
+      },
+      "sample_count": 10240
+    },
+    {
+      "market_state": "KOSPI중형-회복중립-성장형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.041468,
+        "quality_score": 0.035565,
+        "momentum_score": -0.013907,
+        "growth_score": 0.065629,
+        "final_score": 0.052812
+      },
+      "grade_performance": {
+        "매수": 0.4443,
+        "중립": 0.067,
+        "매도": -0.5269
+      },
+      "optimal_weights": {
+        "value_score": 0.1981,
+        "quality_score": 0.1699,
+        "momentum_score": 0.0664,
+        "growth_score": 0.3134,
+        "final_score": 0.2522
+      },
+      "sample_count": 13763
+    },
+    {
+      "market_state": "KOSPI중형-회복중립-성장형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.076448,
+        "quality_score": 0.092628,
+        "momentum_score": -0.102651,
+        "growth_score": 0.235834,
+        "final_score": 0.164464
+      },
+      "grade_performance": {
+        "매수": 2.4725,
+        "중립": -0.5549,
+        "매도": -3.2973
+      },
+      "optimal_weights": {
+        "value_score": 0.1138,
+        "quality_score": 0.1378,
+        "momentum_score": 0.1527,
+        "growth_score": 0.3509,
+        "final_score": 0.2447
+      },
+      "sample_count": 13763
+    },
+    {
+      "market_state": "KOSPI중형-회복중립-성장형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.105494,
+        "quality_score": 0.150741,
+        "momentum_score": -0.020055,
+        "growth_score": 0.371794,
+        "final_score": 0.223841
+      },
+      "grade_performance": {
+        "매수": 2.556,
+        "중립": 0.2069,
+        "매도": -8.6343
+      },
+      "optimal_weights": {
+        "value_score": 0.121,
+        "quality_score": 0.1729,
+        "momentum_score": 0.023,
+        "growth_score": 0.4264,
+        "final_score": 0.2567
+      },
+      "sample_count": 13763
+    },
+    {
+      "market_state": "KOSPI중형-회복중립-성장형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.124341,
+        "quality_score": 0.168595,
+        "momentum_score": 0.027698,
+        "growth_score": 0.482877,
+        "final_score": 0.287949
+      },
+      "grade_performance": {
+        "매수": 3.2957,
+        "중립": 1.4814,
+        "매도": -14.6509
+      },
+      "optimal_weights": {
+        "value_score": 0.1139,
+        "quality_score": 0.1545,
+        "momentum_score": 0.0254,
+        "growth_score": 0.4424,
+        "final_score": 0.2638
+      },
+      "sample_count": 13763
+    },
+    {
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.045915,
+        "quality_score": 0.01603,
+        "momentum_score": 0.02629,
+        "growth_score": 0.054829,
+        "final_score": 0.038575
+      },
+      "grade_performance": {
+        "매수": 0.5306,
+        "중립": 0.2514,
+        "매도": -0.3879
+      },
+      "optimal_weights": {
+        "value_score": 0.2528,
+        "quality_score": 0.0883,
+        "momentum_score": 0.1447,
+        "growth_score": 0.3019,
+        "final_score": 0.2124
+      },
+      "sample_count": 91778
+    },
+    {
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.092423,
+        "quality_score": 0.028951,
+        "momentum_score": -0.031364,
+        "growth_score": 0.204173,
+        "final_score": 0.129996
+      },
+      "grade_performance": {
+        "매수": 5.0088,
+        "중립": 0.6928,
+        "매도": -2.2168
+      },
+      "optimal_weights": {
+        "value_score": 0.1898,
+        "quality_score": 0.0595,
+        "momentum_score": 0.0644,
+        "growth_score": 0.4193,
+        "final_score": 0.267
+      },
+      "sample_count": 91778
+    },
+    {
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.104897,
+        "quality_score": 0.027129,
+        "momentum_score": -0.067729,
+        "growth_score": 0.30895,
+        "final_score": 0.19097
+      },
+      "grade_performance": {
+        "매수": 6.1883,
+        "중립": 2.2117,
+        "매도": -1.0442
+      },
+      "optimal_weights": {
+        "value_score": 0.1499,
+        "quality_score": 0.0388,
+        "momentum_score": 0.0968,
+        "growth_score": 0.4416,
+        "final_score": 0.2729
+      },
+      "sample_count": 91778
+    },
+    {
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.116294,
+        "quality_score": 0.036585,
+        "momentum_score": 0.060547,
+        "growth_score": 0.408785,
+        "final_score": 0.277858
+      },
+      "grade_performance": {
+        "매수": 9.6341,
+        "중립": 2.6696,
+        "매도": -7.5795
+      },
+      "optimal_weights": {
+        "value_score": 0.1292,
+        "quality_score": 0.0406,
+        "momentum_score": 0.0673,
+        "growth_score": 0.4542,
+        "final_score": 0.3087
+      },
+      "sample_count": 91778
+    },
+    {
+      "market_state": "테마특화-모멘텀폭발형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.009922,
+        "quality_score": -0.001855,
+        "momentum_score": 0.1083,
+        "growth_score": 0.025132,
+        "final_score": 0.015411
+      },
+      "grade_performance": {
+        "매수": 1.1745,
+        "중립": 1.0019,
+        "매도": 1.7425
+      },
+      "optimal_weights": {
+        "value_score": 0.0618,
+        "quality_score": 0.0115,
+        "momentum_score": 0.6743,
+        "growth_score": 0.1565,
+        "final_score": 0.0959
+      },
+      "sample_count": 5740
+    },
+    {
+      "market_state": "테마특화-모멘텀폭발형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": -0.040746,
+        "quality_score": -0.070262,
+        "momentum_score": 0.02468,
+        "growth_score": 0.125251,
+        "final_score": -0.030835
+      },
+      "grade_performance": {
+        "매수": 12.0158,
+        "중립": 9.4319,
+        "매도": 65.1717
+      },
+      "optimal_weights": {
+        "value_score": 0.1396,
+        "quality_score": 0.2408,
+        "momentum_score": 0.0846,
+        "growth_score": 0.4293,
+        "final_score": 0.1057
+      },
+      "sample_count": 5740
+    },
+    {
+      "market_state": "테마특화-모멘텀폭발형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": -0.094499,
+        "quality_score": -0.161657,
+        "momentum_score": -0.016091,
+        "growth_score": 0.136165,
+        "final_score": -0.012331
+      },
+      "grade_performance": {
+        "매수": 26.0641,
+        "중립": 20.9983,
+        "매도": 88.0995
+      },
+      "optimal_weights": {
+        "value_score": 0.2246,
+        "quality_score": 0.3842,
+        "momentum_score": 0.0382,
+        "growth_score": 0.3236,
+        "final_score": 0.0293
+      },
+      "sample_count": 5740
+    },
+    {
+      "market_state": "테마특화-모멘텀폭발형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": -0.148594,
+        "quality_score": -0.208948,
+        "momentum_score": -0.028458,
+        "growth_score": 0.212831,
+        "final_score": -0.060122
+      },
+      "grade_performance": {
+        "매수": 42.8095,
+        "중립": 52.1219
+      },
+      "optimal_weights": {
+        "value_score": 0.2255,
+        "quality_score": 0.3171,
+        "momentum_score": 0.0432,
+        "growth_score": 0.323,
+        "final_score": 0.0912
+      },
+      "sample_count": 5740
+    },
+    {
+      "market_state": "KOSDAQ소형-성장테마-고위험형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": -0.002853,
+        "quality_score": -0.007783,
+        "momentum_score": 0.004444,
+        "growth_score": 0.095517,
+        "final_score": 0.036414
+      },
+      "grade_performance": {
+        "매수": 1.8306,
+        "중립": 1.2631,
+        "매도": 0.2285
+      },
+      "optimal_weights": {
+        "value_score": 0.0194,
+        "quality_score": 0.0529,
+        "momentum_score": 0.0302,
+        "growth_score": 0.6497,
+        "final_score": 0.2477
+      },
+      "sample_count": 4132
+    },
+    {
+      "market_state": "KOSDAQ소형-성장테마-고위험형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": -0.080905,
+        "quality_score": -0.015574,
+        "momentum_score": -0.131288,
+        "growth_score": 0.272398,
+        "final_score": 0.144874
+      },
+      "grade_performance": {
+        "매수": 18.1118,
+        "중립": 9.3398,
+        "매도": -0.4502
+      },
+      "optimal_weights": {
+        "value_score": 0.1254,
+        "quality_score": 0.0241,
+        "momentum_score": 0.2035,
+        "growth_score": 0.4223,
+        "final_score": 0.2246
+      },
+      "sample_count": 4132
+    },
+    {
+      "market_state": "KOSDAQ소형-성장테마-고위험형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": -0.136455,
+        "quality_score": -0.061172,
+        "momentum_score": -0.15598,
+        "growth_score": 0.465735,
+        "final_score": 0.17897
+      },
+      "grade_performance": {
+        "매수": 34.3278,
+        "중립": 19.118,
+        "매도": 1.7384
+      },
+      "optimal_weights": {
+        "value_score": 0.1367,
+        "quality_score": 0.0613,
+        "momentum_score": 0.1562,
+        "growth_score": 0.4665,
+        "final_score": 0.1793
+      },
+      "sample_count": 4132
+    },
+    {
+      "market_state": "KOSDAQ소형-성장테마-고위험형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": -0.167176,
+        "quality_score": -0.050105,
+        "momentum_score": 0.080235,
+        "growth_score": 0.526376,
+        "final_score": 0.222762
+      },
+      "grade_performance": {
+        "매수": 60.83,
+        "중립": 25.9695,
+        "매도": -2.7004
+      },
+      "optimal_weights": {
+        "value_score": 0.1597,
+        "quality_score": 0.0479,
+        "momentum_score": 0.0767,
+        "growth_score": 0.5029,
+        "final_score": 0.2128
+      },
+      "sample_count": 4132
+    },
+    {
+      "market_state": "KOSDAQ중형-회복중립-성장테마형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.05302,
+        "quality_score": 0.019026,
+        "momentum_score": 0.001235,
+        "growth_score": 0.063408,
+        "final_score": 0.045271
+      },
+      "grade_performance": {
+        "매수": -0.0071,
+        "중립": 0.0056,
+        "매도": -0.3283
+      },
+      "optimal_weights": {
+        "value_score": 0.2914,
+        "quality_score": 0.1046,
+        "momentum_score": 0.0068,
+        "growth_score": 0.3485,
+        "final_score": 0.2488
+      },
+      "sample_count": 35900
+    },
+    {
+      "market_state": "KOSDAQ중형-회복중립-성장테마형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.127068,
+        "quality_score": 0.043753,
+        "momentum_score": -0.107594,
+        "growth_score": 0.193658,
+        "final_score": 0.143896
+      },
+      "grade_performance": {
+        "매수": 0.6828,
+        "중립": -1.0912,
+        "매도": -1.4867
+      },
+      "optimal_weights": {
+        "value_score": 0.2063,
+        "quality_score": 0.071,
+        "momentum_score": 0.1747,
+        "growth_score": 0.3144,
+        "final_score": 0.2336
+      },
+      "sample_count": 35900
+    },
+    {
+      "market_state": "KOSDAQ중형-회복중립-성장테마형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.194952,
+        "quality_score": 0.068159,
+        "momentum_score": -0.112376,
+        "growth_score": 0.306614,
+        "final_score": 0.218807
+      },
+      "grade_performance": {
+        "매수": 1.3683,
+        "중립": -2.5004,
+        "매도": -4.6705
+      },
+      "optimal_weights": {
+        "value_score": 0.2164,
+        "quality_score": 0.0757,
+        "momentum_score": 0.1247,
+        "growth_score": 0.3403,
+        "final_score": 0.2429
+      },
+      "sample_count": 35900
+    },
+    {
+      "market_state": "KOSDAQ중형-회복중립-성장테마형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.256118,
+        "quality_score": 0.092431,
+        "momentum_score": 0.076833,
+        "growth_score": 0.401133,
+        "final_score": 0.283065
+      },
+      "grade_performance": {
+        "매수": -0.8684,
+        "중립": -3.0327,
+        "매도": -13.0539
+      },
+      "optimal_weights": {
+        "value_score": 0.2308,
+        "quality_score": 0.0833,
+        "momentum_score": 0.0692,
+        "growth_score": 0.3615,
+        "final_score": 0.2551
+      },
+      "sample_count": 35900
+    },
+    {
+      "market_state": "KOSDAQ소형-침체-극단역발상형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.070628,
+        "quality_score": 0.029389,
+        "momentum_score": -0.011799,
+        "growth_score": 0.05393,
+        "final_score": 0.032763
+      },
+      "grade_performance": {
+        "매수": 1.8672,
+        "중립": -0.0792,
+        "매도": -0.1083
+      },
+      "optimal_weights": {
+        "value_score": 0.3558,
+        "quality_score": 0.148,
+        "momentum_score": 0.0594,
+        "growth_score": 0.2717,
+        "final_score": 0.165
+      },
+      "sample_count": 2795
+    },
+    {
+      "market_state": "KOSDAQ소형-침체-극단역발상형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.098083,
+        "quality_score": 0.033291,
+        "momentum_score": 0.061837,
+        "growth_score": 0.127403,
+        "final_score": 0.119106
+      },
+      "grade_performance": {
+        "매수": 23.1458,
+        "중립": 2.3087,
+        "매도": 4.0473
+      },
+      "optimal_weights": {
+        "value_score": 0.2231,
+        "quality_score": 0.0757,
+        "momentum_score": 0.1406,
+        "growth_score": 0.2897,
+        "final_score": 0.2709
+      },
+      "sample_count": 2795
+    },
+    {
+      "market_state": "KOSDAQ소형-침체-극단역발상형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.183804,
+        "quality_score": 0.008903,
+        "momentum_score": 0.034564,
+        "growth_score": 0.290116,
+        "final_score": 0.222655
+      },
+      "grade_performance": {
+        "매수": 39.9689,
+        "중립": 2.1287,
+        "매도": 2.5244
+      },
+      "optimal_weights": {
+        "value_score": 0.2484,
+        "quality_score": 0.012,
+        "momentum_score": 0.0467,
+        "growth_score": 0.392,
+        "final_score": 0.3009
+      },
+      "sample_count": 2795
+    },
+    {
+      "market_state": "KOSDAQ소형-침체-극단역발상형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.135803,
+        "quality_score": -0.096933,
+        "momentum_score": -0.09188,
+        "growth_score": 0.414334,
+        "final_score": 0.358956
+      },
+      "grade_performance": {
+        "매수": 47.537,
+        "중립": 2.6984,
+        "매도": -15.4467
+      },
+      "optimal_weights": {
+        "value_score": 0.1237,
+        "quality_score": 0.0883,
+        "momentum_score": 0.0837,
+        "growth_score": 0.3774,
+        "final_score": 0.3269
+      },
+      "sample_count": 2795
+    },
+    {
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.019402,
+        "quality_score": 0.001255,
+        "momentum_score": 0.069706,
+        "growth_score": 0.071088,
+        "final_score": 0.058261
+      },
+      "grade_performance": {
+        "매수": 1.6946,
+        "중립": 0.9363,
+        "매도": 0.7001
+      },
+      "optimal_weights": {
+        "value_score": 0.0883,
+        "quality_score": 0.0057,
+        "momentum_score": 0.3173,
+        "growth_score": 0.3236,
+        "final_score": 0.2652
+      },
+      "sample_count": 11418
+    },
+    {
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.020949,
+        "quality_score": -0.004073,
+        "momentum_score": -0.036482,
+        "growth_score": 0.191105,
+        "final_score": 0.088574
+      },
+      "grade_performance": {
+        "매수": 13.0125,
+        "중립": 8.0632,
+        "매도": 10.7706
+      },
+      "optimal_weights": {
+        "value_score": 0.0614,
+        "quality_score": 0.0119,
+        "momentum_score": 0.1069,
+        "growth_score": 0.5601,
+        "final_score": 0.2596
+      },
+      "sample_count": 11418
+    },
+    {
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.030656,
+        "quality_score": -0.024432,
+        "momentum_score": -0.065058,
+        "growth_score": 0.277617,
+        "final_score": 0.114618
+      },
+      "grade_performance": {
+        "매수": 25.688,
+        "중립": 18.7728,
+        "매도": 24.1001
+      },
+      "optimal_weights": {
+        "value_score": 0.0598,
+        "quality_score": 0.0477,
+        "momentum_score": 0.127,
+        "growth_score": 0.5418,
+        "final_score": 0.2237
+      },
+      "sample_count": 11418
+    },
+    {
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": 0.028301,
+        "quality_score": -0.030414,
+        "momentum_score": 0.080871,
+        "growth_score": 0.418377,
+        "final_score": 0.255751
+      },
+      "grade_performance": {
+        "매수": 40.8591,
+        "중립": 32.7679,
+        "매도": -10.1001
+      },
+      "optimal_weights": {
+        "value_score": 0.0348,
+        "quality_score": 0.0374,
+        "momentum_score": 0.0994,
+        "growth_score": 0.5142,
+        "final_score": 0.3143
+      },
+      "sample_count": 11418
+    },
+    {
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.04399,
+        "quality_score": 0.026373,
+        "momentum_score": 0.066317,
+        "growth_score": 0.048459,
+        "final_score": 0.062775
+      },
+      "grade_performance": {
+        "매수": 1.2807,
+        "중립": 0.6405,
+        "매도": -0.7684
+      },
+      "optimal_weights": {
+        "value_score": 0.1774,
+        "quality_score": 0.1064,
+        "momentum_score": 0.2675,
+        "growth_score": 0.1955,
+        "final_score": 0.2532
+      },
+      "sample_count": 6462
+    },
+    {
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": -0.016435,
+        "quality_score": -0.064215,
+        "momentum_score": 0.091344,
+        "growth_score": 0.209558,
+        "final_score": 0.147225
+      },
+      "grade_performance": {
+        "매수": 15.4343,
+        "중립": 6.4367,
+        "매도": -4.849
+      },
+      "optimal_weights": {
+        "value_score": 0.0311,
+        "quality_score": 0.1214,
+        "momentum_score": 0.1727,
+        "growth_score": 0.3963,
+        "final_score": 0.2784
+      },
+      "sample_count": 6462
+    },
+    {
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": -0.071689,
+        "quality_score": -0.167138,
+        "momentum_score": 0.104624,
+        "growth_score": 0.318098,
+        "final_score": 0.180681
+      },
+      "grade_performance": {
+        "매수": 32.8833,
+        "중립": 12.3636,
+        "매도": 3.2927
+      },
+      "optimal_weights": {
+        "value_score": 0.0851,
+        "quality_score": 0.1984,
+        "momentum_score": 0.1242,
+        "growth_score": 0.3777,
+        "final_score": 0.2145
+      },
+      "sample_count": 6462
+    },
+    {
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": -0.063287,
+        "quality_score": -0.16149,
+        "momentum_score": 0.063091,
+        "growth_score": 0.416214,
+        "final_score": 0.237133
+      },
+      "grade_performance": {
+        "매수": 42.1067,
+        "중립": 17.7123,
+        "매도": 5.7464
+      },
+      "optimal_weights": {
+        "value_score": 0.0672,
+        "quality_score": 0.1716,
+        "momentum_score": 0.067,
+        "growth_score": 0.4422,
+        "final_score": 0.2519
+      },
+      "sample_count": 6462
+    },
+    {
+      "market_state": "기타",
+      "period_days": 3,
+      "factor_ics": {
+        "value_score": 0.014054,
+        "quality_score": -0.046042,
+        "momentum_score": 0.120907,
+        "growth_score": 0.040091,
+        "final_score": -0.00986
+      },
+      "grade_performance": {
+        "중립": 2.981,
+        "매도": 3.33
+      },
+      "optimal_weights": {
+        "value_score": 0.0609,
+        "quality_score": 0.1994,
+        "momentum_score": 0.5235,
+        "growth_score": 0.1736,
+        "final_score": 0.0427
+      },
+      "sample_count": 634
+    },
+    {
+      "market_state": "기타",
+      "period_days": 30,
+      "factor_ics": {
+        "value_score": 0.286749,
+        "quality_score": 0.124429,
+        "momentum_score": -0.028511,
+        "growth_score": 0.168882,
+        "final_score": 0.221584
+      },
+      "grade_performance": {
+        "중립": 0.0413,
+        "매도": 5.9546
+      },
+      "optimal_weights": {
+        "value_score": 0.3454,
+        "quality_score": 0.1499,
+        "momentum_score": 0.0343,
+        "growth_score": 0.2034,
+        "final_score": 0.2669
+      },
+      "sample_count": 634
+    },
+    {
+      "market_state": "기타",
+      "period_days": 60,
+      "factor_ics": {
+        "value_score": 0.183677,
+        "quality_score": 0.009166,
+        "momentum_score": 0.04335,
+        "growth_score": 0.300855,
+        "final_score": 0.090876
+      },
+      "grade_performance": {
+        "중립": 1.0939,
+        "매도": -1.9329
+      },
+      "optimal_weights": {
+        "value_score": 0.2925,
+        "quality_score": 0.0146,
+        "momentum_score": 0.069,
+        "growth_score": 0.4791,
+        "final_score": 0.1447
+      },
+      "sample_count": 634
+    },
+    {
+      "market_state": "기타",
+      "period_days": 90,
+      "factor_ics": {
+        "value_score": -0.024855,
+        "quality_score": -0.163812,
+        "momentum_score": 0.069346,
+        "growth_score": 0.423521,
+        "final_score": 0.165504
+      },
+      "grade_performance": {
+        "중립": 0.5064,
+        "매도": -15.7774
+      },
+      "optimal_weights": {
+        "value_score": 0.0293,
+        "quality_score": 0.1934,
+        "momentum_score": 0.0819,
+        "growth_score": 0.5,
+        "final_score": 0.1954
+      },
+      "sample_count": 634
+    }
+  ],
+  "dynamic_weight_results": [
+    {
+      "weight_config_name": "current",
+      "weights": {
+        "base_factor": 0.36,
+        "sector_rotation": 0.25,
+        "factor_combination": 0.39
+      },
+      "period_days": 3,
+      "ic_value": 0.047647,
+      "sharpe_ratio": 0.0199
+    },
+    {
+      "weight_config_name": "current",
+      "weights": {
+        "base_factor": 0.36,
+        "sector_rotation": 0.25,
+        "factor_combination": 0.39
+      },
+      "period_days": 30,
+      "ic_value": 0.154575,
+      "sharpe_ratio": 0.069
+    },
+    {
+      "weight_config_name": "current",
+      "weights": {
+        "base_factor": 0.36,
+        "sector_rotation": 0.25,
+        "factor_combination": 0.39
+      },
+      "period_days": 60,
+      "ic_value": 0.232168,
+      "sharpe_ratio": 0.077
+    },
+    {
+      "weight_config_name": "current",
+      "weights": {
+        "base_factor": 0.36,
+        "sector_rotation": 0.25,
+        "factor_combination": 0.39
+      },
+      "period_days": 90,
+      "ic_value": 0.30493,
+      "sharpe_ratio": 0.0795
+    },
+    {
+      "weight_config_name": "equal",
+      "weights": {
+        "base_factor": 0.333,
+        "sector_rotation": 0.333,
+        "factor_combination": 0.334
+      },
+      "period_days": 3,
+      "ic_value": 0.046101,
+      "sharpe_ratio": 0.0199
+    },
+    {
+      "weight_config_name": "equal",
+      "weights": {
+        "base_factor": 0.333,
+        "sector_rotation": 0.333,
+        "factor_combination": 0.334
+      },
+      "period_days": 30,
+      "ic_value": 0.148609,
+      "sharpe_ratio": 0.069
+    },
+    {
+      "weight_config_name": "equal",
+      "weights": {
+        "base_factor": 0.333,
+        "sector_rotation": 0.333,
+        "factor_combination": 0.334
+      },
+      "period_days": 60,
+      "ic_value": 0.222873,
+      "sharpe_ratio": 0.077
+    },
+    {
+      "weight_config_name": "equal",
+      "weights": {
+        "base_factor": 0.333,
+        "sector_rotation": 0.333,
+        "factor_combination": 0.334
+      },
+      "period_days": 90,
+      "ic_value": 0.290281,
+      "sharpe_ratio": 0.0795
+    },
+    {
+      "weight_config_name": "factor_only",
+      "weights": {
+        "base_factor": 1.0,
+        "sector_rotation": 0.0,
+        "factor_combination": 0.0
+      },
+      "period_days": 3,
+      "ic_value": 0.054443,
+      "sharpe_ratio": 0.0199
+    },
+    {
+      "weight_config_name": "factor_only",
+      "weights": {
+        "base_factor": 1.0,
+        "sector_rotation": 0.0,
+        "factor_combination": 0.0
+      },
+      "period_days": 30,
+      "ic_value": 0.165628,
+      "sharpe_ratio": 0.069
+    },
+    {
+      "weight_config_name": "factor_only",
+      "weights": {
+        "base_factor": 1.0,
+        "sector_rotation": 0.0,
+        "factor_combination": 0.0
+      },
+      "period_days": 60,
+      "ic_value": 0.245802,
+      "sharpe_ratio": 0.077
+    },
+    {
+      "weight_config_name": "factor_only",
+      "weights": {
+        "base_factor": 1.0,
+        "sector_rotation": 0.0,
+        "factor_combination": 0.0
+      },
+      "period_days": 90,
+      "ic_value": 0.333108,
+      "sharpe_ratio": 0.0795
+    },
+    {
+      "weight_config_name": "optimized",
+      "weights": {
+        "base_factor": 0.5,
+        "sector_rotation": 0.1,
+        "factor_combination": 0.4
+      },
+      "period_days": 3,
+      "ic_value": 0.050891,
+      "sharpe_ratio": 0.0199
+    },
+    {
+      "weight_config_name": "optimized",
+      "weights": {
+        "base_factor": 0.5,
+        "sector_rotation": 0.1,
+        "factor_combination": 0.4
+      },
+      "period_days": 30,
+      "ic_value": 0.16066,
+      "sharpe_ratio": 0.069
+    },
+    {
+      "weight_config_name": "optimized",
+      "weights": {
+        "base_factor": 0.5,
+        "sector_rotation": 0.1,
+        "factor_combination": 0.4
+      },
+      "period_days": 60,
+      "ic_value": 0.240531,
+      "sharpe_ratio": 0.077
+    },
+    {
+      "weight_config_name": "optimized",
+      "weights": {
+        "base_factor": 0.5,
+        "sector_rotation": 0.1,
+        "factor_combination": 0.4
+      },
+      "period_days": 90,
+      "ic_value": 0.320819,
+      "sharpe_ratio": 0.0795
+    }
+  ],
+  "group_results": [
+    {
+      "group_type": "top_performers",
+      "period_days": 3,
+      "sector_distribution": {
+        "Traditional_Manufacturing": 0.1209,
+        "Consumer_Goods": 0.1149,
+        "Electronics": 0.0839,
+        "Materials_Chemical": 0.0782,
+        "Semiconductor": 0.0752,
+        "Advanced_Manufacturing": 0.0746,
+        "Others": 0.0677,
+        "Finance": 0.0671,
+        "IT_Software": 0.0599,
+        "Pharma_CDMO": 0.0595
+      },
+      "market_cap_distribution": {
+        "large": 0.0348,
+        "mid": 0.1326,
+        "small": 0.8326
+      },
+      "avg_liquidity": 2676474011025.83,
+      "avg_volatility": 52.7734,
+      "dominant_factor": "quality_score",
+      "factor_agreement_score": 0.1628,
+      "sample_count": 54900
+    },
+    {
+      "group_type": "bottom_performers",
+      "period_days": 3,
+      "sector_distribution": {
+        "Consumer_Goods": 0.1243,
+        "Traditional_Manufacturing": 0.11,
+        "Electronics": 0.0892,
+        "Materials_Chemical": 0.0805,
+        "Semiconductor": 0.0697,
+        "IT_Software": 0.0666,
+        "Advanced_Manufacturing": 0.0653,
+        "Others": 0.0637,
+        "Telecom_Media": 0.0628,
+        "Pharma_CDMO": 0.0623
+      },
+      "market_cap_distribution": {
+        "large": 0.0221,
+        "mid": 0.1043,
+        "small": 0.8736
+      },
+      "avg_liquidity": 1504038693800.45,
+      "avg_volatility": 57.0413,
+      "dominant_factor": "quality_score",
+      "factor_agreement_score": 0.157,
+      "sample_count": 54912
+    },
+    {
+      "group_type": "top_performers",
+      "period_days": 30,
+      "sector_distribution": {
+        "Traditional_Manufacturing": 0.122,
+        "Semiconductor": 0.099,
+        "Consumer_Goods": 0.0968,
+        "Electronics": 0.0932,
+        "Advanced_Manufacturing": 0.0869,
+        "Materials_Chemical": 0.0746,
+        "Pharma_CDMO": 0.0625,
+        "Others": 0.0623,
+        "Finance": 0.0614,
+        "IT_Software": 0.0524
+      },
+      "market_cap_distribution": {
+        "large": 0.0436,
+        "mid": 0.1595,
+        "small": 0.7969
+      },
+      "avg_liquidity": 3780477871114.0,
+      "avg_volatility": 50.1458,
+      "dominant_factor": "quality_score",
+      "factor_agreement_score": 0.1656,
+      "sample_count": 47888
+    },
+    {
+      "group_type": "bottom_performers",
+      "period_days": 30,
+      "sector_distribution": {
+        "Consumer_Goods": 0.1406,
+        "Traditional_Manufacturing": 0.1048,
+        "Electronics": 0.086,
+        "Materials_Chemical": 0.0826,
+        "Telecom_Media": 0.0776,
+        "IT_Software": 0.0716,
+        "Others": 0.0669,
+        "Semiconductor": 0.0574,
+        "Pharma_CDMO": 0.0573,
+        "Advanced_Manufacturing": 0.0545
+      },
+      "market_cap_distribution": {
+        "large": 0.0149,
+        "mid": 0.0803,
+        "small": 0.9048
+      },
+      "avg_liquidity": 828612409945.01,
+      "avg_volatility": 58.3089,
+      "dominant_factor": "quality_score",
+      "factor_agreement_score": 0.1609,
+      "sample_count": 47894
+    },
+    {
+      "group_type": "top_performers",
+      "period_days": 60,
+      "sector_distribution": {
+        "Traditional_Manufacturing": 0.1089,
+        "Semiconductor": 0.1071,
+        "Electronics": 0.0984,
+        "Advanced_Manufacturing": 0.0951,
+        "Consumer_Goods": 0.0816,
+        "Materials_Chemical": 0.0775,
+        "Finance": 0.0662,
+        "Pharma_CDMO": 0.065,
+        "Others": 0.0591,
+        "Bio_DrugRD": 0.0574
+      },
+      "market_cap_distribution": {
+        "large": 0.0553,
+        "mid": 0.1811,
+        "small": 0.7637
+      },
+      "avg_liquidity": 4884923505320.1,
+      "avg_volatility": 49.3759,
+      "dominant_factor": "growth_score",
+      "factor_agreement_score": 0.1789,
+      "sample_count": 37168
+    },
+    {
+      "group_type": "bottom_performers",
+      "period_days": 60,
+      "sector_distribution": {
+        "Consumer_Goods": 0.1516,
+        "Traditional_Manufacturing": 0.1034,
+        "Telecom_Media": 0.0936,
+        "Electronics": 0.0869,
+        "Materials_Chemical": 0.0785,
+        "IT_Software": 0.0768,
+        "Others": 0.0668,
+        "Semiconductor": 0.0566,
+        "Advanced_Manufacturing": 0.0526,
+        "Pharma_CDMO": 0.0494
+      },
+      "market_cap_distribution": {
+        "large": 0.0111,
+        "mid": 0.0612,
+        "small": 0.9276
+      },
+      "avg_liquidity": 589866675478.11,
+      "avg_volatility": 58.9285,
+      "dominant_factor": "quality_score",
+      "factor_agreement_score": 0.1638,
+      "sample_count": 37168
+    },
+    {
+      "group_type": "top_performers",
+      "period_days": 90,
+      "sector_distribution": {
+        "Semiconductor": 0.1097,
+        "Traditional_Manufacturing": 0.1058,
+        "Electronics": 0.0988,
+        "Advanced_Manufacturing": 0.0955,
+        "Materials_Chemical": 0.0777,
+        "Consumer_Goods": 0.0751,
+        "Pharma_CDMO": 0.0706,
+        "Finance": 0.0702,
+        "Bio_DrugRD": 0.0627,
+        "Others": 0.0548
+      },
+      "market_cap_distribution": {
+        "large": 0.0689,
+        "mid": 0.2067,
+        "small": 0.7244
+      },
+      "avg_liquidity": 5520631844786.36,
+      "avg_volatility": 50.0264,
+      "dominant_factor": "growth_score",
+      "factor_agreement_score": 0.1887,
+      "sample_count": 25995
+    },
+    {
+      "group_type": "bottom_performers",
+      "period_days": 90,
+      "sector_distribution": {
+        "Consumer_Goods": 0.1783,
+        "Telecom_Media": 0.1071,
+        "Traditional_Manufacturing": 0.1,
+        "IT_Software": 0.0893,
+        "Electronics": 0.0832,
+        "Others": 0.0691,
+        "Materials_Chemical": 0.0685,
+        "Pharma_CDMO": 0.046,
+        "Advanced_Manufacturing": 0.044,
+        "Healthcare_Device": 0.0433
+      },
+      "market_cap_distribution": {
+        "large": 0.0058,
+        "mid": 0.0475,
+        "small": 0.9466
+      },
+      "avg_liquidity": 357835497583.44,
+      "avg_volatility": 59.8174,
+      "dominant_factor": "quality_score",
+      "factor_agreement_score": 0.1764,
+      "sample_count": 25995
+    }
+  ],
+  "failure_results": [
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 29.4,
+      "predicted_return": 3.4117,
+      "actual_return": 1882.5,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 26.2,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1882.5%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-05",
+      "grade": "매도 고려",
+      "final_score": 29.4,
+      "predicted_return": 3.4117,
+      "actual_return": 1682.2785,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 26.4,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1682.3%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-04",
+      "grade": "매도 고려",
+      "final_score": 29.5,
+      "predicted_return": 3.4117,
+      "actual_return": 1660.0,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 27.3,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1660.0%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-07",
+      "grade": "매도",
+      "final_score": 26.5,
+      "predicted_return": -28.7866,
+      "actual_return": 1540.0,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 27.6,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected -28.8%, actual 1540.0%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "084670",
+      "analysis_date": "2025-09-18",
+      "grade": "매도 고려",
+      "final_score": 33.4,
+      "predicted_return": 3.4117,
+      "actual_return": 1535.2509,
+      "factor_scores": {
+        "value_score": 48.5,
+        "quality_score": 48.9,
+        "momentum_score": 25.9,
+        "growth_score": 66.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1535.3%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-06",
+      "grade": "매도 고려",
+      "final_score": 29.1,
+      "predicted_return": 3.4117,
+      "actual_return": 1510.8434,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 33.9,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1510.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-08",
+      "grade": "매도 고려",
+      "final_score": 25.6,
+      "predicted_return": 3.4117,
+      "actual_return": 1486.4198,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 33.0,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1486.4%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-11",
+      "grade": "매도 고려",
+      "final_score": 24.7,
+      "predicted_return": 3.4117,
+      "actual_return": 1419.7531,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 30.4,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1419.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-13",
+      "grade": "매도",
+      "final_score": 24.6,
+      "predicted_return": -28.7866,
+      "actual_return": 1357.8313,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 29.8,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected -28.8%, actual 1357.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-18",
+      "grade": "매도",
+      "final_score": 28.4,
+      "predicted_return": -28.7866,
+      "actual_return": 1355.0,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 29.5,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected -28.8%, actual 1355.0%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-29",
+      "grade": "매도 고려",
+      "final_score": 36.9,
+      "predicted_return": 3.4117,
+      "actual_return": 1387.013,
+      "factor_scores": {
+        "value_score": 41.1,
+        "quality_score": 51.6,
+        "momentum_score": 31.3,
+        "growth_score": 16.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1387.0%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-14",
+      "grade": "매도 고려",
+      "final_score": 25.7,
+      "predicted_return": 3.4117,
+      "actual_return": 1351.1905,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 34.9,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1351.2%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-12",
+      "grade": "매도 고려",
+      "final_score": 25.9,
+      "predicted_return": 3.4117,
+      "actual_return": 1348.2353,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 39.7,
+        "growth_score": 24.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1348.2%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-20",
+      "grade": "매도 고려",
+      "final_score": 30.2,
+      "predicted_return": 3.4117,
+      "actual_return": 1346.9136,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 30.3,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1346.9%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-19",
+      "grade": "매도 고려",
+      "final_score": 29.3,
+      "predicted_return": 3.4117,
+      "actual_return": 1319.5122,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 35.2,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1319.5%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-28",
+      "grade": "매도 고려",
+      "final_score": 36.6,
+      "predicted_return": 3.4117,
+      "actual_return": 1265.4762,
+      "factor_scores": {
+        "value_score": 39.6,
+        "quality_score": 48.0,
+        "momentum_score": 36.7,
+        "growth_score": 24.8
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1265.5%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-22",
+      "grade": "매도 고려",
+      "final_score": 29.9,
+      "predicted_return": 3.4117,
+      "actual_return": 1255.6818,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 32.6,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1255.7%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-21",
+      "grade": "매도 고려",
+      "final_score": 30.2,
+      "predicted_return": 3.4117,
+      "actual_return": 1231.8182,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 38.9,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1231.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-27",
+      "grade": "매도 고려",
+      "final_score": 36.6,
+      "predicted_return": 3.4117,
+      "actual_return": 1208.1395,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 37.2,
+        "growth_score": 24.8
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1208.1%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-25",
+      "grade": "매도 고려",
+      "final_score": 28.8,
+      "predicted_return": 3.4117,
+      "actual_return": 1188.764,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 35.5,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1188.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "084670",
+      "analysis_date": "2025-09-17",
+      "grade": "매도 고려",
+      "final_score": 43.0,
+      "predicted_return": 3.4117,
+      "actual_return": 1159.8039,
+      "factor_scores": {
+        "value_score": 48.5,
+        "quality_score": 49.0,
+        "momentum_score": 22.3,
+        "growth_score": 66.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1159.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "900110",
+      "analysis_date": "2025-08-26",
+      "grade": "매도 고려",
+      "final_score": 28.1,
+      "predicted_return": 3.4117,
+      "actual_return": 1133.3333,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 48.0,
+        "momentum_score": 36.9,
+        "growth_score": 24.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1133.3%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "079950",
+      "analysis_date": "2025-10-20",
+      "grade": "매도 고려",
+      "final_score": 39.2,
+      "predicted_return": 3.4117,
+      "actual_return": 1018.9084,
+      "factor_scores": {
+        "value_score": 34.1,
+        "quality_score": 28.1,
+        "momentum_score": 28.7,
+        "growth_score": 35.1
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1018.9%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "000650",
+      "analysis_date": "2025-09-12",
+      "grade": "중립",
+      "final_score": 41.9,
+      "predicted_return": 3.4117,
+      "actual_return": 1017.2161,
+      "factor_scores": {
+        "value_score": 31.9,
+        "quality_score": 39.9,
+        "momentum_score": 26.2,
+        "growth_score": 64.9
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1017.2%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "079950",
+      "analysis_date": "2025-10-16",
+      "grade": "중립",
+      "final_score": 42.8,
+      "predicted_return": 3.4117,
+      "actual_return": 1016.7315,
+      "factor_scores": {
+        "value_score": 34.1,
+        "quality_score": 28.1,
+        "momentum_score": 29.7,
+        "growth_score": 35.1
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1016.7%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "079950",
+      "analysis_date": "2025-10-13",
+      "grade": "중립",
+      "final_score": 43.0,
+      "predicted_return": 3.4117,
+      "actual_return": 1012.6214,
+      "factor_scores": {
+        "value_score": 34.1,
+        "quality_score": 28.1,
+        "momentum_score": 27.6,
+        "growth_score": 35.1
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1012.6%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "079950",
+      "analysis_date": "2025-10-15",
+      "grade": "중립",
+      "final_score": 42.8,
+      "predicted_return": 3.4117,
+      "actual_return": 1008.1081,
+      "factor_scores": {
+        "value_score": 34.1,
+        "quality_score": 28.1,
+        "momentum_score": 29.6,
+        "growth_score": 35.1
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1008.1%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "079950",
+      "analysis_date": "2025-10-14",
+      "grade": "중립",
+      "final_score": 43.4,
+      "predicted_return": 3.4117,
+      "actual_return": 1001.9231,
+      "factor_scores": {
+        "value_score": 34.1,
+        "quality_score": 28.1,
+        "momentum_score": 34.5,
+        "growth_score": 35.1
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 1001.9%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "079950",
+      "analysis_date": "2025-10-17",
+      "grade": "중립",
+      "final_score": 41.3,
+      "predicted_return": 3.4117,
+      "actual_return": 995.4198,
+      "factor_scores": {
+        "value_score": 34.1,
+        "quality_score": 28.1,
+        "momentum_score": 33.5,
+        "growth_score": 35.1
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 995.4%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "084670",
+      "analysis_date": "2025-09-24",
+      "grade": "매도 고려",
+      "final_score": 32.2,
+      "predicted_return": 3.4117,
+      "actual_return": 985.7843,
+      "factor_scores": {
+        "value_score": 48.4,
+        "quality_score": 49.0,
+        "momentum_score": 21.7,
+        "growth_score": 66.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 985.8%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "043260",
+      "analysis_date": "2025-10-13",
+      "grade": "중립",
+      "final_score": 50.7,
+      "predicted_return": 3.4117,
+      "actual_return": 980.6578,
+      "factor_scores": {
+        "value_score": 41.4,
+        "quality_score": 59.1,
+        "momentum_score": 44.1,
+        "growth_score": 48.6
+      },
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 980.7%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "000650",
+      "analysis_date": "2025-09-18",
+      "grade": "매도 고려",
+      "final_score": 31.1,
+      "predicted_return": 3.4117,
+      "actual_return": 954.678,
+      "factor_scores": {
+        "value_score": 31.9,
+        "quality_score": 38.5,
+        "momentum_score": 25.9,
+        "growth_score": 64.9
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 954.7%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "000650",
+      "analysis_date": "2025-09-17",
+      "grade": "중립",
+      "final_score": 41.2,
+      "predicted_return": 3.4117,
+      "actual_return": 950.5549,
+      "factor_scores": {
+        "value_score": 31.9,
+        "quality_score": 38.5,
+        "momentum_score": 26.6,
+        "growth_score": 64.9
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 950.6%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "000650",
+      "analysis_date": "2025-09-16",
+      "grade": "중립",
+      "final_score": 41.6,
+      "predicted_return": 3.4117,
+      "actual_return": 939.5062,
+      "factor_scores": {
+        "value_score": 31.9,
+        "quality_score": 38.5,
+        "momentum_score": 26.1,
+        "growth_score": 64.9
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 939.5%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "000650",
+      "analysis_date": "2025-09-15",
+      "grade": "중립",
+      "final_score": 41.3,
+      "predicted_return": 3.4117,
+      "actual_return": 924.3309,
+      "factor_scores": {
+        "value_score": 31.9,
+        "quality_score": 39.9,
+        "momentum_score": 25.7,
+        "growth_score": 64.9
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 924.3%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "084670",
+      "analysis_date": "2025-09-23",
+      "grade": "매도 고려",
+      "final_score": 32.2,
+      "predicted_return": 3.4117,
+      "actual_return": 903.6765,
+      "factor_scores": {
+        "value_score": 48.4,
+        "quality_score": 49.0,
+        "momentum_score": 21.4,
+        "growth_score": 66.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 903.7%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "084670",
+      "analysis_date": "2025-09-22",
+      "grade": "매도 고려",
+      "final_score": 32.2,
+      "predicted_return": 3.4117,
+      "actual_return": 897.5639,
+      "factor_scores": {
+        "value_score": 48.4,
+        "quality_score": 48.9,
+        "momentum_score": 21.8,
+        "growth_score": 66.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 897.6%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "043260",
+      "analysis_date": "2025-10-20",
+      "grade": "중립",
+      "final_score": 46.0,
+      "predicted_return": 3.4117,
+      "actual_return": 888.4226,
+      "factor_scores": {
+        "value_score": 40.8,
+        "quality_score": 58.9,
+        "momentum_score": 36.1,
+        "growth_score": 48.6
+      },
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 888.4%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "043260",
+      "analysis_date": "2025-10-10",
+      "grade": "중립",
+      "final_score": 50.7,
+      "predicted_return": 3.4117,
+      "actual_return": 883.4061,
+      "factor_scores": {
+        "value_score": 42.2,
+        "quality_score": 59.3,
+        "momentum_score": 42.8,
+        "growth_score": 48.6
+      },
+      "market_state": "KOSDAQ중형-확장탐욕-공격성장형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 883.4%"
+    },
+    {
+      "failure_type": "extreme_error",
+      "symbol": "084670",
+      "analysis_date": "2025-09-25",
+      "grade": "매도 고려",
+      "final_score": 41.8,
+      "predicted_return": 3.4117,
+      "actual_return": 877.9141,
+      "factor_scores": {
+        "value_score": 48.5,
+        "quality_score": 49.0,
+        "momentum_score": 22.1,
+        "growth_score": 66.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "Prediction error: expected 3.4%, actual 877.9%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "008970",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 29.4,
+      "predicted_return": null,
+      "actual_return": 57.9949,
+      "factor_scores": {
+        "value_score": 26.0,
+        "quality_score": 41.7,
+        "momentum_score": 35.8,
+        "growth_score": 26.1
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "208640",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 28.4,
+      "predicted_return": null,
+      "actual_return": 52.5641,
+      "factor_scores": {
+        "value_score": 27.9,
+        "quality_score": 37.6,
+        "momentum_score": 11.6,
+        "growth_score": 38.7
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "208640",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 28.4,
+      "predicted_return": null,
+      "actual_return": 52.5641,
+      "factor_scores": {
+        "value_score": 27.9,
+        "quality_score": 37.6,
+        "momentum_score": 11.6,
+        "growth_score": 38.7
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "210120",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 26.3,
+      "predicted_return": null,
+      "actual_return": 44.6878,
+      "factor_scores": {
+        "value_score": 26.1,
+        "quality_score": 29.4,
+        "momentum_score": 12.2,
+        "growth_score": 32.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "210120",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 26.3,
+      "predicted_return": null,
+      "actual_return": 44.6878,
+      "factor_scores": {
+        "value_score": 26.1,
+        "quality_score": 29.4,
+        "momentum_score": 12.2,
+        "growth_score": 32.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "051630",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 24.5,
+      "predicted_return": null,
+      "actual_return": 38.0021,
+      "factor_scores": {
+        "value_score": 36.3,
+        "quality_score": 34.6,
+        "momentum_score": 26.0,
+        "growth_score": 22.7
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "051630",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 24.5,
+      "predicted_return": null,
+      "actual_return": 38.0021,
+      "factor_scores": {
+        "value_score": 36.3,
+        "quality_score": 34.6,
+        "momentum_score": 26.0,
+        "growth_score": 22.7
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "317330",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 23.7,
+      "predicted_return": null,
+      "actual_return": 34.6641,
+      "factor_scores": {
+        "value_score": 23.9,
+        "quality_score": 26.0,
+        "momentum_score": 29.0,
+        "growth_score": 26.7
+      },
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "317330",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 23.7,
+      "predicted_return": null,
+      "actual_return": 34.6641,
+      "factor_scores": {
+        "value_score": 23.9,
+        "quality_score": 26.0,
+        "momentum_score": 29.0,
+        "growth_score": 26.7
+      },
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "115500",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 21.6,
+      "predicted_return": null,
+      "actual_return": 32.7146,
+      "factor_scores": {
+        "value_score": 31.7,
+        "quality_score": 36.3,
+        "momentum_score": 25.4,
+        "growth_score": 20.6
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "115500",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 21.6,
+      "predicted_return": null,
+      "actual_return": 32.7146,
+      "factor_scores": {
+        "value_score": 31.7,
+        "quality_score": 36.3,
+        "momentum_score": 25.4,
+        "growth_score": 20.6
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "267320",
+      "analysis_date": "2025-08-04",
+      "grade": "매도",
+      "final_score": 26.9,
+      "predicted_return": null,
+      "actual_return": 27.6398,
+      "factor_scores": {
+        "value_score": 22.4,
+        "quality_score": 39.2,
+        "momentum_score": 29.1,
+        "growth_score": 24.5
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "091440",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 10.9,
+      "predicted_return": null,
+      "actual_return": 26.8132,
+      "factor_scores": {
+        "value_score": 30.9,
+        "quality_score": 31.4,
+        "momentum_score": 12.9,
+        "growth_score": 27.6
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "091440",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 10.9,
+      "predicted_return": null,
+      "actual_return": 26.8132,
+      "factor_scores": {
+        "value_score": 30.9,
+        "quality_score": 31.4,
+        "momentum_score": 12.9,
+        "growth_score": 27.6
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "046390",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 28.8,
+      "predicted_return": null,
+      "actual_return": 26.4825,
+      "factor_scores": {
+        "value_score": 29.9,
+        "quality_score": 45.6,
+        "momentum_score": 14.7,
+        "growth_score": 32.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "000040",
+      "analysis_date": "2025-08-01",
+      "grade": "매수",
+      "final_score": 71.0,
+      "predicted_return": null,
+      "actual_return": -22.8125,
+      "factor_scores": {
+        "value_score": 30.7,
+        "quality_score": 44.2,
+        "momentum_score": 56.3,
+        "growth_score": 52.3
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "126730",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 28.2,
+      "predicted_return": null,
+      "actual_return": 21.3216,
+      "factor_scores": {
+        "value_score": 28.2,
+        "quality_score": 49.3,
+        "momentum_score": 25.5,
+        "growth_score": 28.6
+      },
+      "market_state": "KOSDAQ소형-침체-극단역발상형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "126730",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 28.2,
+      "predicted_return": null,
+      "actual_return": 21.3216,
+      "factor_scores": {
+        "value_score": 28.2,
+        "quality_score": 49.3,
+        "momentum_score": 25.5,
+        "growth_score": 28.6
+      },
+      "market_state": "KOSDAQ소형-침체-극단역발상형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "452190",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 27.5,
+      "predicted_return": null,
+      "actual_return": 19.5946,
+      "factor_scores": {
+        "value_score": 30.0,
+        "quality_score": 37.1,
+        "momentum_score": 28.4,
+        "growth_score": 25.6
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "452190",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 27.5,
+      "predicted_return": null,
+      "actual_return": 19.5946,
+      "factor_scores": {
+        "value_score": 30.0,
+        "quality_score": 37.1,
+        "momentum_score": 28.4,
+        "growth_score": 25.6
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "144960",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 27.1,
+      "predicted_return": null,
+      "actual_return": 18.5047,
+      "factor_scores": {
+        "value_score": 32.3,
+        "quality_score": 49.5,
+        "momentum_score": 37.7,
+        "growth_score": 29.0
+      },
+      "market_state": "KOSDAQ중형-회복중립-성장테마형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "013310",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 28.3,
+      "predicted_return": null,
+      "actual_return": 18.3636,
+      "factor_scores": {
+        "value_score": 37.3,
+        "quality_score": 40.3,
+        "momentum_score": 30.7,
+        "growth_score": 24.4
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "047050",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 17.9,
+      "predicted_return": null,
+      "actual_return": 17.6101,
+      "factor_scores": {
+        "value_score": 40.8,
+        "quality_score": 55.9,
+        "momentum_score": 26.7,
+        "growth_score": 23.8
+      },
+      "market_state": "KOSPI대형-확장과열-공격형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "047050",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 17.9,
+      "predicted_return": null,
+      "actual_return": 17.6101,
+      "factor_scores": {
+        "value_score": 40.8,
+        "quality_score": 55.9,
+        "momentum_score": 26.7,
+        "growth_score": 23.8
+      },
+      "market_state": "KOSPI대형-확장과열-공격형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "003380",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 71.1,
+      "predicted_return": null,
+      "actual_return": -17.2452,
+      "factor_scores": {
+        "value_score": 54.0,
+        "quality_score": 60.2,
+        "momentum_score": 32.4,
+        "growth_score": 52.8
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "007120",
+      "analysis_date": "2025-08-01",
+      "grade": "중립",
+      "final_score": 66.8,
+      "predicted_return": null,
+      "actual_return": -17.1968,
+      "factor_scores": {
+        "value_score": 22.6,
+        "quality_score": 51.9,
+        "momentum_score": 32.8,
+        "growth_score": 44.2
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "430690",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 21.5,
+      "predicted_return": null,
+      "actual_return": 17.1843,
+      "factor_scores": {
+        "value_score": 29.9,
+        "quality_score": 32.3,
+        "momentum_score": 23.7,
+        "growth_score": 23.5
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "430690",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 21.5,
+      "predicted_return": null,
+      "actual_return": 17.1843,
+      "factor_scores": {
+        "value_score": 29.9,
+        "quality_score": 32.3,
+        "momentum_score": 23.7,
+        "growth_score": 23.5
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "347770",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 26.2,
+      "predicted_return": null,
+      "actual_return": 16.7539,
+      "factor_scores": {
+        "value_score": 33.2,
+        "quality_score": 31.3,
+        "momentum_score": 35.0,
+        "growth_score": 23.5
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "230240",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 27.3,
+      "predicted_return": null,
+      "actual_return": 16.0897,
+      "factor_scores": {
+        "value_score": 35.8,
+        "quality_score": 29.4,
+        "momentum_score": 12.0,
+        "growth_score": 39.8
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "230240",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 27.3,
+      "predicted_return": null,
+      "actual_return": 16.0897,
+      "factor_scores": {
+        "value_score": 35.8,
+        "quality_score": 29.4,
+        "momentum_score": 12.0,
+        "growth_score": 39.8
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "024940",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 13.6,
+      "predicted_return": null,
+      "actual_return": 15.8933,
+      "factor_scores": {
+        "value_score": 44.5,
+        "quality_score": 60.5,
+        "momentum_score": 28.0,
+        "growth_score": 21.4
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "001260",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 61.3,
+      "predicted_return": null,
+      "actual_return": -15.7438,
+      "factor_scores": {
+        "value_score": 41.9,
+        "quality_score": 44.8,
+        "momentum_score": 42.8,
+        "growth_score": 42.9
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "297890",
+      "analysis_date": "2025-08-01",
+      "grade": "매도 고려",
+      "final_score": 26.0,
+      "predicted_return": null,
+      "actual_return": 15.2809,
+      "factor_scores": {
+        "value_score": 46.0,
+        "quality_score": 46.6,
+        "momentum_score": 34.9,
+        "growth_score": 25.7
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "122870",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 15.1,
+      "predicted_return": null,
+      "actual_return": 15.2393,
+      "factor_scores": {
+        "value_score": 40.1,
+        "quality_score": 45.3,
+        "momentum_score": 14.5,
+        "growth_score": 27.3
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "122870",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 15.1,
+      "predicted_return": null,
+      "actual_return": 15.2393,
+      "factor_scores": {
+        "value_score": 40.1,
+        "quality_score": 45.3,
+        "momentum_score": 14.5,
+        "growth_score": 27.3
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "109070",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 16.8,
+      "predicted_return": null,
+      "actual_return": 13.4709,
+      "factor_scores": {
+        "value_score": 31.8,
+        "quality_score": 60.4,
+        "momentum_score": 16.5,
+        "growth_score": 27.0
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "Low score but significant gain"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "109070",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 16.8,
+      "predicted_return": null,
+      "actual_return": 13.4709,
+      "factor_scores": {
+        "value_score": 31.8,
+        "quality_score": 60.4,
+        "momentum_score": 16.5,
+        "growth_score": 27.0
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "474610",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 27.4,
+      "predicted_return": null,
+      "actual_return": 13.2212,
+      "factor_scores": {
+        "value_score": 46.3,
+        "quality_score": 37.9,
+        "momentum_score": 25.7,
+        "growth_score": 17.5
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "024850",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 26.9,
+      "predicted_return": null,
+      "actual_return": 13.0539,
+      "factor_scores": {
+        "value_score": 32.5,
+        "quality_score": 45.8,
+        "momentum_score": 25.9,
+        "growth_score": 29.6
+      },
+      "market_state": "KOSDAQ중형-침체공포-역발상형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "047820",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 14.2,
+      "predicted_return": null,
+      "actual_return": 12.0408,
+      "factor_scores": {
+        "value_score": 39.1,
+        "quality_score": 62.1,
+        "momentum_score": 11.8,
+        "growth_score": 25.2
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "007690",
+      "analysis_date": "2025-08-01",
+      "grade": "매수",
+      "final_score": 66.7,
+      "predicted_return": null,
+      "actual_return": -11.9681,
+      "factor_scores": {
+        "value_score": 45.5,
+        "quality_score": 55.6,
+        "momentum_score": 35.7,
+        "growth_score": 45.9
+      },
+      "market_state": "KOSPI중형-둔화공포-혼조형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "000590",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 69.5,
+      "predicted_return": null,
+      "actual_return": -11.4754,
+      "factor_scores": {
+        "value_score": 45.8,
+        "quality_score": 59.0,
+        "momentum_score": 28.6,
+        "growth_score": 43.7
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "363250",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 23.4,
+      "predicted_return": null,
+      "actual_return": 10.989,
+      "factor_scores": {
+        "value_score": 22.7,
+        "quality_score": 44.5,
+        "momentum_score": 26.4,
+        "growth_score": 18.8
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "434480",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 22.7,
+      "predicted_return": null,
+      "actual_return": 10.5806,
+      "factor_scores": {
+        "value_score": 35.6,
+        "quality_score": 39.2,
+        "momentum_score": 25.0,
+        "growth_score": 26.2
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "001430",
+      "analysis_date": "2025-08-01",
+      "grade": "매수",
+      "final_score": 71.5,
+      "predicted_return": null,
+      "actual_return": -10.5691,
+      "factor_scores": {
+        "value_score": 38.6,
+        "quality_score": 47.1,
+        "momentum_score": 35.5,
+        "growth_score": 44.4
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "grade_reversal",
+      "symbol": "159010",
+      "analysis_date": "2025-08-01",
+      "grade": "매도",
+      "final_score": 27.9,
+      "predicted_return": null,
+      "actual_return": 10.3591,
+      "factor_scores": {
+        "value_score": 34.2,
+        "quality_score": 39.5,
+        "momentum_score": 26.1,
+        "growth_score": 29.0
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "Sell grade but gain > 10%"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "000650",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 61.3,
+      "predicted_return": null,
+      "actual_return": -10.2233,
+      "factor_scores": {
+        "value_score": 24.2,
+        "quality_score": 36.7,
+        "momentum_score": 17.3,
+        "growth_score": 55.1
+      },
+      "market_state": "KOSPI중형-확장과열-모멘텀형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "003300",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 66.3,
+      "predicted_return": null,
+      "actual_return": -9.5082,
+      "factor_scores": {
+        "value_score": 43.0,
+        "quality_score": 56.1,
+        "momentum_score": 34.8,
+        "growth_score": 48.5
+      },
+      "market_state": "KOSPI중형-회복중립-성장형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "005720",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 64.8,
+      "predicted_return": null,
+      "actual_return": -9.215,
+      "factor_scores": {
+        "value_score": 46.7,
+        "quality_score": 45.8,
+        "momentum_score": 26.9,
+        "growth_score": 59.8
+      },
+      "market_state": "KOSPI중형-회복중립-성장형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "004910",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 67.2,
+      "predicted_return": null,
+      "actual_return": -9.1854,
+      "factor_scores": {
+        "value_score": 34.9,
+        "quality_score": 41.4,
+        "momentum_score": 37.4,
+        "growth_score": 42.2
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "005740",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 70.6,
+      "predicted_return": null,
+      "actual_return": -9.0546,
+      "factor_scores": {
+        "value_score": 39.5,
+        "quality_score": 47.7,
+        "momentum_score": 25.0,
+        "growth_score": 44.9
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "001800",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 69.0,
+      "predicted_return": null,
+      "actual_return": -8.6811,
+      "factor_scores": {
+        "value_score": 44.3,
+        "quality_score": 53.6,
+        "momentum_score": 26.1,
+        "growth_score": 54.6
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "006390",
+      "analysis_date": "2025-08-01",
+      "grade": "매수",
+      "final_score": 65.0,
+      "predicted_return": null,
+      "actual_return": -8.5787,
+      "factor_scores": {
+        "value_score": 46.3,
+        "quality_score": 44.6,
+        "momentum_score": 37.7,
+        "growth_score": 44.0
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "004365",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 66.4,
+      "predicted_return": null,
+      "actual_return": -8.2265,
+      "factor_scores": {
+        "value_score": 39.8,
+        "quality_score": 50.0,
+        "momentum_score": 23.5,
+        "growth_score": 44.3
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "009160",
+      "analysis_date": "2025-08-01",
+      "grade": "매수",
+      "final_score": 70.8,
+      "predicted_return": null,
+      "actual_return": -7.9412,
+      "factor_scores": {
+        "value_score": 39.9,
+        "quality_score": 53.8,
+        "momentum_score": 37.3,
+        "growth_score": 58.6
+      },
+      "market_state": "KOSPI중형-둔화공포-혼조형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "004960",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 59.8,
+      "predicted_return": null,
+      "actual_return": -7.6555,
+      "factor_scores": {
+        "value_score": 48.4,
+        "quality_score": 39.2,
+        "momentum_score": 33.0,
+        "growth_score": 50.8
+      },
+      "market_state": "테마특화-모멘텀폭발형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "005305",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 64.1,
+      "predicted_return": null,
+      "actual_return": -7.0345,
+      "factor_scores": {
+        "value_score": 41.8,
+        "quality_score": 50.0,
+        "momentum_score": 25.8,
+        "growth_score": 60.6
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "004970",
+      "analysis_date": "2025-08-01",
+      "grade": "매수",
+      "final_score": 67.0,
+      "predicted_return": null,
+      "actual_return": -6.7708,
+      "factor_scores": {
+        "value_score": 40.7,
+        "quality_score": 62.4,
+        "momentum_score": 39.1,
+        "growth_score": 42.7
+      },
+      "market_state": "KOSPI대형-둔화공포-방어형",
+      "failure_reason": "High score but significant loss"
+    },
+    {
+      "failure_type": "ic_reversal",
+      "symbol": "002420",
+      "analysis_date": "2025-08-01",
+      "grade": "매수 고려",
+      "final_score": 67.0,
+      "predicted_return": null,
+      "actual_return": -6.7029,
+      "factor_scores": {
+        "value_score": 31.5,
+        "quality_score": 35.6,
+        "momentum_score": 32.1,
+        "growth_score": 61.5
+      },
+      "market_state": "KOSDAQ소형-핫섹터-초고위험형",
+      "failure_reason": "High score but significant loss"
+    }
+  ],
+  "failure_pattern_summary": {
+    "ic_reversal": 40,
+    "grade_reversal": 20,
+    "extreme_error": 40,
+    "scenario_failure": 0
+  },
+  "recommendations": [
+    {
+      "type": "factor_weight",
+      "priority": "high",
+      "issue": "High IC reversal rate",
+      "suggestion": "Review factor weights, consider reducing weight of factors with high reversal rates",
+      "frequency": 40
+    },
+    {
+      "type": "prediction_calibration",
+      "priority": "medium",
+      "issue": "Extreme prediction errors",
+      "suggestion": "Calibrate expected return ranges, add uncertainty bands",
+      "frequency": 40
+    }
+  ]
+}

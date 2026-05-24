@@ -1,0 +1,123 @@
+{
+  "regime": "neutral",
+  "confidence": 0.6,
+  "regime_rationale": "KOSPI는 상승세를 보이고 있으나 VKOSPI는 극단적인 두려움을 나타내고 있어 혼재된 신호가 존재합니다. 글로벌 안전자산 흐름도 혼재되어 있어 현재 시장은 중립적입니다.",
+  "global_market": {
+    "us_market_regime": "neutral",
+    "vix_level": 18.5,
+    "vix_signal": "moderate",
+    "credit_spread_signal": "normal",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "안전자산 흐름이 혼재되어 있으며, 금은 하락하고 채권은 소폭 상승.",
+    "key_indicators": [
+      {
+        "name": "VIX",
+        "value": 18.5,
+        "change": "0.5",
+        "signal": "moderate",
+        "interpretation": "중간 수준의 두려움"
+      },
+      {
+        "name": "신용 스프레드",
+        "value": "normal",
+        "change": "0",
+        "signal": "normal",
+        "interpretation": "신용 스프레드 안정"
+      }
+    ],
+    "summary": "글로벌 시장은 안전자산 흐름이 혼재되어 있으며, VIX는 중간 수준의 두려움을 나타내고 있습니다. 전반적으로 중립적인 시장 환경입니다."
+  },
+  "global_to_korea_impact": {
+    "impact_level": "medium",
+    "impact_direction": "mixed",
+    "transmission_channels": [
+      "외국인 자금 유입",
+      "수출 수요 증가"
+    ],
+    "key_factors": [
+      "USD/KRW 안정",
+      "미국 금리 동결"
+    ],
+    "expected_lag": "1-2 weeks",
+    "narrative": "글로벌 시장의 혼재된 신호는 한국 시장에 긍정적이면서도 부정적인 영향을 미치고 있습니다. 외국인 자금 유입이 예상되지만, 불확실성이 여전히 존재합니다."
+  },
+  "korea_market": {
+    "kospi_trend": "uptrend",
+    "kosdaq_trend": "sideways",
+    "foreign_investor_flow": "net_buying",
+    "foreign_flow_amount": "외국인은 최근 2조590억원을 순매수.",
+    "exchange_rate_pressure": "stable",
+    "usd_krw_level": 1300,
+    "domestic_liquidity": "abundant",
+    "market_sentiment": "neutral",
+    "key_events": [
+      "코스피 5000 돌파 기대",
+      "외국인 투자자 유입 확대"
+    ],
+    "summary": "KOSPI는 상승세를 보이고 있으나 KOSDAQ은 횡보 중입니다. 외국인 자금 유입이 지속되고 있으며, 시장 심리는 중립적입니다."
+  },
+  "news_sentiment": {
+    "korea_news_sentiment": "neutral",
+    "korea_news_highlights": [
+      "고환율에도 '달러 자산' 쏠림",
+      "전문가 '이제 두렵다'"
+    ],
+    "global_news_sentiment": "neutral",
+    "global_news_highlights": [
+      "Fed 금리 결정",
+      "미국 경제 둔화 우려"
+    ],
+    "foreign_view_on_korea": "positive",
+    "foreign_view_highlights": [
+      "한국 기업, 글로벌 수익 성장 전망",
+      "한국 주식 시장 긍정적 시각"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "moderate",
+    "position_sizing": "중간 포지션 권장",
+    "sector_preference": [
+      "IT",
+      "헬스케어"
+    ],
+    "sectors_to_avoid": [
+      "소비재",
+      "에너지"
+    ],
+    "hedging_recommendation": "환 헤지 전략 권고",
+    "time_horizon": "1-3개월",
+    "key_risks": [
+      "글로벌 경제 둔화",
+      "금리 인상 우려"
+    ],
+    "action_triggers": [
+      "VIX 20 이상 상승",
+      "KOSPI 5000 돌파"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "QUANTITATIVE_SIGNALS",
+      "fact": "VKOSPI 32.99, 극단적 두려움",
+      "interpretation": "강한 리스크 오프 신호"
+    },
+    {
+      "type": "qualitative",
+      "source": "뉴스",
+      "fact": "전문가 '이제 두렵다' 발언",
+      "interpretation": "투자자 심리 위축"
+    }
+  ],
+  "data_sources": [
+    "kr_benchmark_index (VKOSPI)",
+    "exchange_rate",
+    "us_daily_etf",
+    "market_index",
+    "naver_news",
+    "serper_global",
+    "serper_korea_view"
+  ],
+  "analysis_timestamp": "2026-01-20T12:32:36.219524"
+}

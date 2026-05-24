@@ -1,0 +1,109 @@
+{
+  "regime": "risk_on",
+  "confidence": 0.85,
+  "regime_rationale": "The market is currently in a risk-on regime due to tight credit spreads and low volatility levels, indicating strong risk appetite among investors. This is further supported by positive market sentiment driven by favorable inflation data and expectations for continued growth in the stock market.",
+  "global_market": {
+    "us_market_regime": "risk_on",
+    "vix_level": 15.78,
+    "vix_signal": "moderate",
+    "credit_spread_signal": "tight",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "Minimal flow into safe-haven assets, indicating confidence in riskier assets.",
+    "key_indicators": [
+      {
+        "name": "VIX",
+        "value": 15.78,
+        "change": -0.3,
+        "signal": "moderate",
+        "interpretation": "Normal volatility level, Neutral market"
+      },
+      {
+        "name": "Credit Spread",
+        "value": 0.8,
+        "change": -0.01,
+        "signal": "tight",
+        "interpretation": "Tight spreads indicate strong risk appetite."
+      },
+      {
+        "name": "MOVE Index",
+        "value": 67.28,
+        "change": 1.59,
+        "signal": "low_volatility",
+        "interpretation": "Low bond volatility, stable rate environment."
+      }
+    ],
+    "summary": "The global market is exhibiting a risk-on sentiment, characterized by tight credit spreads and stable volatility levels. This environment suggests a strong appetite for riskier assets as investors remain optimistic about economic growth."
+  },
+  "us_market": {
+    "sp500_trend": "uptrend",
+    "nasdaq_trend": "uptrend",
+    "market_breadth": "strong",
+    "sector_rotation": "Technology and consumer discretionary sectors are leading the gains.",
+    "put_call_ratio": 0.85,
+    "market_sentiment": "bullish",
+    "key_events": [
+      "S&P 500 rebounds on inflation data",
+      "Analysts predict strong stock performance in 2026"
+    ],
+    "summary": "The US market is showing a bullish trend with the S&P 500 recovering from recent losses, driven by positive inflation data and strong sector performance, particularly in technology."
+  },
+  "news_sentiment": {
+    "market_news_sentiment": "positive",
+    "market_news_highlights": [
+      "S&P 500 snaps 4-day losing streak",
+      "Bullish seasonality and improving breadth"
+    ],
+    "fed_policy_sentiment": "dovish",
+    "fed_highlights": [
+      "Federal Reserve cuts interest rates",
+      "Expectations for further rate cuts in 2026"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "aggressive",
+    "position_sizing": "Consider larger positions in growth sectors.",
+    "sector_preference": [
+      "Technology",
+      "Consumer Discretionary"
+    ],
+    "sectors_to_avoid": [
+      "Utilities",
+      "Consumer Staples"
+    ],
+    "hedging_recommendation": "Minimal hedging recommended; focus on growth.",
+    "time_horizon": "6-12 months",
+    "key_risks": [
+      "Potential for inflation to rise unexpectedly",
+      "Geopolitical tensions affecting market stability"
+    ],
+    "action_triggers": [
+      "Significant change in inflation data",
+      "Federal Reserve policy shifts"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "QUANTITATIVE_SIGNALS",
+      "fact": "VIX at 15.78 and credit spread at 0.8",
+      "interpretation": "Indicates a risk-on environment with stable volatility."
+    },
+    {
+      "type": "qualitative",
+      "source": "US Market News",
+      "fact": "S&P 500 rebounds on cooler-than-expected inflation data",
+      "interpretation": "Positive sentiment driving market recovery."
+    }
+  ],
+  "data_sources": [
+    "us_vix",
+    "us_credit_spread",
+    "us_dollar_index",
+    "us_move_index",
+    "serper_us_market",
+    "serper_global",
+    "serper_fed_policy"
+  ],
+  "analysis_timestamp": "2025-12-19T14:40:30.580932"
+}

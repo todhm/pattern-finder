@@ -1,0 +1,123 @@
+{
+  "symbol": "005930",
+  "stock_name": "삼성전자",
+  "analysis_date": "2026-01-14",
+  "sector": "Electronics",
+  "overall_sentiment": "positive",
+  "confidence": 0.8,
+  "earnings_outlook": {
+    "direction": "positive",
+    "summary": "삼성전자는 1Q26 영업이익이 26조원에 이를 것으로 전망되며, 여러 증권사에서 목표가를 상향 조정하고 매수 의견을 제시하고 있다.",
+    "key_points": [
+      "1Q26 영업이익 26조원 전망 (키움증권)",
+      "목표가 180,000원으로 상향 (iM증권, IBK투자증권, 유진투자증권)"
+    ],
+    "sources": [
+      {
+        "type": "research_report",
+        "title": "경쟁력 회복과 Val. 배수 상승",
+        "publisher": "iM증권",
+        "date": "2026-01-14"
+      },
+      {
+        "type": "research_report",
+        "title": "1Q26 영업이익 26조원 전망",
+        "publisher": "키움증권",
+        "date": "2026-01-14"
+      },
+      {
+        "type": "research_report",
+        "title": "25년 4분기. 메모리가 돋보인 실적",
+        "publisher": "IBK투자증권",
+        "date": "2026-01-14"
+      },
+      {
+        "type": "research_report",
+        "title": "4Q25 Review: 메모리 가격 상승을 등에 업고",
+        "publisher": "유진투자증권",
+        "date": "2026-01-14"
+      },
+      {
+        "type": "research_report",
+        "title": "4Q25 잠정실적 공시관련 Comment",
+        "publisher": "유안타증권",
+        "date": "2026-01-14"
+      }
+    ]
+  },
+  "risk_issues": [
+    {
+      "category": "regulatory",
+      "severity": "medium",
+      "title": "디지털 규제 리스크 관리",
+      "summary": "삼성전자가 MS 출신의 정책 전문가를 영입하여 디지털 규제 리스크 관리에 나선 것으로 보인다.",
+      "sources": [
+        {
+          "type": "news",
+          "title": "삼성전자 유럽 대외협력팀 상무급 임원으로 MS 출신 정책 전문가 영입",
+          "publisher": "뉴스",
+          "date": "2026-01-14"
+        }
+      ]
+    },
+    {
+      "category": "market",
+      "severity": "medium",
+      "title": "반도체 수요 불확실성",
+      "summary": "미국의 반도체 현지 생산 압박으로 인해 시장의 불확실성이 커지고 있다.",
+      "sources": [
+        {
+          "type": "news",
+          "title": "한·미 성장률 4년째 역전, 성장 없인 환율 안정도 없다",
+          "publisher": "뉴스",
+          "date": "2026-01-14"
+        }
+      ]
+    }
+  ],
+  "sector_momentum": {
+    "sector": "Electronics",
+    "direction": "positive",
+    "summary": "반도체 산업에 대한 정부의 지원과 투자 확대가 이루어지고 있으며, 이는 삼성전자에게 긍정적인 영향을 미칠 것으로 예상된다.",
+    "related_news_count": 28,
+    "sources": [
+      {
+        "type": "sector_news",
+        "title": "Government backs bill to establish semiconductor MCE association",
+        "publisher": "뉴스",
+        "date": "2026-01-14"
+      }
+    ]
+  },
+  "disclosure_summary": {
+    "recent_count": 14,
+    "significant_items": [
+      {
+        "type": "earnings",
+        "title": "삼성전자 분기보고서(일반법인)",
+        "date": "2026-01-14",
+        "source": "KRX"
+      },
+      {
+        "type": "earnings",
+        "title": "삼성전자 연결재무제표기준영업(잠정)실적(공정공시)",
+        "date": "2026-01-14",
+        "source": "공정공시"
+      }
+    ]
+  },
+  "metadata": {
+    "data_collection": {
+      "research_reports": 20,
+      "news_articles": 58,
+      "disclosures": 14
+    },
+    "excluded": {
+      "sns": "Tier 3 excluded",
+      "community": "Tier 3 excluded"
+    },
+    "stock_size": "small",
+    "collection_date": "2026-01-20",
+    "retry_count": 0
+  }
+}

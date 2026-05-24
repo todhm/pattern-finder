@@ -1,0 +1,144 @@
+{
+  "stock_name": "삼성전자",
+  "symbol": "005930",
+  "analysis_date": "2025-09-04",
+  "final_grade": "중립",
+  "market_environment": {
+    "data": {
+      "vix": 15.3,
+      "vix_status": "low_fear",
+      "fed_rate": 4.33,
+      "korea_base_rate": 2.5,
+      "dollar_index": 121.1565,
+      "usd_krw": null,
+      "regime": "neutral"
+    },
+    "narrative": {
+      "global_env": "미국 VIX가 15.3으로 낮은 공포를 나타내고 있으며, 이는 글로벌 시장이 안정적인 신용 스프레드를 보이고 있음을 시사합니다. 그러나 한국 시장은 외국인 순매도가 지속되며 약세를 보이고 있어 혼재된 신호가 발생하고 있습니다.",
+      "domestic": "한국은행 기준금리가 2.5로 유지되고 있으며, 이는 국내 유동성 환경이 안정적임을 나타냅니다. 그러나 글로벌 경제 둔화 우려로 인해 투자자들의 신중한 접근이 필요합니다.",
+      "sector": "해당 섹터는 현재 특별한 변화가 없으나, 관련 기업들의 투자 및 협약이 진행되고 있어 향후 모멘텀을 기대할 수 있습니다.",
+      "regime_interpretation": "전반적으로 중립 시장 환경으로, 개별 종목의 펀더멘털이 중요한 시기입니다."
+    }
+  },
+  "technical_summary": {
+    "data": {
+      "current_price": 70100,
+      "ma5": 69300,
+      "ma20": 70400,
+      "ma60": 65900,
+      "rsi": 42.72,
+      "macd_histogram": -280.38,
+      "adx": 23.95,
+      "bollinger_upper": 72500,
+      "bollinger_lower": 68400,
+      "foreign_consecutive_buy": 14,
+      "institutional_consecutive_buy": 14,
+      "volume_ratio": 0.94
+    },
+    "narrative": {
+      "price_trend": "현재 주가는 70100원으로 20일 이동평균선인 70400원에 근접해 있습니다. 이는 가격이 중립적인 상태에 있으며, 방향성 결정이 임박했음을 나타냅니다.",
+      "indicators": "RSI는 42.72로 중립 수준이며, MACD 히스토그램은 -280.38로 단기 모멘텀이 부정적입니다. ADX는 23.95로 추세 강도가 보통이며, 이는 추세가 강하게 형성되지 않고 있음을 시사합니다.",
+      "investor_flow": "외국인이 14일 연속 순매수하고 있으며, 이는 수급 주도형 상승 준비 단계에 있음을 나타냅니다.",
+      "volume_analysis": "거래량이 20일 평균 대비 94% 수준으로, 활발한 거래가 이루어지고 있음을 보여줍니다."
+    }
+  },
+  "scenarios": {
+    "bullish": {
+      "data": {
+        "probability": 35,
+        "support_level": 68400,
+        "resistance_level": 72500,
+        "take_profit": 97400,
+        "stop_loss": 67700,
+        "expected_return": "+15~+39%",
+        "sample_count": 298
+      },
+      "narrative": {
+        "title": "상승 시나리오",
+        "probability_explanation": "과거 유사 패턴 298건 분석 결과, 35%의 확률로 상승세가 나타날 것으로 예상됩니다.",
+        "confidence_rationale": "다수의 증권사에서 삼성전자의 목표가를 상향 조정하며 매수 의견을 제시하고 있어 신뢰도가 높습니다.",
+        "strategy": "현재 가격대에서 매수 포지션을 고려하며, 익절 목표는 97400원으로 설정할 수 있습니다. 손절 범위는 67700원으로 설정하여 리스크를 관리해야 합니다.",
+        "triggers": [
+          "외국인 35일 연속 순매수 유지 시 매수 신호가 강화됩니다.",
+          "기관 35일 연속 순매수 유지 시 매수 신호가 강화됩니다."
+        ],
+        "monitoring_points": [
+          "72500원 저항선 돌파 여부",
+          "거래량 증가 추세 지속 여부"
+        ],
+        "risk_factors": [
+          "외국인 순매도 전환 시",
+          "RSI 과매수 진입 시"
+        ]
+      }
+    },
+    "sideways": {
+      "data": {
+        "probability": 47,
+        "support_level": 68400,
+        "resistance_level": 72500,
+        "take_profit": 71500,
+        "stop_loss": 65900,
+        "expected_return": "-6~+2%",
+        "sample_count": 298
+      },
+      "narrative": {
+        "title": "횡보 시나리오",
+        "probability_explanation": "47%의 확률로 횡보세가 지속될 것으로 예상됩니다.",
+        "confidence_rationale": "현재 시장의 중립적인 환경과 외국인 순매수 기조가 유지되고 있어 신뢰도가 높습니다.",
+        "strategy": "현재 가격대에서 보유를 유지하며, 71500원에서 익절을 고려할 수 있습니다. 손절 범위는 65900원으로 설정하여 리스크를 관리해야 합니다.",
+        "triggers": [
+          "외국인 순매수 기조 유지 시 보유 전략이 유효합니다.",
+          "기관 순매수 기조 유지 시 보유 전략이 유효합니다."
+        ],
+        "monitoring_points": [
+          "68400원 지지선 유지 여부",
+          "72500원 저항선 돌파 여부"
+        ],
+        "risk_factors": [
+          "상단 저항선 돌파 실패 시",
+          "하단 지지선 붕괴 시"
+        ]
+      }
+    },
+    "bearish": {
+      "data": {
+        "probability": 18,
+        "support_level": 68400,
+        "resistance_level": 72500,
+        "take_profit": null,
+        "stop_loss": "1차: 61,000원, 2차: 54,700원",
+        "expected_return": "-13~-22%",
+        "sample_count": 298
+      },
+      "narrative": {
+        "title": "하락 시나리오",
+        "probability_explanation": "18%의 확률로 하락세가 나타날 것으로 예상됩니다.",
+        "confidence_rationale": "외국인 순매도가 지속되고 있으며, 이는 하락 압력이 강화될 수 있음을 시사합니다.",
+        "strategy": "손절을 고려하며 관망하는 전략이 필요합니다. 손절 범위는 1차 61000원, 2차 54700원으로 설정하여 리스크를 관리해야 합니다.",
+        "triggers": [
+          "외국인이 5일 연속 순매도 전환 시 매도 신호가 강화됩니다.",
+          "기관이 5일 연속 순매도 전환 시 매도 신호가 강화됩니다."
+        ],
+        "monitoring_points": [
+          "68400원 지지선 붕괴 여부",
+          "MACD 데드크로스 발생 여부"
+        ],
+        "risk_factors": [
+          "지지선 붕괴 시 추가 하락 가속 요인",
+          "수급 악화 심화 시"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "agent_version": "2.0.0",
+    "execution_time_sec": 88.85,
+    "retry_count": 0,
+    "data_freshness": {
+      "kr_stock_grade": "2025-09-04",
+      "market_index": "2025-09-04",
+      "indicators": "2025-09-04"
+    }
+  }
+}

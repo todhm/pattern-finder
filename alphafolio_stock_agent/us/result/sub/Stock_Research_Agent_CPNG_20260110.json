@@ -1,0 +1,96 @@
+{
+  "symbol": "CPNG",
+  "stock_name": "Coupang LLC",
+  "analysis_date": "2026-01-08",
+  "sector": "CONSUMER CYCLICAL",
+  "overall_sentiment": "neutral",
+  "confidence": 0.6,
+  "earnings_outlook": {
+    "direction": "positive",
+    "summary": "Coupang LLC reported earnings that beat analyst estimates, indicating a positive earnings outlook.",
+    "key_points": [
+      "Coupang's EPS of $0.05 was $0.01 better than the analyst estimate.",
+      "BofA Securities raised the price target from $36 to $38."
+    ],
+    "sources": [
+      {
+        "type": "news",
+        "title": "Coupang LLC earnings beat by $0.01, revenue topped estimates",
+        "publisher": "Investing.com",
+        "date": "2025-11-10"
+      },
+      {
+        "type": "analyst_report",
+        "title": "Coupang stock price target raised to $38 from $36 at BofA Securities",
+        "publisher": "Investing.com",
+        "date": "2025-11-10"
+      }
+    ]
+  },
+  "risk_issues": [
+    {
+      "category": "other",
+      "severity": "medium",
+      "title": "Securities Fraud Class Action",
+      "summary": "Coupang is facing a class action lawsuit related to a data breach, which could have potential implications for the company's reputation and financial standing.",
+      "sources": [
+        {
+          "type": "news",
+          "title": "Coupang, Inc. Securities Fraud Class Action Result of Data Breach and Stock Decline",
+          "publisher": "PRNewswire",
+          "date": "2025-12-15"
+        },
+        {
+          "type": "news",
+          "title": "Bronstein, Gewirtz & Grossman LLC Urges Coupang, Inc. Investors to Act: Class Action Filed Alleging...",
+          "publisher": "ACCESS Newswire",
+          "date": "2025-12-15"
+        }
+      ]
+    }
+  ],
+  "sector_momentum": {
+    "sector": "CONSUMER CYCLICAL",
+    "direction": "positive",
+    "summary": "The consumer cyclical sector is experiencing growth, with many stocks delivering earnings wins and a market rally supporting the sector.",
+    "related_news_count": 10,
+    "sources": [
+      {
+        "type": "news",
+        "title": "11 out of 14 consumer cyclical stocks deliver EPS wins this week: Earnings Scorecard",
+        "publisher": "No information available",
+        "date": "2026-01-01"
+      },
+      {
+        "type": "news",
+        "title": "Market rally: Consumer cyclical stocks soar while energy struggles",
+        "publisher": "No information available",
+        "date": "2026-01-01"
+      }
+    ]
+  },
+  "insider_activity": {
+    "signal": "NEUTRAL",
+    "net_shares": 0,
+    "net_value": 0.0,
+    "summary": "There have been no insider buy or sell transactions in the last 90 days, indicating a neutral stance on insider activity.",
+    "sources": [
+      {
+        "type": "insider_transaction",
+        "title": "No insider transactions reported",
+        "date": "2026-01-08"
+      }
+    ]
+  },
+  "metadata": {
+    "data_collection": {
+      "analyst_reports": 10,
+      "news_articles": 20,
+      "sec_filings": 10,
+      "insider_transactions": 2
+    },
+    "market_cap_tier": "mid",
+    "collection_date": "2026-01-10",
+    "retry_count": 0
+  }
+}

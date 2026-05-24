@@ -1,0 +1,120 @@
+{
+  "regime": "risk_on",
+  "confidence": 0.8,
+  "regime_rationale": "글로벌 VIX가 15.78로 낮은 공포를 나타내며, 한국 KOSPI와 KOSDAQ이 각각 5.4%와 6.7% 상승세를 보이고 있어 Risk-On 신호가 강하게 나타납니다. 또한, 외국인 투자자들이 안정적인 종목에 집중하고 있어 긍정적인 시장 심리를 반영합니다.",
+  "global_market": {
+    "us_market_regime": "risk_on",
+    "vix_level": 15.78,
+    "vix_signal": "low_fear",
+    "credit_spread_signal": "stable",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "안전자산 흐름이 혼재되어 있으며, 금은 상승하고 채권은 하락하는 모습입니다.",
+    "key_indicators": [
+      {
+        "name": "VIX",
+        "value": 15.78,
+        "change": -0.3,
+        "signal": "low_fear",
+        "interpretation": "낮은 공포 수준"
+      }
+    ],
+    "summary": "글로벌 시장은 낮은 공포 수준과 안정적인 신용 스프레드를 보이며, 연준의 금리 인하로 인해 Risk-On 분위기가 조성되고 있습니다."
+  },
+  "global_to_korea_impact": {
+    "impact_level": "high",
+    "impact_direction": "positive",
+    "transmission_channels": [
+      "외국인 자금 유입",
+      "수출 수요 증가"
+    ],
+    "key_factors": [
+      "USD/KRW 안정",
+      "미국 금리 인하"
+    ],
+    "expected_lag": "immediate",
+    "narrative": "글로벌 시장의 안정성과 금리 인하가 한국 시장에 긍정적인 영향을 미치고 있으며, 외국인 자금 유입이 증가할 것으로 예상됩니다."
+  },
+  "korea_market": {
+    "kospi_trend": "uptrend",
+    "kosdaq_trend": "uptrend",
+    "foreign_investor_flow": "net_buying",
+    "foreign_flow_amount": "외국인 순매수는 삼성전자와 같은 대형주에서 감소했으나, IT 부품주와 리츠로의 매수가 증가하고 있습니다.",
+    "exchange_rate_pressure": "stable",
+    "usd_krw_level": 1469.5,
+    "domestic_liquidity": "normal",
+    "market_sentiment": "bullish",
+    "key_events": [
+      "연준 금리 인하",
+      "KOSPI 상승세 지속"
+    ],
+    "summary": "한국 시장은 KOSPI와 KOSDAQ 모두 상승세를 보이며, 외국인 투자자들의 순매수가 이어지고 있어 긍정적인 시장 심리가 형성되고 있습니다."
+  },
+  "news_sentiment": {
+    "korea_news_sentiment": "positive",
+    "korea_news_highlights": [
+      "환율 하락으로 산타 랠리 기대",
+      "KOSPI 상승세 지속"
+    ],
+    "global_news_sentiment": "positive",
+    "global_news_highlights": [
+      "연준 금리 인하",
+      "미국 경제 안정세"
+    ],
+    "foreign_view_on_korea": "positive",
+    "foreign_view_highlights": [
+      "JP Morgan, KOSPI 5,000 목표",
+      "한국 주식 시장 긍정적 전망"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "aggressive",
+    "position_sizing": "적극적인 포지션 확대 권장",
+    "sector_preference": [
+      "IT",
+      "금융"
+    ],
+    "sectors_to_avoid": [
+      "방산",
+      "원자재"
+    ],
+    "hedging_recommendation": "헤지 필요성 낮음",
+    "time_horizon": "3-6개월",
+    "key_risks": [
+      "글로벌 경제 둔화",
+      "금리 인상 우려"
+    ],
+    "action_triggers": [
+      "VIX 20 이상 상승",
+      "KOSPI 4,000 이하 하락"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "global_signals",
+      "fact": "VIX 15.78, KOSPI 4167.16",
+      "interpretation": "낮은 공포와 상승세"
+    },
+    {
+      "type": "qualitative",
+      "source": "naver_news",
+      "fact": "환율 하락으로 산타 랠리 기대",
+      "interpretation": "긍정적인 투자 심리"
+    }
+  ],
+  "data_sources": [
+    "us_vix",
+    "kr_benchmark_index (VKOSPI)",
+    "us_credit_spread",
+    "us_dollar_index",
+    "exchange_rate",
+    "us_move_index",
+    "us_daily_etf",
+    "market_index",
+    "naver_news",
+    "serper_global",
+    "serper_korea_view"
+  ],
+  "analysis_timestamp": "2025-12-15T14:42:20.831592"
+}

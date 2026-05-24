@@ -1,0 +1,133 @@
+{
+  "regime": "neutral",
+  "confidence": 0.7,
+  "regime_rationale": "글로벌 시장에서 VIX가 15.78로 낮은 공포를 나타내고 있지만, 한국 시장의 VKOSPI는 26.92로 높은 공포를 보이고 있어 혼재된 신호가 발생하고 있습니다. 이러한 상황에서 한국 시장은 중립적인 레짐으로 판단됩니다.",
+  "global_market": {
+    "us_market_regime": "risk_on",
+    "vix_level": 15.78,
+    "vix_signal": "low_fear",
+    "credit_spread_signal": "stable",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "안전자산 흐름이 혼재되어 있으며, 금은 상승하고 채권은 하락하고 있습니다.",
+    "key_indicators": [
+      {
+        "name": "VIX",
+        "value": 15.78,
+        "change": "-0.3",
+        "signal": "low_fear",
+        "interpretation": "미국 시장에서 낮은 공포를 나타냄"
+      },
+      {
+        "name": "Credit Spread",
+        "value": 0.8,
+        "change": "-0.01",
+        "signal": "stable",
+        "interpretation": "신용 스프레드가 안정적임"
+      },
+      {
+        "name": "MOVE Index",
+        "value": 67.28,
+        "change": "1.59",
+        "signal": "low_volatility",
+        "interpretation": "채권 변동성이 낮음"
+      }
+    ],
+    "summary": "글로벌 시장은 낮은 공포와 안정적인 신용 스프레드를 보이며, 위험 선호가 증가하는 경향을 보이고 있습니다."
+  },
+  "global_to_korea_impact": {
+    "impact_level": "medium",
+    "impact_direction": "mixed",
+    "transmission_channels": [
+      "외국인 자금 유입",
+      "수출 수요 증가"
+    ],
+    "key_factors": [
+      "USD/KRW 안정",
+      "미국 금리 동결"
+    ],
+    "expected_lag": "1-2 weeks",
+    "narrative": "글로벌 시장의 안정성이 한국 시장에 긍정적인 영향을 미칠 수 있으나, 한국 내 높은 변동성과 외국인 매도세로 인해 혼재된 영향을 미치고 있습니다."
+  },
+  "korea_market": {
+    "kospi_trend": "sideways",
+    "kosdaq_trend": "uptrend",
+    "foreign_investor_flow": "net_selling",
+    "foreign_flow_amount": "외국인 순매도세가 지속되고 있습니다.",
+    "exchange_rate_pressure": "stable",
+    "usd_krw_level": 1472.5,
+    "domestic_liquidity": "normal",
+    "market_sentiment": "bearish",
+    "key_events": [
+      "HD현대로보틱스 IPO",
+      "삼성전자 외국인 매도"
+    ],
+    "summary": "한국 시장은 코스피가 횡보세를 보이는 가운데 코스닥은 상승세를 유지하고 있으나, 외국인 매도세로 인해 전반적인 투자 심리는 약세를 보이고 있습니다."
+  },
+  "news_sentiment": {
+    "korea_news_sentiment": "negative",
+    "korea_news_highlights": [
+      "HD현대로보틱스 IPO 관련 우려",
+      "삼성전자 외국인 매도"
+    ],
+    "global_news_sentiment": "neutral",
+    "global_news_highlights": [
+      "연준 금리 인하",
+      "미국 경제 전망"
+    ],
+    "foreign_view_on_korea": "neutral",
+    "foreign_view_highlights": [
+      "한국 주식 시장에 대한 긍정적인 전망이 있으나, 변동성 우려가 존재"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "moderate",
+    "position_sizing": "보수적인 포지션 사이징 권장",
+    "sector_preference": [
+      "반도체",
+      "AI 관련 주식"
+    ],
+    "sectors_to_avoid": [
+      "고위험 주식",
+      "변동성이 큰 주식"
+    ],
+    "hedging_recommendation": "헤지 전략으로 옵션 활용 권장",
+    "time_horizon": "1-3개월",
+    "key_risks": [
+      "글로벌 경제 불확실성",
+      "환율 변동"
+    ],
+    "action_triggers": [
+      "VKOSPI 30 이상 상승",
+      "외국인 순매도 지속"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "VIX",
+      "fact": "VIX 15.78",
+      "interpretation": "낮은 공포 수준"
+    },
+    {
+      "type": "qualitative",
+      "source": "뉴스",
+      "fact": "삼성전자 외국인 매도",
+      "interpretation": "투자 심리 약세"
+    }
+  ],
+  "data_sources": [
+    "us_vix",
+    "kr_benchmark_index (VKOSPI)",
+    "us_credit_spread",
+    "us_dollar_index",
+    "exchange_rate",
+    "us_move_index",
+    "us_daily_etf",
+    "market_index",
+    "naver_news",
+    "serper_global",
+    "serper_korea_view"
+  ],
+  "analysis_timestamp": "2025-12-16T15:49:56.975921"
+}

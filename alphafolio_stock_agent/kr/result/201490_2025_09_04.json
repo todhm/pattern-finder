@@ -1,0 +1,144 @@
+{
+  "stock_name": "미투온",
+  "symbol": "201490",
+  "analysis_date": "2025-09-04",
+  "final_grade": "중립",
+  "market_environment": {
+    "data": {
+      "vix": 15.3,
+      "vix_status": "low_fear",
+      "fed_rate": 4.33,
+      "korea_base_rate": 2.5,
+      "dollar_index": 121.1565,
+      "usd_krw": null,
+      "regime": "neutral"
+    },
+    "narrative": {
+      "global_env": "미국 VIX가 15.3으로 낮은 두려움을 나타내고 있으며, 이는 글로벌 시장의 안정성을 시사합니다. 그러나 한국의 VKOSPI는 높은 두려움을 보이고 있어 혼재된 신호가 발생하고 있습니다.",
+      "domestic": "한국은행 기준금리가 2.5%로 유지되고 있으며, 이는 국내 유동성 환경에 영향을 미치고 있습니다. 이러한 금리 수준은 기업의 자금 조달 비용에 영향을 미쳐 투자 심리에 영향을 줄 수 있습니다.",
+      "sector": "해당 섹터는 안정적인 흐름을 유지하고 있으며, AI 관련 주식과 반도체 분야에서 긍정적인 모멘텀을 보이고 있습니다. 그러나 게임주 하락이 미투온에 부정적인 영향을 미칠 수 있습니다.",
+      "regime_interpretation": "전반적으로 중립적인 시장 환경으로, 개별 종목의 펀더멘털이 중요한 시기입니다."
+    }
+  },
+  "technical_summary": {
+    "data": {
+      "current_price": 5930,
+      "ma5": 5880,
+      "ma20": 5570,
+      "ma60": 5490,
+      "rsi": 60.0,
+      "macd_histogram": 33.39,
+      "adx": 18.76,
+      "bollinger_upper": 6460,
+      "bollinger_lower": 4690,
+      "foreign_consecutive_buy": 14,
+      "institutional_consecutive_buy": 3,
+      "volume_ratio": 0.65
+    },
+    "narrative": {
+      "price_trend": "현재 주가는 5930원으로 20일 이동평균선인 5570원보다 높은 수준입니다. 이는 긍정적인 가격 흐름을 나타내고 있습니다.",
+      "indicators": "RSI는 60.0으로 중립 수준에 있으며, 이는 과매수 구간에 진입할 가능성을 시사합니다. MACD 히스토그램은 33.39로 단기 모멘텀이 긍정적이나 ADX는 18.76로 추세 강도가 약해 추세 전환이 필요합니다.",
+      "investor_flow": "외국인이 14일 연속 순매수하고 있어 긍정적인 수급 흐름을 나타내고 있습니다.",
+      "volume_analysis": "거래량이 20일 평균 대비 65% 수준으로, 이는 상대적으로 낮은 거래량을 의미합니다."
+    }
+  },
+  "scenarios": {
+    "bullish": {
+      "data": {
+        "probability": 8,
+        "support_level": 4690,
+        "resistance_level": 6460,
+        "take_profit": 7410,
+        "stop_loss": 4740,
+        "expected_return": "+12~+25%",
+        "sample_count": 1771
+      },
+      "narrative": {
+        "title": "상승 시나리오",
+        "probability_explanation": "과거 유사 패턴 1771건 분석 결과, 8%의 확률로 상승 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "외국인의 14일 연속 순매수와 긍정적인 RSI 수치가 상승 가능성을 뒷받침합니다.",
+        "strategy": "현재 가격대에서 매수 시 익절 목표는 7410원으로 설정할 수 있습니다. 손절 범위는 4740원으로 설정하여 리스크를 관리해야 합니다.",
+        "triggers": [
+          "외국인 35일 연속 순매수 유지 시 매수 신호가 강화됩니다.",
+          "52주 신고가 돌파 시 상승 모멘텀이 형성됩니다."
+        ],
+        "monitoring_points": [
+          "6460원 저항선 돌파 여부",
+          "RSI가 70 이상으로 진입하는지 여부"
+        ],
+        "risk_factors": [
+          "외국인 순매수 기조가 약화될 경우",
+          "저항선인 6460원에서 반전 시도"
+        ]
+      }
+    },
+    "sideways": {
+      "data": {
+        "probability": 48,
+        "support_level": 4690,
+        "resistance_level": 6460,
+        "take_profit": 5990,
+        "stop_loss": 5510,
+        "expected_return": "-7~+1%",
+        "sample_count": 1771
+      },
+      "narrative": {
+        "title": "횡보 시나리오",
+        "probability_explanation": "48%의 확률로 횡보 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "현재 중립적인 시장 환경과 안정적인 매출 성장 기대가 혼재되어 있습니다.",
+        "strategy": "현재 가격대에서 보유를 유지하며, 5990원에서 익절을 고려할 수 있습니다. 손절 범위는 5510원으로 설정하여 리스크를 관리해야 합니다.",
+        "triggers": [
+          "외국인 순매수 기조 유지 시 보유 전략이 유효합니다.",
+          "final_score 26~36점 유지 시 보유 신호가 강화됩니다."
+        ],
+        "monitoring_points": [
+          "4690원 지지선 유지 여부",
+          "6460원 저항선 돌파 여부"
+        ],
+        "risk_factors": [
+          "상단 저항선인 6460원에서의 반전",
+          "하단 지지선인 4690원 붕괴 시"
+        ]
+      }
+    },
+    "bearish": {
+      "data": {
+        "probability": 44,
+        "support_level": 4690,
+        "resistance_level": 6460,
+        "take_profit": null,
+        "stop_loss": "1차: 5,160원, 2차: 4,685원",
+        "expected_return": "-13~-21%",
+        "sample_count": 1771
+      },
+      "narrative": {
+        "title": "하락 시나리오",
+        "probability_explanation": "44%의 확률로 하락 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "게임주 하락과 외국인 자금 유출이 미투온에 부정적인 영향을 미칠 수 있습니다.",
+        "strategy": "손절을 고려하며 관망하는 전략이 필요합니다. 손절 범위는 1차 5160원, 2차 4685원으로 설정하여 리스크를 관리해야 합니다.",
+        "triggers": [
+          "외국인이 5일 연속 순매도 전환 시 매도 신호가 강화됩니다.",
+          "MACD 데드크로스 발생 시 하락 모멘텀이 형성됩니다."
+        ],
+        "monitoring_points": [
+          "4690원 지지선 붕괴 여부",
+          "외국인 순매도 기조 지속 여부"
+        ],
+        "risk_factors": [
+          "게임주 하락세 지속 시",
+          "외국인 자금 유출 심화 시"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "agent_version": "2.0.0",
+    "execution_time_sec": 77.93,
+    "retry_count": 0,
+    "data_freshness": {
+      "kr_stock_grade": "2025-09-04",
+      "market_index": "2025-09-04",
+      "indicators": "2025-09-04"
+    }
+  }
+}

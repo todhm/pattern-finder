@@ -1,0 +1,75 @@
+{
+  "symbol": "MSFT",
+  "stock_name": "Microsoft Corporation",
+  "analysis_date": "2025-08-22",
+  "sector": "TECHNOLOGY",
+  "overall_sentiment": "positive",
+  "confidence": 0.8,
+  "earnings_outlook": {
+    "direction": "positive",
+    "summary": "Analysts maintain a bullish outlook on Microsoft, particularly due to its advancements in AI commercialization and strong performance in cloud and gaming segments.",
+    "key_points": [
+      "Analyst reports indicate strong growth in AI and cloud sectors.",
+      "Microsoft continues to beat earnings expectations."
+    ],
+    "sources": [
+      {
+        "type": "analyst_report",
+        "title": "Evercore Maintains Microsoft (MSFT) Price Target, Bullish on AI Commercialization",
+        "publisher": "Evercore",
+        "date": "2025-08-22"
+      },
+      {
+        "type": "news",
+        "title": "Microsoft (NASDAQ: MSFT) Stock Price Prediction for 2025: Where Will It Be in 1 Year",
+        "publisher": "Stock News",
+        "date": "2025-08-22"
+      }
+    ]
+  },
+  "risk_issues": [],
+  "sector_momentum": {
+    "sector": "TECHNOLOGY",
+    "direction": "positive",
+    "summary": "The technology sector is experiencing growth driven by advancements in AI and cloud computing, with significant investment and interest from major players.",
+    "related_news_count": 10,
+    "sources": [
+      {
+        "type": "news",
+        "title": "Stock market today: Dow, S&P 500, Nasdaq jump after cooler CPI inflation reading as AI trade...",
+        "publisher": "Market News",
+        "date": "2025-08-22"
+      },
+      {
+        "type": "news",
+        "title": "What will the stock market do in 2026? Here's why AI will dominate",
+        "publisher": "Market Analysis",
+        "date": "2025-08-22"
+      }
+    ]
+  },
+  "insider_activity": {
+    "signal": "NEUTRAL",
+    "net_shares": 0,
+    "net_value": 0.0,
+    "summary": "There have been no significant insider transactions in the past 90 days, indicating a neutral stance from executives.",
+    "sources": [
+      {
+        "type": "insider_transaction",
+        "title": "Insider Transactions Summary",
+        "date": "2025-08-22"
+      }
+    ]
+  },
+  "metadata": {
+    "data_collection": {
+      "analyst_reports": 10,
+      "news_articles": 20,
+      "sec_filings": 9,
+      "insider_transactions": 9
+    },
+    "market_cap_tier": "mid",
+    "collection_date": "2025-12-19",
+    "retry_count": 0
+  }
+}

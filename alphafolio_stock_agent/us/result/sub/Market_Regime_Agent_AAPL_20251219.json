@@ -1,0 +1,109 @@
+{
+  "regime": "risk_on",
+  "confidence": 0.85,
+  "regime_rationale": "The market is currently in a risk-on regime due to tight credit spreads and low volatility levels. These quantitative signals indicate a strong risk appetite among investors, supported by positive market sentiment from recent news.",
+  "global_market": {
+    "us_market_regime": "neutral",
+    "vix_level": 15.78,
+    "vix_signal": "moderate",
+    "credit_spread_signal": "tight",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "Minimal flow into safe haven assets, indicating confidence in risk assets.",
+    "key_indicators": [
+      {
+        "name": "VIX",
+        "value": 15.78,
+        "change": -0.3,
+        "signal": "moderate",
+        "interpretation": "Normal volatility level, Neutral market"
+      },
+      {
+        "name": "Credit Spread",
+        "value": 0.8,
+        "change": -0.01,
+        "signal": "tight",
+        "interpretation": "Tight spreads indicate strong risk appetite."
+      },
+      {
+        "name": "MOVE Index",
+        "value": 67.28,
+        "change": 1.59,
+        "signal": "low_volatility",
+        "interpretation": "Low bond volatility, stable rate environment."
+      }
+    ],
+    "summary": "The global market is characterized by a risk-on sentiment, driven by tight credit spreads and stable volatility levels. This environment suggests investor confidence in equities and a favorable economic outlook."
+  },
+  "us_market": {
+    "sp500_trend": "uptrend",
+    "nasdaq_trend": "uptrend",
+    "market_breadth": "strong",
+    "sector_rotation": "Shifts towards technology and consumer discretionary sectors.",
+    "put_call_ratio": 0.85,
+    "market_sentiment": "bullish",
+    "key_events": [
+      "S&P 500 snaps 4-day losing streak",
+      "Wall Street analysts expect strong performance in 2026"
+    ],
+    "summary": "The US market is experiencing an uptrend, supported by positive sentiment from recent inflation data and expectations for continued growth in 2026. Strong market breadth indicates broad participation in the rally."
+  },
+  "news_sentiment": {
+    "market_news_sentiment": "positive",
+    "market_news_highlights": [
+      "S&P 500 boosted by cooler-than-expected inflation data",
+      "Bullish seasonality and improving breadth point higher"
+    ],
+    "fed_policy_sentiment": "dovish",
+    "fed_highlights": [
+      "Federal Reserve cut the benchmark interest rate",
+      "Expectations for lower borrowing costs and steady job growth"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "aggressive",
+    "position_sizing": "Consider larger positions in growth sectors.",
+    "sector_preference": [
+      "Technology",
+      "Consumer Discretionary"
+    ],
+    "sectors_to_avoid": [
+      "Utilities",
+      "Consumer Staples"
+    ],
+    "hedging_recommendation": "Minimal hedging recommended; focus on growth.",
+    "time_horizon": "6-12 months",
+    "key_risks": [
+      "Potential for rising interest rates",
+      "Geopolitical tensions affecting market stability"
+    ],
+    "action_triggers": [
+      "Significant change in Fed policy",
+      "Major economic data releases"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "QUANTITATIVE_SIGNALS",
+      "fact": "VIX at 15.78 indicates normal volatility",
+      "interpretation": "Suggests a neutral market environment."
+    },
+    {
+      "type": "qualitative",
+      "source": "US Market News",
+      "fact": "S&P 500 boosted by cooler-than-expected inflation data",
+      "interpretation": "Positive sentiment supports risk-on environment."
+    }
+  ],
+  "data_sources": [
+    "us_vix",
+    "us_credit_spread",
+    "us_dollar_index",
+    "us_move_index",
+    "serper_us_market",
+    "serper_global",
+    "serper_fed_policy"
+  ],
+  "analysis_timestamp": "2025-12-19T15:04:59.649495"
+}

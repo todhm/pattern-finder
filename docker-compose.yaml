@@ -45,11 +45,91 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # initdb-only: alphafolio role + database creation. Runs once
+      # when the pgdata volume is first initialized.
+      - ./db_init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U backtester"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # ------------------------------------------------------------------
+  # alphafolio stack — 3 microservices sharing the `db` Postgres cluster
+  # via a dedicated `alphafolio` DB (created by db_init/01_*.sql). Each
+  # service mirrors its Railway deployment but talks over the compose
+  # network instead of public URLs.
+  # ------------------------------------------------------------------
+
+  alphafolio_data:
+    build:
+      context: ./alphafolio_data
+      dockerfile: Dockerfile
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./alphafolio_data:/app
+      - alphafolio_data_logs:/app/log
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    env_file:
+      - ./secrets/alphafolio.env
+    environment:
+      - DATABASE_URL=postgresql://alphafolio:alphafolio@db:5432/alphafolio
+      - QUANT_SERVICE_URL=http://alphafolio_quant:8000
+      - MONGO_URL=mongodb://mongo:27017
+      - MONGO_DB=alphafolio
+      - PORT=8000
+
+  alphafolio_quant:
+    build:
+      context: ./alphafolio_quant
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./alphafolio_quant:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./secrets/alphafolio.env
+    environment:
+      - DATABASE_URL=postgresql://alphafolio:alphafolio@db:5432/alphafolio
+      - PORTFOLIO_SERVICE_URL=http://alphafolio_portfolio:7000
+      - DATA_SERVICE_URL=http://alphafolio_data:8000
+
+  alphafolio_portfolio:
+    build:
+      context: ./alphafolio_portfolio
+      dockerfile: Dockerfile
+    ports:
+      - "7001:7000"
+    volumes:
+      - ./alphafolio_portfolio:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./secrets/alphafolio.env
+    environment:
+      - DATABASE_URL=postgresql://alphafolio:alphafolio@db:5432/alphafolio
+
+  # ------------------------------------------------------------------
+  # Backtest runner — date-loop orchestrator. Idle by default (profile),
+  # invoke explicitly:
+  #
+  #   docker compose run --rm alphafolio_backtest \
+  #       python runner.py --start 2024-01-01 --end 2024-12-31 \
+  #                        --country US --bt-id bt_us_2024
+  # ------------------------------------------------------------------
+
 volumes:
   pgdata:
+  alphafolio_data_logs:

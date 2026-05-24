@@ -1,0 +1,84 @@
+{
+  "symbol": "AAPL",
+  "stock_name": "Apple Inc",
+  "analysis_date": "2025-08-22",
+  "sector": "TECHNOLOGY",
+  "overall_sentiment": "neutral",
+  "confidence": 0.6,
+  "earnings_outlook": {
+    "direction": "neutral",
+    "summary": "Analysts have mixed opinions on Apple's earnings outlook, with some maintaining price targets and ratings.",
+    "key_points": [
+      "Jefferies & Co. maintains a 'Hold' rating while raising the price target.",
+      "HSBC keeps a 'Hold' rating with a price target of $220."
+    ],
+    "sources": [
+      {
+        "type": "analyst_report",
+        "title": "Jefferies & Co. Raises Price Target and Maintains “Hold” Rating",
+        "publisher": "Jefferies & Co.",
+        "date": "2025-08-22"
+      },
+      {
+        "type": "analyst_report",
+        "title": "HSBC Keeps Hold on Apple (AAPL), Sets $220 Price Target",
+        "publisher": "HSBC",
+        "date": "2025-08-22"
+      }
+    ]
+  },
+  "risk_issues": [
+    {
+      "category": "market",
+      "severity": "medium",
+      "title": "Competition and Demand Concerns",
+      "summary": "Analysts express concerns about competition intensifying and potential demand decrease for Apple's products.",
+      "sources": [
+        {
+          "type": "news",
+          "title": "Apple's foldable iPhone could face shortages early on, analyst says",
+          "publisher": "Analyst",
+          "date": "2025-08-22"
+        }
+      ]
+    }
+  ],
+  "sector_momentum": {
+    "sector": "TECHNOLOGY",
+    "direction": "neutral",
+    "summary": "The technology sector shows mixed performance with no significant changes reported.",
+    "related_news_count": 10,
+    "sources": [
+      {
+        "type": "news",
+        "title": "Stock market today: Dow, S&P 500, Nasdaq jump after cooler CPI inflation reading as AI trade...",
+        "publisher": "Market News",
+        "date": "2025-08-22"
+      }
+    ]
+  },
+  "insider_activity": {
+    "signal": "NEUTRAL",
+    "net_shares": 0,
+    "net_value": 0.0,
+    "summary": "There has been no net buying or selling activity among insiders in the last 90 days.",
+    "sources": [
+      {
+        "type": "insider_transaction",
+        "title": "Insider Transactions Summary",
+        "date": "2025-08-22"
+      }
+    ]
+  },
+  "metadata": {
+    "data_collection": {
+      "analyst_reports": 10,
+      "news_articles": 20,
+      "sec_filings": 10,
+      "insider_transactions": 17
+    },
+    "market_cap_tier": "mid",
+    "collection_date": "2025-12-19",
+    "retry_count": 0
+  }
+}

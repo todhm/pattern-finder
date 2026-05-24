@@ -1,0 +1,91 @@
+{
+  "regime": "neutral",
+  "confidence": 0.7,
+  "regime_rationale": "The market is currently in a neutral regime due to mixed quantitative signals and a lack of strong directional indicators. While there are positive forecasts for global equities, the absence of clear risk-on or risk-off signals suggests a wait-and-see approach among investors.",
+  "global_market": {
+    "us_market_regime": "neutral",
+    "vix_level": null,
+    "vix_signal": "moderate",
+    "credit_spread_signal": "normal",
+    "yield_curve_signal": "normal",
+    "dollar_trend": "stable",
+    "safe_haven_flow": "Minimal flow into safe haven assets as investors await clearer signals.",
+    "key_indicators": [
+      {
+        "name": "Global equities forecast",
+        "value": "11%",
+        "change": "stable",
+        "signal": "neutral",
+        "interpretation": "Projected returns indicate cautious optimism."
+      }
+    ],
+    "summary": "The global market is characterized by a stable outlook with no significant risk-on or risk-off signals. Investors are maintaining a neutral stance as they await further economic data."
+  },
+  "us_market": {
+    "sp500_trend": "sideways",
+    "nasdaq_trend": "sideways",
+    "market_breadth": "moderate",
+    "sector_rotation": "Cautious rotation with focus on defensive sectors.",
+    "put_call_ratio": null,
+    "market_sentiment": "neutral",
+    "key_events": [
+      "Upcoming earnings season",
+      "December payrolls report"
+    ],
+    "summary": "The US market is currently moving sideways as investors look for fresh catalysts. The upcoming earnings season and payroll report are key events that could influence market direction."
+  },
+  "news_sentiment": {
+    "market_news_sentiment": "neutral",
+    "market_news_highlights": [
+      "Global Stocks Are Projected to Return 11% in the Next 12 Months",
+      "S&P 500 forecast: Market search for fresh catalysts continues"
+    ],
+    "fed_policy_sentiment": "neutral",
+    "fed_highlights": [
+      "Fed cut interest rates by a quarter point",
+      "Concerns about a weakening labor market may outweigh inflation worries"
+    ]
+  },
+  "investment_implications": {
+    "risk_appetite": "moderate",
+    "position_sizing": "Cautious position sizing recommended.",
+    "sector_preference": [
+      "Defensive sectors",
+      "Consumer staples"
+    ],
+    "sectors_to_avoid": [
+      "Cyclical sectors",
+      "High-growth tech"
+    ],
+    "hedging_recommendation": "Consider hedging against potential volatility.",
+    "time_horizon": "Short to medium-term investment horizon.",
+    "key_risks": [
+      "Economic data misses",
+      "Geopolitical tensions"
+    ],
+    "action_triggers": [
+      "Clear earnings results",
+      "Significant economic data releases"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "quantitative",
+      "source": "QUANTITATIVE_SIGNALS",
+      "fact": "Dominant signal is neutral",
+      "interpretation": "Indicates a lack of clear market direction."
+    },
+    {
+      "type": "qualitative",
+      "source": "US Market News",
+      "fact": "Global equities projected to return 11%",
+      "interpretation": "Suggests cautious optimism but no strong risk-on signal."
+    }
+  ],
+  "data_sources": [
+    "serper_us_market",
+    "serper_global",
+    "serper_fed_policy"
+  ],
+  "analysis_timestamp": "2026-01-10T10:05:09.761843"
+}

@@ -1,0 +1,143 @@
+{
+  "stock_name": "Apple Inc",
+  "symbol": "AAPL",
+  "analysis_date": "2026-01-13",
+  "final_grade": "중립",
+  "market_environment": {
+    "data": {
+      "vix": 15.78,
+      "vix_status": "moderate",
+      "fed_rate": 4.33,
+      "treasury_10y": 3.6,
+      "dollar_index": 121.4288,
+      "credit_spread": 0.8,
+      "put_call_ratio": 1.0,
+      "regime": "neutral"
+    },
+    "narrative": {
+      "global_env": "VIX가 15.78로 보통 수준을 유지하고 있으며, 이는 시장의 변동성이 안정적임을 나타냅니다. 글로벌 경제는 혼합된 투자 심리 속에서 성장 기대감이 있지만, 높은 평가와 연준의 정책 변화에 대한 우려가 존재합니다.",
+      "fed_policy": "연준 금리는 4.33%로 유지되고 있으며, 이는 금리 환경이 다소 긴축적임을 시사합니다. 이러한 금리 수준은 투자자들에게 신중한 접근을 요구하고 있습니다.",
+      "sector": "해당 섹터는 혼합된 신호를 보이고 있으며, 일부 종목은 상승세를 보이는 반면 다른 종목은 하락세를 보이고 있습니다. 이는 투자자들이 섹터 내에서 선택적으로 접근하고 있음을 나타냅니다.",
+      "regime_interpretation": "전반적으로 중립 시장 환경으로, 명확한 위험 선호 또는 위험 회피 신호가 부족한 상황입니다."
+    }
+  },
+  "technical_summary": {
+    "data": {
+      "current_price": 261.05,
+      "ma5": 260.01,
+      "ma20": 269.04,
+      "ma50": 272.03,
+      "ma200": 229.91,
+      "rsi": 62.3,
+      "macd_histogram": -1.4431,
+      "adx": 45.92,
+      "bollinger_upper": 281.38,
+      "bollinger_lower": 256.7,
+      "iv_percentile": 50.0,
+      "put_call_ratio": 1.0,
+      "insider_signal": "NEUTRAL",
+      "volume_ratio": 0.97
+    },
+    "narrative": {
+      "price_trend": "현재 주가는 $261.05로, 20일 이동평균선인 $269.04 아래에 위치하고 있습니다. 이는 단기적으로 하락 압력이 존재함을 나타냅니다.",
+      "indicators": "RSI가 62.3으로 과매수 구간에 가까워지고 있으며, 이는 상승 모멘텀의 약화를 시사합니다. MACD 히스토그램은 -1.4431로 단기 모멘텀이 부정적임을 나타내고, ADX는 45.92로 강한 추세가 형성되어 있음을 보여줍니다.",
+      "options_flow": "Put/Call 비율이 1.0으로, 옵션 시장에서 약세 심리가 나타나고 있습니다. IV 백분위는 50.0으로 변동성이 평균 수준임을 시사합니다.",
+      "insider_activity": "내부자 신호는 중립으로, 최근 90일간 내부자 거래가 없었습니다."
+    }
+  },
+  "scenarios": {
+    "bullish": {
+      "data": {
+        "probability": 42,
+        "support_level": 256.7,
+        "resistance_level": 281.38,
+        "take_profit": 334.14,
+        "stop_loss": 247.27,
+        "expected_return": "+10~+28%",
+        "sample_count": 25832
+      },
+      "narrative": {
+        "title": "강세 시나리오",
+        "probability_explanation": "25832개 과거 패턴 기반, 42% 확률로 강세 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "신뢰도의 근거는 애널리스트들이 애플에 대해 긍정적인 전망을 제시하고 있기 때문입니다.",
+        "strategy": "현재 가격대에서 익절 목표가 $334.14로 설정하며, 손절가는 $247.27로 설정합니다. 가격이 $281.38 저항선을 돌파할 경우 추가 상승이 기대됩니다.",
+        "triggers": [
+          "종합 점수가 70점 이상으로 상승할 경우 매수 신호가 강화됩니다.",
+          "Put/Call 비율이 0.7 이하로 하락하면 매수 신호가 강화됩니다."
+        ],
+        "monitoring_points": [
+          "$281.38 저항선 돌파",
+          "$256.7 지지선 유지"
+        ],
+        "risk_factors": [
+          "기술적 저항선에서의 반전",
+          "옵션 시장에서의 약세 심리 지속"
+        ]
+      }
+    },
+    "sideways": {
+      "data": {
+        "probability": 30,
+        "support_level": 256.7,
+        "resistance_level": 281.38,
+        "take_profit": 266.27,
+        "stop_loss": 255.83,
+        "expected_return": "-2~+2%",
+        "sample_count": 25832
+      },
+      "narrative": {
+        "title": "횡보 시나리오",
+        "probability_explanation": "30% 확률로 횡보 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "현재 시장 환경이 중립적이며, 가격이 박스권 내에서 움직일 가능성이 높습니다.",
+        "strategy": "박스권 내에서 현재 포지션을 유지하며, 손절가는 $255.83로 설정합니다. 가격이 $266.27에 도달할 경우 이익 실현을 고려합니다.",
+        "triggers": [
+          "종합 점수가 60~70 사이일 경우 보유 신호가 강화됩니다.",
+          "1주일 이내에 실적 발표가 있을 경우 변동성이 예상됩니다."
+        ],
+        "monitoring_points": [
+          "$256.7 지지선 유지",
+          "$281.38 저항선 돌파"
+        ],
+        "risk_factors": [
+          "상단 저항선 이탈 시",
+          "하단 지지선 붕괴 시"
+        ]
+      }
+    },
+    "bearish": {
+      "data": {
+        "probability": 28,
+        "support_level": 256.7,
+        "resistance_level": 281.38,
+        "take_profit": null,
+        "stop_loss": "1st: $237.56, 2nd: $201.01",
+        "expected_return": "-23~-9%",
+        "sample_count": 25832
+      },
+      "narrative": {
+        "title": "약세 시나리오",
+        "probability_explanation": "28% 확률로 약세 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "현재 기술적 지표가 부정적이며, 시장의 약세 심리가 지속될 가능성이 있습니다.",
+        "strategy": "방어적 포지셔닝이 필요합니다. 손절가는 첫 번째 $237.56, 두 번째 $201.01에서 설정합니다. 가격이 $256.7 지지선을 하회할 경우 추가 손실을 방지하기 위해 현금 비중을 늘려야 합니다.",
+        "triggers": [
+          "종합 점수가 50점 이하로 하락하면 매도 신호가 강화됩니다.",
+          "가격이 손절선인 -5.3%에 도달하면 손절을 고려해야 합니다."
+        ],
+        "monitoring_points": [
+          "$256.7 지지선 붕괴",
+          "$281.38 저항선 돌파 실패"
+        ],
+        "risk_factors": [
+          "지지선 붕괴로 인한 추가 하락",
+          "매도 압력 심화"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "agent_version": "2.0.0",
+    "execution_time_sec": null,
+    "retry_count": 0,
+    "data_freshness": "2026-01-19T23:59:55.080206"
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "stock_info": {
+    "symbol": "005930",
+    "stock_name": "삼성전자",
+    "exchange": "KOSPI",
+    "sector": "Electronics"
+  },
+  "quant_summary": {
+    "scores": {
+      "final_grade": "중립",
+      "final_score": 51.9,
+      "value_score": 40.1,
+      "quality_score": 59.3,
+      "momentum_score": 40.2,
+      "growth_score": 61.5,
+      "confidence_score": 97.4,
+      "entry_timing_score": 38.8
+    },
+    "scenarios": {
+      "bullish_prob": 7,
+      "sideways_prob": 81,
+      "bearish_prob": 12,
+      "bullish_return": "+15~+39%",
+      "sideways_return": "-6~+2%",
+      "bearish_return": "-13~-22%",
+      "sample_count": 61
+    },
+    "sector": {
+      "momentum": 3.97,
+      "rank": 4,
+      "percentile": 23.53
+    },
+    "risk": {
+      "var_95": -4.23,
+      "cvar_95": -5.6,
+      "beta": 1.92,
+      "volatility_annual": 46.2,
+      "max_drawdown_1y": -14.67,
+      "sharpe_ratio": 1.887,
+      "sortino_ratio": 4.9233
+    },
+    "trading": {
+      "stop_loss_pct": -7.23,
+      "take_profit_pct": 10.85,
+      "risk_reward_ratio": 1.5,
+      "position_size_pct": 2.16,
+      "atr_pct": 3.62
+    },
+    "triggers": {
+      "buy": "[\"외국인 6일 연속 순매수 유지 시\", \"기관 6일 연속 순매수 유지 시\", \"거래량 20일 평균 200% 돌파 시\", \"final_score 57점 이상 상승 시\", \"섹터 순위 상위 14% 진입 시\", \"Entry Timing 80점 이상 도달 시\"]",
+      "sell": "[\"외국인 5일 연속 순매도 전환 시\", \"기관 5일 연속 순매도 전환 시\", \"RSI 89 -> 65 이하 하락 시\", \"MACD 데드크로스 발생 시\", \"52주 신고가 대비 5% 하락 시\", \"손절선 -7.2% 도달 시\", \"익절선 +10.8% 도달 시\", \"final_score 37점 이하 하락 시\", \"변동성 56% 이상 급등 시\", \"시장 심리 OVERHEATED 진입 시 일부 차익실현\"]",
+      "hold": "[\"외국인 순매수 기조 유지 시 (현재 1일)\", \"기관 순매수 기조 유지 시 (현재 1일)\", \"final_score 47~57점 유지 시\", \"MACD 상승 추세 유지 시\", \"변동성 안정화 시\", \"섹터 순위 상위 34% 이내 유지 시\"]"
+    },
+    "interpretation": {
+      "risk_profile": "중위험 프로파일 - 변동성 매우 높음 (46.2%), 낙폭 리스크 보통 (-14.7%)",
+      "risk_recommendation": "일반 투자자에게 적합",
+      "time_series": "팩터 혼재 양상, 기관/외국인 동반 매수 (긍정적)",
+      "signal_overall": "긍정적 신호 우세 - 매수 검토 구간"
+    },
+    "relative_strength": {
+      "rs_value": 104.4,
+      "rs_rank": null
+    }
+  },
+  "technical_summary": {
+    "rsi": {
+      "value": 89.42,
+      "status": "overbought",
+      "trend": "falling"
+    },
+    "macd": {
+      "value": 8884.88,
+      "signal": 7468.21,
+      "histogram": 1416.67,
+      "status": "bullish",
+      "crossover": null
+    },
+    "bollinger": {
+      "upper": 152357.0,
+      "middle": 122700.0,
+      "lower": 93043.0
+    },
+    "stochastic": {
+      "k": 87.68,
+      "d": 84.4,
+      "status": "overbought"
+    },
+    "adx": {
+      "value": 66.4,
+      "status": "strong_trend"
+    },
+    "mfi": {
+      "value": 73.27,
+      "status": "neutral"
+    }
+  },
+  "price_trend": {
+    "current_price": 140300,
+    "ma5": 138900,
+    "ma20": 122700,
+    "ma60": 107288,
+    "trend_5d": "up",
+    "trend_20d": "up",
+    "trend_60d": "up",
+    "change_1d": 1.96,
+    "change_5d": 1.08,
+    "change_20d": 33.87,
+    "volatility_20d": 3.01,
+    "price_position": 99.5,
+    "volume": {
+      "current": 18444394,
+      "avg_20d": 26041459,
+      "ratio": 0.71
+    }
+  },
+  "investor_summary": {
+    "foreign": {
+      "consecutive_buy_days": 1,
+      "consecutive_sell_days": 0,
+      "net_5d": 17396085,
+      "net_5d_formatted": "+1,740만",
+      "net_30d": 96695595,
+      "net_30d_formatted": "+9,670만",
+      "trend": "buying"
+    },
+    "institutional": {
+      "consecutive_buy_days": 1,
+      "consecutive_sell_days": 0,
+      "net_5d": 9704830,
+      "net_5d_formatted": "+970만",
+      "net_30d": 47036400,
+      "net_30d_formatted": "+4,704만",
+      "trend": "buying"
+    },
+    "retail": {
+      "net_5d": 17922330,
+      "net_5d_formatted": "+1,792만",
+      "net_30d": 105372518,
+      "net_30d_formatted": "+1.1억",
+      "trend": "buying"
+    },
+    "summary": "특이 동향 없음"
+  },
+  "foreign_ownership": {
+    "current_rate": 51.84,
+    "change_1d": -0.07,
+    "change_5d": -0.34,
+    "change_30d": -0.42,
+    "trend": "decreasing",
+    "limit_rate": 51.84
+  },
+  "market_summary": {
+    "kospi": {
+      "current": 4692.64,
+      "change_1d": 1.47,
+      "change_5d": 3.11,
+      "change_20d": 12.61,
+      "trend_20d": "up",
+      "ma20": 4285.22
+    },
+    "kosdaq": {
+      "current": 948.98,
+      "change_1d": -0.09,
+      "change_5d": 0.17,
+      "change_20d": 1.24,
+      "trend_20d": "up",
+      "ma20": 934.23
+    }
+  },
+  "economic_summary": {
+    "korea": {
+      "base_rate": {
+        "value": 2.5,
+        "unit": "%"
+      },
+      "cpi": {
+        "value": 117.57,
+        "unit": "%"
+      },
+      "economic_sentiment": {
+        "value": 94.9
+      },
+      "news_sentiment": {
+        "value": 117.52
+      }
+    },
+    "us": {
+      "fed_funds_rate": {
+        "value": 4.33,
+        "unit": "%",
+        "date": "2025-09-03"
+      },
+      "treasury_yield_10y": {
+        "value": 3.92,
+        "unit": "%",
+        "date": "2025-10-09"
+      },
+      "cpi": {
+        "value": 324.8,
+        "unit": "%",
+        "date": "2025-09-01"
+      },
+      "unemployment_rate": {
+        "value": 4.3,
+        "unit": "%",
+        "date": "2025-08-01"
+      },
+      "gdp": {
+        "value": 3.8,
+        "unit": "%",
+        "date": "2025-04-01"
+      },
+      "pmi": {
+        "value": 97.7708,
+        "date": "2025-09-01"
+      }
+    },
+    "market_sentiment": {
+      "vix": {
+        "value": 15.78,
+        "status": "low_fear",
+        "date": "2025-12-04"
+      },
+      "dollar_index": {
+        "value": 121.4288,
+        "change_5d": -0.81,
+        "trend": "weakening",
+        "date": "2025-11-28"
+      }
+    }
+  },
+  "data_availability": {
+    "has_indicators": true,
+    "has_prices": true,
+    "has_investor_trading": true,
+    "has_foreign_ownership": true,
+    "has_financials": true,
+    "has_research_reports": true,
+    "indicators_days": 90,
+    "prices_days": 90
+  }
+}

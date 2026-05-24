@@ -5,6 +5,38 @@
     "명령어 실행: docker compose exec <서비스명> <명령어>",
     "예시: docker compose exec backtester pytest -v",
     "예시: docker compose exec backtester python -c '...'",
-    "서비스 중지: docker compose down"
-  ]
+    "서비스 중지: docker compose down",
+    "**비밀 파일 보호 (2026-05-19 incident 이후)**: secrets/ 디렉터리 및 *.env / credentials* / *.key / *.pem / *.token / id_rsa* 파일은 cp / mv / rm / tee / 셸 리디렉트(> >>) / Write / Edit 로 **절대** 건드리지 말 것. docker compose 가 'env file not found' 에러를 띄워도 .example 파일을 자동으로 복사해서 placeholder 를 만들지 말 것 — 실제 시크릿이 덮어쓰여 사라진 사례가 있음. 복원이 필요하면 사용자에게 알리고 사용자가 직접 채우게 할 것. (PreToolUse hook + permissions.deny 로 강제 차단되어 있음 — 시도해도 거부됨.)"
+  ],
+  "permissions": {
+    "deny": [
+      "Write(./secrets/**)",
+      "Edit(./secrets/**)",
+      "Write(./**/*.env)",
+      "Edit(./**/*.env)",
+      "Write(./**/credentials*)",
+      "Edit(./**/credentials*)",
+      "Write(./**/*.key)",
+      "Edit(./**/*.key)",
+      "Write(./**/*.pem)",
+      "Edit(./**/*.pem)",
+      "Write(./**/*.token)",
+      "Edit(./**/*.token)",
+      "Write(./**/id_rsa*)",
+      "Edit(./**/id_rsa*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/scripts/block_secrets_writes.py\""
+          }
+        ]
+      }
+    ]
+  }
 }

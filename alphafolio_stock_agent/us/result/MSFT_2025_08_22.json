@@ -1,0 +1,143 @@
+{
+  "stock_name": "Microsoft Corporation",
+  "symbol": "MSFT",
+  "analysis_date": "2025-08-22",
+  "final_grade": "보유",
+  "market_environment": {
+    "data": {
+      "vix": 14.22,
+      "vix_status": "low_fear",
+      "fed_rate": 4.33,
+      "treasury_10y": 3.68,
+      "dollar_index": 120.6974,
+      "credit_spread": 0.77,
+      "put_call_ratio": 1.0,
+      "regime": "risk_on"
+    },
+    "narrative": {
+      "global_env": "VIX가 14.22로 낮은 공포 수준을 나타내고 있으며, 이는 투자자들이 위험 자산에 대한 선호를 보이고 있음을 시사합니다. 이러한 환경은 긍정적인 경제 성장 전망과 함께 강한 위험 선호를 반영합니다.",
+      "fed_policy": "연준 금리는 4.33으로 유지되고 있으며, 이는 안정적인 금리 환경을 제공하고 있습니다. 이러한 금리 수준은 기업의 자금 조달 비용에 긍정적인 영향을 미치고 있습니다.",
+      "sector": "해당 섹터는 기술 분야로, AI와 클라우드 컴퓨팅의 발전에 힘입어 긍정적인 모멘텀을 보이고 있습니다. 특히, 기술 섹터는 최근 투자자들의 관심을 끌고 있습니다.",
+      "regime_interpretation": "전반적으로 위험 선호 시장 환경으로, 주식 투자에 유리한 시기입니다."
+    }
+  },
+  "technical_summary": {
+    "data": {
+      "current_price": 507.23,
+      "ma5": 508.81,
+      "ma20": 519.27,
+      "ma50": 505.6,
+      "ma200": 465.96,
+      "rsi": 61.36,
+      "macd_histogram": -3.3629,
+      "adx": 93.33,
+      "bollinger_upper": 537.06,
+      "bollinger_lower": 501.48,
+      "iv_percentile": 50.0,
+      "put_call_ratio": 1.0,
+      "insider_signal": "NEUTRAL",
+      "volume_ratio": 1.07
+    },
+    "narrative": {
+      "price_trend": "현재 주가는 $507.23로, 20일 이동평균선인 $519.27 아래에 위치하고 있습니다. 이는 단기적인 조정 가능성을 시사합니다.",
+      "indicators": "RSI가 61.36으로 중립 수준에 있으며, MACD 히스토그램은 -3.3629로 단기 모멘텀이 부정적입니다. ADX는 93.33으로 강한 추세가 형성되어 있음을 나타냅니다.",
+      "options_flow": "Put/Call 비율이 1.0으로, 옵션 시장에서 약세 심리를 나타내고 있습니다. IV 백분위는 50.0으로 변동성이 평균 수준입니다.",
+      "insider_activity": "내부자 신호는 중립으로, 최근 90일간 특별한 거래가 없었습니다."
+    }
+  },
+  "scenarios": {
+    "bullish": {
+      "data": {
+        "probability": 49,
+        "support_level": 501.48,
+        "resistance_level": 537.06,
+        "take_profit": 654.33,
+        "stop_loss": 478.77,
+        "expected_return": "+10~+29%",
+        "sample_count": 9457
+      },
+      "narrative": {
+        "title": "강세 시나리오",
+        "probability_explanation": "9457개 과거 패턴 기반, 49% 확률로 강세 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "신뢰도의 근거는 기술적 지표와 긍정적인 시장 환경에 있습니다.",
+        "strategy": "현재 가격대에서 익절 목표가 $654.33로 설정되며, 손절가는 $478.77로 설정해야 합니다. 가격이 $537.06 저항선을 돌파할 경우 추가 상승이 기대됩니다.",
+        "triggers": [
+          "종합 점수가 78점 이상으로 상승할 경우 매수 신호가 강화됩니다.",
+          "Put/Call 비율이 0.7 이하로 하락하면 매수 신호가 강화됩니다."
+        ],
+        "monitoring_points": [
+          "$537.06 저항선 돌파",
+          "$501.48 지지선 유지"
+        ],
+        "risk_factors": [
+          "기술적 저항선에서의 반전",
+          "옵션 시장에서의 약세 심리 지속"
+        ]
+      }
+    },
+    "sideways": {
+      "data": {
+        "probability": 30,
+        "support_level": 501.48,
+        "resistance_level": 537.06,
+        "take_profit": 517.37,
+        "stop_loss": 497.09,
+        "expected_return": "-2~+2%",
+        "sample_count": 9457
+      },
+      "narrative": {
+        "title": "횡보 시나리오",
+        "probability_explanation": "30% 확률로 횡보 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "현재 시장의 중립적인 신호와 기술적 지표가 혼재되어 있습니다.",
+        "strategy": "박스권 내에서 현재 포지션을 유지하며, 손절가는 $497.09로 설정합니다. 가격이 $517.37에 도달할 경우 이익 실현을 고려해야 합니다.",
+        "triggers": [
+          "종합 점수가 68~78 범위에 있을 경우 보유 신호가 강화됩니다.",
+          "1주일 이내에 실적 발표가 예정되어 있어 변동성이 예상됩니다."
+        ],
+        "monitoring_points": [
+          "$501.48 지지선 유지",
+          "$537.06 저항선 돌파 여부"
+        ],
+        "risk_factors": [
+          "상단 저항선에서의 이탈",
+          "하단 지지선 붕괴"
+        ]
+      }
+    },
+    "bearish": {
+      "data": {
+        "probability": 21,
+        "support_level": 501.48,
+        "resistance_level": 537.06,
+        "take_profit": null,
+        "stop_loss": "1st: $466.65, 2nd: $400.71",
+        "expected_return": "-21~-8%",
+        "sample_count": 9457
+      },
+      "narrative": {
+        "title": "약세 시나리오",
+        "probability_explanation": "21% 확률로 약세 시나리오가 실현될 가능성이 있습니다.",
+        "confidence_rationale": "기술적 지표가 부정적이며, 옵션 시장의 약세 심리가 지속되고 있습니다.",
+        "strategy": "방어적 포지셔닝이 필요합니다. 손절가는 $466.65에서 설정하며, 추가 하락 시 $400.71에서 청산을 고려해야 합니다.",
+        "triggers": [
+          "종합 점수가 58점 이하로 하락하면 매도 신호가 강화됩니다.",
+          "가격이 손절선인 -5.6%에 도달하면 손절을 고려해야 합니다."
+        ],
+        "monitoring_points": [
+          "$501.48 지지선 붕괴 여부",
+          "$537.06 저항선 돌파 실패"
+        ],
+        "risk_factors": [
+          "지지선 붕괴로 인한 추가 하락",
+          "옵션 시장에서의 매도 압력 심화"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "agent_version": "2.0.0",
+    "execution_time_sec": null,
+    "retry_count": 0,
+    "data_freshness": "2025-12-19T14:40:54.337615"
+  }
+}

@@ -1,0 +1,30 @@
+  US 분석 파일 목록
+
+  | 번호  | 파일명                                      | 분석 목적                          | 주요 분석 내용
+
+                                                         | 비고                                |
+  |-----|------------------------------------------|--------------------------------|-----------------------------------
+  ----------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------|-----------------------------------|
+  | 1   | us_ic_analysis.py(78KB)                  | 종합 IC 분석(한국과 동일한 구조)           | • Factor Level IC
+  (Value, Quality, Momentum, Growth)• Rolling Window 검증• Decile Test (10분위 분석)• Weight Comparison (균등 vs 동적)•
+  Parameter Surface (임계값 최적화)• Accuracy & Win Rate• 섹터별 분석          | 분석 기간: 15개 날짜수익률: 3~252일
+        |
+  | 2   | us_double_sort_analysis.py(23KB)         | 섹터 × 팩터 조건부 IC(Conditional IC) | • 11개 섹터 내부에서 팩터별
+   IC 계산• Sector × Factor IC Matrix 생성• 섹터별 가중치 차별화 근거• NASDAQ 거래소 특별 분석 (Momentum 효과)
+                                                                                   | Double Sort:1차: 섹터2차: 팩터
+  quintile |
+  | 3   | us_factor_decile_analysis.py(20KB)       | 팩터 단조성 검증(Decile/Quintile)     | • 팩터 단조성 검증 (Top >
+  Bottom)• Long-Short Spread (상위 10% - 하위 10%)• 비선형성 탐지 (중간 decile 이상치)• Healthcare 섹터 Growth 팩터 검증
+                                                                              | Fama-French 방식AQR Capital 방식      |
+  | 4   | us_conditional_anomaly_analysis.py(28KB) | 조건부 전략 & 이상치 탐지                | • 섹터별 저성과 전략의
+  양의 IC 탐색&nbsp;&nbsp;(EM1, EM2, EM5 Momentum)&nbsp;&nbsp;(RV2, RV5 Value)• Score-Return 회귀선 이탈 종목 탐지•
+  Anomaly 종목 특성 분석                                                             | 목표: 특정 섹터에서전략이
+  통하는지               |
+  | 5   | us_deep_problem_analysis_v2.py(76KB)     | 문제 근본 원인 분석(개선 방안 근거 도출)       | 6개 문제 영역 심층
+   분석:1. Decile Anomaly → 팩터 저평가 원인, 가중치 조정2. Healthcare → 실패 원인, 대안 팩터3. Stop Loss → ATR 배수
+  최적값 도출4. Scenario → 과소추정 원인, calibration 공식5. EM2 → 구성요소별 문제, 수정 방안6. NASDAQ → 필요 팩터와
+  가중치 | 가장 실용적구체적 수치 제공                   |
+  | 6   | us_phase3_deep_dive.py(51KB)             | Phase 2 심층 분석(3개 영역 집중)        | STEP 1: Momentum Factor
+  (EM1~EM7)• 7개 전략 개별 IC 분석STEP 2: Healthcare Sector• Healthcare 전용 팩터 분석STEP 3: Exchange 비교• NYSE vs
+  NASDAQ 차이 분석                                                        | 실제로는 Phase 2분석 결과                 |

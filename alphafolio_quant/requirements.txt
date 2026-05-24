@@ -1,0 +1,47 @@
+# 프로젝트 의존성 패키지
+# pip install -r requirements.txt 명령으로 설치하세요
+
+# Async Database
+asyncpg==0.30.0
+
+# Environment
+python-dotenv==1.1.1
+
+# Numeric Computation
+numpy==2.3.4
+pandas==2.3.3
+scipy==1.16.3
+
+# Statistics & ML
+statsmodels==0.14.6
+scikit-learn==1.7.2
+hmmlearn==0.3.3
+linearmodels==7.0
+
+# Visualization
+matplotlib==3.10.7
+seaborn==0.13.2
+
+# Performance Monitoring
+psutil==7.1.3
+
+# Web Server (Railway deployment)
+fastapi==0.128.1
+uvicorn==0.40.0
+httpx==0.28.1
+aiofiles==24.1.0
+python-multipart==0.0.12
+
+# HTTP & Parsing
+requests==2.32.5
+beautifulsoup4==4.14.2
+
+# Database (sync)
+psycopg2-binary==2.9.11
+
+# API
+openai==2.6.0
+fredapi==0.5.2
+
+# Utilities
+tqdm==4.67.1

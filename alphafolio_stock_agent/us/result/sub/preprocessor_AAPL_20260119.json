@@ -1,0 +1,229 @@
+{
+  "stock_info": {
+    "symbol": "AAPL",
+    "stock_name": "Apple Inc",
+    "sector": "TECHNOLOGY",
+    "industry": "CONSUMER ELECTRONICS",
+    "description": "Apple Inc. is a preeminent American multinational technology company renowned for its innovative consumer electronics, software, and online services. With a staggering revenue of $274.5 billion in 2020, it stands as the world's most valuable publicly traded company, significantly influencing the global technology sector. Its flagship products—iPhone, iPad, and Mac—continue to define consumer expectations and set industry benchmarks, securing its position as a leader in both the smartphone and pe"
+  },
+  "quant_summary": {
+    "scores": {
+      "final_grade": "매수 고려",
+      "final_score": 65.1,
+      "value_score": 54.4,
+      "quality_score": 80.0,
+      "momentum_score": 66.4,
+      "growth_score": 72.6,
+      "confidence_score": 73.2,
+      "entry_timing_score": 25.5
+    },
+    "scenarios": {
+      "bullish_prob": 42,
+      "sideways_prob": 30,
+      "bearish_prob": 28,
+      "bullish_return": "+10~+28%",
+      "sideways_return": "-2~+2%",
+      "bearish_return": "-23~-9%",
+      "sample_count": 25832
+    },
+    "sector": {
+      "momentum": 7.84,
+      "rank": 7,
+      "percentile": 50.0
+    },
+    "risk": {
+      "var_95": 3.21,
+      "cvar_95": 4.57,
+      "beta": 1.11,
+      "volatility_annual": 16.55,
+      "max_drawdown_1y": -30.22,
+      "sharpe_ratio": 1.1361,
+      "sortino_ratio": 2.2815
+    },
+    "trading": {
+      "stop_loss_pct": -5.28,
+      "take_profit_pct": 7.92,
+      "risk_reward_ratio": 1.5,
+      "position_size_pct": 10.0,
+      "atr_pct": 1.51
+    },
+    "triggers": {
+      "buy": "[\"final_score 70+ (current: 65)\", \"Put/Call < 0.7 (check us_option_daily_summary)\", \"Insider net buy (CEO/CFO acquisition)\", \"EPS revision +3% (check us_earnings_estimates)\"]",
+      "sell": "[\"final_score < 50 (current: 65)\", \"Price hits stop loss -5.3%\", \"Price hits take profit +7.9%\", \"Put/Call > 1.2 (check us_option_daily_summary)\", \"Insider net sell (CEO/CFO disposal)\"]",
+      "hold": "[\"final_score 60~70\", \"Earnings within 1 week (volatility expected)\"]"
+    },
+    "interpretation": {
+      "risk_profile": "Moderate-High Risk - Above average market volatility exposure",
+      "risk_recommendation": "Suitable for conservative investors prioritizing capital preservation",
+      "time_series": "Declining - Score trending down over past 2 weeks",
+      "signal_overall": "Moderate Buy - Above average metrics with some positive catalysts"
+    },
+    "relative_strength": {
+      "rs_value": 13.64,
+      "rs_rank": "C (Top 60%)"
+    }
+  },
+  "technical_summary": {
+    "rsi": {
+      "value": 62.3,
+      "status": "neutral",
+      "trend": "falling"
+    },
+    "macd": {
+      "value": -3.5669,
+      "signal": -2.1238,
+      "histogram": -1.4431,
+      "status": "bearish",
+      "crossover": null
+    },
+    "bollinger": {
+      "upper": 281.38,
+      "middle": 269.04,
+      "lower": 256.7
+    },
+    "stochastic": {
+      "k": 24.16,
+      "d": 20.43,
+      "status": "neutral"
+    },
+    "adx": {
+      "value": 45.92,
+      "status": "strong_trend"
+    },
+    "mfi": {
+      "value": 35.51,
+      "status": "neutral"
+    }
+  },
+  "price_trend": {
+    "current_price": 261.05,
+    "ma5": 260.01,
+    "ma20": 269.04,
+    "ma50": 272.03,
+    "ma200": 229.91,
+    "trend_5d": "up",
+    "trend_20d": "down",
+    "trend_50d": "down",
+    "trend_200d": "up",
+    "change_1d": 0.31,
+    "change_5d": 0.28,
+    "change_20d": -6.19,
+    "volatility_20d": 0.71,
+    "price_position": 57.7,
+    "volume": {
+      "current": 43192557,
+      "avg_20d": 44495708,
+      "ratio": 0.97
+    }
+  },
+  "options_summary": {
+    "put_call_ratio": {
+      "value": 1.0,
+      "signal": "neutral",
+      "put_volume": 0,
+      "call_volume": 0
+    },
+    "implied_volatility": {
+      "current": 0,
+      "percentile": 50.0,
+      "status": "moderate"
+    },
+    "gamma_exposure": {
+      "net_gex": 406207282.19,
+      "gamma_flip_level": null,
+      "signal": "stable"
+    }
+  },
+  "insider_summary": {
+    "signal": "NEUTRAL",
+    "net_shares": 0,
+    "net_value": 0.0,
+    "buy_count": 0,
+    "sell_count": 0,
+    "summary": "0 buys, 0 sells in 90 days"
+  },
+  "news_sentiment": {
+    "overall_sentiment": "neutral",
+    "avg_score": 0.0,
+    "article_count": 0,
+    "bullish_count": 0,
+    "bearish_count": 0,
+    "recent_headlines": []
+  },
+  "market_summary": {
+    "nasdaq": {
+      "current": 23733.9,
+      "change_1d": 0.26,
+      "change_5d": 0.79,
+      "change_20d": 0.59,
+      "trend_20d": "up",
+      "ma20": 23376.34
+    }
+  },
+  "economic_summary": {
+    "us": {
+      "fed_funds_rate": {
+        "value": 4.33,
+        "unit": "%",
+        "date": "2025-09-03"
+      },
+      "treasury_yield_10y": {
+        "value": 3.6,
+        "unit": "%",
+        "date": "2025-10-09"
+      },
+      "cpi": {
+        "value": 324.8,
+        "unit": "%",
+        "date": "2025-09-01"
+      },
+      "unemployment_rate": {
+        "value": 4.3,
+        "unit": "%",
+        "date": "2025-08-01"
+      },
+      "gdp": {
+        "value": 3.8,
+        "unit": "%",
+        "date": "2025-04-01"
+      },
+      "pmi": {
+        "value": 97.7708,
+        "date": "2025-09-01"
+      }
+    },
+    "market_sentiment": {
+      "vix": {
+        "value": 15.78,
+        "status": "moderate",
+        "date": "2025-12-04"
+      },
+      "dollar_index": {
+        "value": 121.4288,
+        "change_5d": -0.81,
+        "trend": "weakening",
+        "date": "2025-11-28"
+      },
+      "credit_spread": {
+        "value": 0.8,
+        "status": "tight",
+        "date": "2025-12-04"
+      },
+      "move_index": {
+        "value": 67.28,
+        "date": "2025-12-05"
+      }
+    }
+  },
+  "data_availability": {
+    "has_indicators": true,
+    "has_prices": true,
+    "has_options": true,
+    "has_insider": true,
+    "has_news": false,
+    "has_financials": true,
+    "indicators_days": 90,
+    "prices_days": 90,
+    "options_days": 252
+  }
+}

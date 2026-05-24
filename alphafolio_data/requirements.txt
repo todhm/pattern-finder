@@ -1,0 +1,41 @@
+# Web Framework
+fastapi
+uvicorn
+aiofiles
+pydantic
+
+# HTTP Clients
+requests
+aiohttp
+httpx
+
+# Database
+asyncpg
+psycopg2-binary
+
+# Migrations
+alembic
+SQLAlchemy
+
+# Data Processing
+pandas
+numpy
+
+# Environment & Config
+python-dotenv
+python-dateutil
+pytz
+
+# Market Calendars
+pandas-market-calendars
+
+# Web Scraping
+beautifulsoup4
+
+# Finance Data APIs
+finance-datareader
+yfinance
+fredapi
+
+# MongoDB (CSV blob store — replaces GCS)
+pymongo
