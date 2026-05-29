@@ -77,12 +77,18 @@ class USQuantSystemV2:
     _hmm_detector_cache = None
     _hmm_cache_initialized = False
 
-    def __init__(self, db_manager: AsyncDatabaseManager):
+    def __init__(self, db_manager: AsyncDatabaseManager,
+                 with_event_modifier: bool = True):
         """
         Args:
             db_manager: AsyncDatabaseManager instance
+            with_event_modifier: apply event_engine total_modifier (option/GEX/
+                earnings/insider/news) to the score. Pass-A sets False (ranks
+                symbols before options exist); Pass-B sets True (folds in the
+                collected option signals).
         """
         self.db = db_manager
+        self.with_event_modifier = with_event_modifier
         self.sector_benchmarks = USSectorBenchmarks(db_manager)
 
         # Phase 3.1 modules
@@ -288,14 +294,20 @@ class USQuantSystemV2:
         result = await self.db.execute_query(query)
         return [r['symbol'] for r in result] if result else []
 
-    async def _get_sector_benchmarks(self, sector: str) -> Dict:
-        """섹터 벤치마크 로드 (캐시 사용)"""
+    async def _get_sector_benchmarks(self, sector: str,
+                                       analysis_date: Optional[date] = None) -> Dict:
+        """섹터 벤치마크 로드 (point-in-time + 캐시).
 
-        if sector not in self.sector_cache:
-            benchmarks = await self.sector_benchmarks.get_sector_benchmarks(sector)
-            self.sector_cache[sector] = benchmarks
-
-        return self.sector_cache[sector]
+        analysis_date 를 USSectorBenchmarks 로 전달해서 us_stock_basic 의 2.85M
+        row 전체가 아닌 그 시점의 ~6k row 만 PERCENTILE_CONT 집계하도록 한다.
+        캐시 key 는 (sector, analysis_date) 로 분리.
+        """
+        cache_key = (sector, analysis_date)
+        if cache_key not in self.sector_cache:
+            benchmarks = await self.sector_benchmarks.get_sector_benchmarks(
+                sector, analysis_date=analysis_date)
+            self.sector_cache[cache_key] = benchmarks
+        return self.sector_cache[cache_key]
 
     async def _analyze_stock(self, symbol: str, analysis_date: date,
                               spy_returns: Optional[List[float]] = None) -> Optional[Dict]:
@@ -331,8 +343,8 @@ class USQuantSystemV2:
             'beta': stock_basic.get('beta')
         }
 
-        # 섹터 벤치마크 로드
-        benchmarks = await self._get_sector_benchmarks(sector)
+        # 섹터 벤치마크 로드 (point-in-time)
+        benchmarks = await self._get_sector_benchmarks(sector, analysis_date=analysis_date)
 
         # Phase 3.4.3: Create volatility engine from prefetched price data
         volatility_engine = self._create_volatility_engine_from_data(price_data)
@@ -373,12 +385,27 @@ class USQuantSystemV2:
                 tail_beta = self._calculate_tail_beta(stock_returns, spy_returns)
                 corr_spy = self._calculate_corr_spy(stock_returns, spy_returns)
 
-        # Event engine still needs individual queries
-        event_task = self.event_engine.calculate_event_modifier(symbol, analysis_date)
+        # FAST_BACKFILL_MODE skips the pure-metadata calculators
+        # (agent_metrics / factor_momentum / sector_metrics — they don't feed
+        # final_score) for bulk historical backfill speed.
+        _FAST = os.getenv("FAST_BACKFILL_MODE", "0").lower() in ("1", "true", "yes")
 
-        value_result, quality_result, momentum_result, growth_result, event_result = await asyncio.gather(
-            value_task, quality_task, momentum_task, growth_task, event_task
-        )
+        # event_engine total_modifier carries the option signals
+        # (options_modifier = PCR/IV skew, gex_modifier = gamma exposure from
+        # us_option_daily_summary). Applied only when with_event_modifier is set
+        # (Pass-B). Pass-A runs BEFORE options are collected and turns it off —
+        # it only ranks symbols to pick which ones get options, so the event
+        # modifier would be noise (stale/empty options) and pure cost.
+        if self.with_event_modifier:
+            event_task = self.event_engine.calculate_event_modifier(symbol, analysis_date)
+            value_result, quality_result, momentum_result, growth_result, event_result = await asyncio.gather(
+                value_task, quality_task, momentum_task, growth_task, event_task
+            )
+        else:
+            event_result = {'total_modifier': 0, 'reason': 'events disabled (Pass-A)'}
+            value_result, quality_result, momentum_result, growth_result = await asyncio.gather(
+                value_task, quality_task, momentum_task, growth_task
+            )
 
         # 개별 점수
         value_score = value_result['value_score']
@@ -519,30 +546,34 @@ class USQuantSystemV2:
             value_score, quality_score, momentum_score, growth_score
         )
 
-        # Agent Metrics 계산 (Phase 4)
-        agent_metrics = USAgentMetrics(self.db)
-        agent_result = await agent_metrics.calculate_all(
-            symbol=symbol,
-            analysis_date=analysis_date,
-            current_score=total_score,
-            sector=sector,
-            var_95=var_cvar_result.get('var_95'),
-            sector_percentile=None
-        )
+        # Agent Metrics 계산 (Phase 4) — skipped in FAST_BACKFILL_MODE
+        if _FAST:
+            agent_result = {}
+            factor_momentum_result = {}
+        else:
+            agent_metrics = USAgentMetrics(self.db)
+            agent_result = await agent_metrics.calculate_all(
+                symbol=symbol,
+                analysis_date=analysis_date,
+                current_score=total_score,
+                sector=sector,
+                var_95=var_cvar_result.get('var_95'),
+                sector_percentile=None
+            )
 
-        # Phase 3.4.3 Stage 3: Factor Momentum (4 columns)
-        factor_momentum_result = await self._calculate_factor_momentum(
-            symbol, analysis_date,
-            {
-                'value': value_score,
-                'quality': quality_score,
-                'momentum': momentum_score,
-                'growth': growth_score
-            }
-        )
+            # Phase 3.4.3 Stage 3: Factor Momentum (4 columns)
+            factor_momentum_result = await self._calculate_factor_momentum(
+                symbol, analysis_date,
+                {
+                    'value': value_score,
+                    'quality': quality_score,
+                    'momentum': momentum_score,
+                    'growth': growth_score
+                }
+            )
 
-        # Phase 3.4.3 Stage 4: Sector Metrics (4 columns)
-        sector_metrics_result = await self._calculate_sector_metrics(sector, analysis_date)
+        # Phase 3.4.3 Stage 4: Sector Metrics (4 columns) — skipped in FAST mode
+        sector_metrics_result = {} if _FAST else await self._calculate_sector_metrics(sector, analysis_date)
 
         # Phase 3.4.3 Stage 4: Text Generation (5 columns)
         text_metrics = {
@@ -2233,7 +2264,8 @@ async def analyze_single_stock_standalone(symbol: str, db_manager, analysis_date
 async def analyze_all_stocks_specific_dates(
     db_manager,
     date_list: List[date],
-    symbols_filter: Optional[List[str]] = None
+    symbols_filter: Optional[List[str]] = None,
+    with_event_modifier: bool = True
 ) -> Dict:
     """
     전체 종목 특정 날짜 분석 - 디버깅 로그 포함 (v3.0: HMM 전용)
@@ -2277,12 +2309,46 @@ async def analyze_all_stocks_specific_dates(
     total_processed = 0
     all_failed_symbols = []  # 전체 실패 종목 추적
 
-    system = USQuantSystemV2(db_manager)
+    system = USQuantSystemV2(db_manager, with_event_modifier=with_event_modifier)
 
     # HMM 모델 초기화 (한 번만 학습)
     print("HMM 모델 초기화 중 (2년 데이터 학습, 1회만 실행)...")
     await system._init_hmm_detector()
     print("HMM 모델 준비 완료\n")
+
+    # ------------------------------------------------------------------
+    # Range-mode bulk prefetch (NEW): collapse ~570k per-(symbol,date) DB
+    # queries to ~5 bulk fetches, and ~14k sector PERCENTILE_CONT queries
+    # to ~4 GROUP BY queries. Loads into class-level caches; subsequent
+    # prefetch_all / get_sector_benchmarks calls hit memory.
+    # ------------------------------------------------------------------
+    if date_list:
+        bulk_start = min(date_list)
+        bulk_end = max(date_list)
+
+        # Union of symbols across all dates — use symbols_filter when given,
+        # else pull from us_daily for the range.
+        if symbols_filter:
+            bulk_symbols = sorted(set(symbols_filter))
+        else:
+            sym_rows = await db_manager.execute_query(
+                """SELECT DISTINCT symbol FROM us_daily
+                   WHERE date BETWEEN $1 AND $2""",
+                bulk_start, bulk_end)
+            bulk_symbols = sorted({r['symbol'] for r in sym_rows})
+
+        if bulk_symbols:
+            print(f"Bulk prefetch: {len(bulk_symbols)} symbols × "
+                  f"{(bulk_end - bulk_start).days + 1}d ({bulk_start} ~ {bulk_end})")
+            t0 = time.time()
+            from us_data_prefetcher import USDataPrefetcher
+            await USDataPrefetcher.bulk_prefetch_range(
+                db_manager, bulk_symbols, bulk_start, bulk_end)
+            print(f"  → prefetch_all data loaded ({time.time()-t0:.1f}s)")
+            t0 = time.time()
+            await USSectorBenchmarks.bulk_precompute_range(
+                db_manager, bulk_start, bulk_end)
+            print(f"  → sector benchmarks precomputed ({time.time()-t0:.1f}s)")
 
     for date_idx, analysis_date in enumerate(date_list, 1):
         date_start_time = time.time()
@@ -2357,7 +2423,10 @@ async def analyze_all_stocks_specific_dates(
             print(f"  [경고] SPY 수익률 프리페치 실패 - tail_beta, corr_spy 계산 불가")
 
         # 배치 처리
-        BATCH_SIZE = 25
+        # FAST_BACKFILL_MODE uses larger batches + matching pool size to reduce
+        # per-batch overhead. The 25/30 default leaves pool contention as the
+        # dominant bottleneck (25 syms × ~5 queries each through pool=30).
+        BATCH_SIZE = 50 if os.getenv("FAST_BACKFILL_MODE", "0").lower() in ("1","true","yes") else 25
         batches = [symbols[i:i + BATCH_SIZE] for i in range(0, len(symbols), BATCH_SIZE)]
 
         date_success = 0
@@ -2747,12 +2816,14 @@ def parse_dates(dates_input: str) -> List[date]:
 # Main Entry Point
 # ========================================================================
 
-async def run_option1(target_date=None, symbols=None):
+async def run_option1(target_date=None, symbols=None, with_event_modifier=True):
     """
     Option 1: Analyze stocks for given target_date.
 
     Args:
         target_date: Analysis date (date object). If None, auto-detects from us_daily.
+        with_event_modifier: pass-through to analyze_all_stocks_specific_dates;
+            False for Pass-A (pre-options ranking), True for Pass-B.
         symbols: Optional whitelist of symbols to analyze (e.g., EM8 pre-filter
                  top-N). If None, full us_stock_basic universe is analyzed.
 
@@ -2763,7 +2834,7 @@ async def run_option1(target_date=None, symbols=None):
 
     # Initialize DB pool (max_size=30, Railway Pro optimization)
     db_manager = AsyncDatabaseManager()
-    await db_manager.initialize(min_size=10, max_size=30)
+    await db_manager.initialize(min_size=10, max_size=50)
 
     try:
         # Auto-detect latest data date if not specified
@@ -2796,7 +2867,8 @@ async def run_option1(target_date=None, symbols=None):
 
         # Run full analysis (with optional symbols whitelist from EM8 pre-filter)
         await analyze_all_stocks_specific_dates(
-            db_manager, [analysis_date], symbols_filter=symbols)
+            db_manager, [analysis_date], symbols_filter=symbols,
+            with_event_modifier=with_event_modifier)
 
         # US Prediction Collector
         import sys
@@ -2913,7 +2985,7 @@ async def main():
                         print("\n커넥션 풀 최적화 중...")
                         await db_manager.close()
                         db_manager = AsyncDatabaseManager()
-                        await db_manager.initialize(min_size=10, max_size=30)
+                        await db_manager.initialize(min_size=10, max_size=50)
 
                         await analyze_all_stocks_specific_dates(
                             db_manager,

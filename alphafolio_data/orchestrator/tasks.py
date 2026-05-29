@@ -47,6 +47,31 @@ import asyncio as _asyncio
 from contextlib import asynccontextmanager
 
 
+# =============================================================================
+# Backtest lookback buffers — used by every data-collection task to extend
+# ``ctx.start_date`` backward so analyses at the start of the requested range
+# have enough historical context (no NaN, no fallback responses).
+#
+# Source-by-source requirement (longest lookback used by alphafolio_quant):
+#   - us_daily         : 260 trading days (VAR/CVAR, volatility, momentum,
+#                         52-week high/low, 200-day MA)
+#   - us_daily_etf SPY : 504 trading days = 2 years (HMM regime fit at startup)
+#   - us_weekly        : 200 weeks ≈ 4 years (calculator weekly indicators) —
+#                         us_weekly already collects from 2020-01-02, no
+#                         per-run extension needed
+#   - us_income / balance / cash_flow : 12 quarters ≈ 3 years (TTM, growth,
+#                         analyst metrics). Enforced via the AV API call
+#                         (TIME_SERIES_LIMIT or equivalent), not via
+#                         ctx.start_date.
+#
+# We translate trading-day requirements to calendar-day buffers with a
+# generous margin (52 weekends + holidays + skew).
+# =============================================================================
+DAILY_LOOKBACK_CALENDAR_DAYS = 400   # legacy LOOKBACK_BUFFER_DAYS, kept for compat
+ETF_LOOKBACK_CALENDAR_DAYS = 800     # 504 trading days × ~365/252 + safety
+FINANCIALS_LOOKBACK_QUARTERS = 12    # latest 12 quarters of fundamentals
+
+
 class _OrchLogHandler(logging.Handler):
     """Python logging → orch_logs DB bridge.
 
@@ -258,7 +283,7 @@ async def task_us_daily(ctx: Ctx) -> dict:
 
     # EM8 = 240 trading days lookback. 240 × (365/252) ≈ 348 calendar days.
     # 400 = 348 + safety margin (holidays, missing days).
-    LOOKBACK_BUFFER_DAYS = 400
+    LOOKBACK_BUFFER_DAYS = DAILY_LOOKBACK_CALENDAR_DAYS
     extended_start = ctx.start_date - timedelta(days=LOOKBACK_BUFFER_DAYS)
 
     # 종목별 us_daily 범위 + 활성 심볼 목록 한 번에 조회
@@ -381,7 +406,11 @@ async def task_financials(ctx: Ctx) -> dict:
 
     # Deadline = 12 hours from now (재무제표는 느림)
     deadline = datetime.now() + timedelta(hours=12)
-    call_interval = 0.6   # 100 calls/min × 3 parallel = 300 total
+    # 0.4s × 3 collectors = 450 calls/min total. Empirical: 0.3s (600/min)
+    # triggered ~80 rate-limit warnings/min from AV ("Information" responses)
+    # — 600/min is the docs cap but the burst limiter is tighter. 0.4s
+    # leaves headroom so the useful-response ratio stays high.
+    call_interval = 0.4   # 150 calls/min × 3 parallel = 450 total
 
     # Skip symbols already collected within 6 months (DB-based dedup, 기존 로직)
     skip_income, skip_balance, skip_cashflow = set(), set(), set()
@@ -485,8 +514,19 @@ async def task_us_etf(ctx: Ctx) -> dict:
         raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
 
     etf_symbols = sorted(set(SECTOR_ETFS.values()))
+
+    # ETFs (especially SPY) drive HMM regime detection which requires a 504
+    # trading-day fit window plus a 31-day predict window. Without backward
+    # extension the regime detector falls back to NEUTRAL for the first ~30
+    # dates of any backtest and the HMM training collapses into degenerate
+    # clusters (BULL/NEUTRAL/BEAR with near-identical stats). Pull
+    # ETF_LOOKBACK_CALENDAR_DAYS (~800d = 2 + 1 years) before ctx.start_date.
+    etf_start = ctx.start_date - timedelta(days=ETF_LOOKBACK_CALENDAR_DAYS)
+
     await ctx.log("info",
-                  f"Backfilling {len(etf_symbols)} ETFs from {ctx.start_date} to {ctx.end_date}")
+                  f"Backfilling {len(etf_symbols)} ETFs from {etf_start} "
+                  f"(={ctx.start_date} - {ETF_LOOKBACK_CALENDAR_DAYS}d lookback) "
+                  f"to {ctx.end_date}")
 
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=8)
     inserted_total = 0
@@ -495,14 +535,14 @@ async def task_us_etf(ctx: Ctx) -> dict:
 
     async with capture_logs(ctx), monitor_progress(
         ctx,
-        f"SELECT COUNT(*) FROM us_daily_etf WHERE date BETWEEN '{ctx.start_date}' AND '{ctx.end_date}'",
+        f"SELECT COUNT(*) FROM us_daily_etf WHERE date BETWEEN '{etf_start}' AND '{ctx.end_date}'",
         "us_daily_etf rows (in range)", interval=30,
     ):
         async with aiohttp.ClientSession() as session:
             for sym in etf_symbols:
                 # 1) Compute missing dates
                 missing = await cstate.get_missing_dates(
-                    pool, "us_daily_etf", sym, ctx.start_date, ctx.end_date)
+                    pool, "us_daily_etf", sym, etf_start, ctx.end_date)
                 if not missing:
                     skipped_total += 1
                     continue
@@ -662,7 +702,7 @@ async def task_us_calculator(ctx: Ctx) -> dict:
     # Same extended range as us_daily so indicators match (EM8 lookback safe)
     # EM8 = 240 trading days lookback. 240 × (365/252) ≈ 348 calendar days.
     # 400 = 348 + safety margin (holidays, missing days).
-    LOOKBACK_BUFFER_DAYS = 400
+    LOOKBACK_BUFFER_DAYS = DAILY_LOOKBACK_CALENDAR_DAYS
     extended_start = ctx.start_date - timedelta(days=LOOKBACK_BUFFER_DAYS)
 
     # Get trading days actually in us_daily within range
@@ -950,14 +990,20 @@ async def task_em8_pre_filter(ctx: Ctx) -> dict:
 # ------------------------------------------------------- Pass-A grades (via quant)
 async def task_grades_pass_a(ctx: Ctx) -> dict:
     """Generate grades. quant 가 daily_top_symbols 를 자동으로 참조하므로
-    EM8 사전 필터를 통과한 종목들만 분석함 (use_prefilter=True 신호)."""
+    EM8 사전 필터를 통과한 종목들만 분석함 (use_prefilter=True 신호).
+
+    Pass-A runs BEFORE options are collected — it only ranks symbols to decide
+    which get options backfilled. So with_event_modifier=False: skip the
+    event_engine (option/GEX/earnings) modifier, which would be stale noise
+    here and pure cost. Pass-B re-grades the same universe with events on."""
     return await _quant_post(ctx, "backtest/generate-grades", {
-        "country":           ctx.country,
-        "start_date":        str(ctx.start_date),
-        "end_date":          str(ctx.end_date),
-        "skip_existing":     True,
-        "use_prefilter":     True,
-        "prefilter_top_n":   ctx.params.get("prefilter_top_n", 500),
+        "country":             ctx.country,
+        "start_date":          str(ctx.start_date),
+        "end_date":            str(ctx.end_date),
+        "skip_existing":       True,
+        "use_prefilter":       True,
+        "prefilter_top_n":     ctx.params.get("prefilter_top_n", 500),
+        "with_event_modifier": False,
     })
 
 
@@ -965,7 +1011,7 @@ async def task_grades_pass_a(ctx: Ctx) -> dict:
 async def task_select_top_n(ctx: Ctx) -> dict:
     if ctx.country != "US":
         return {"skipped": "options pass only for US"}
-    top_n = int(ctx.params.get("option_top_n", 200))
+    top_n = int(ctx.params.get("option_top_n", 50))
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
     try:
         async with pool.acquire() as conn:
@@ -989,36 +1035,97 @@ async def task_select_top_n(ctx: Ctx) -> dict:
 
 # --------------------- Pass-B options backfill (only the top-N symbols, looped)
 async def task_options_top_n(ctx: Ctx) -> dict:
+    """Options backfill for top-N symbols per date.
+
+    Idempotent / resumable: dates that already have rows in
+    ``us_option_daily_summary`` are skipped — useful when the task got killed
+    mid-run (e.g., previous DiskFullError after 198/252 dates). The us_option
+    raw partition is dropped automatically inside the collector once the
+    summary is computed, so skipping by summary presence is the right signal.
+    """
     if ctx.country != "US":
         return {"skipped": "options only for US"}
+
+    # Build skip set. The valid-date source is ``us_stock_grade``, NOT
+    # ``us_daily``: a single stray us_daily row on a market holiday
+    # (e.g., Presidents Day 2026-02-16) would otherwise fool the skip and
+    # the collector would fall back to a 540-symbol whitelist returning 0
+    # contracts each (15 min wasted per holiday).
+    # Using us_stock_grade is also semantically correct — the collector
+    # needs top-N grades to pick symbols, so any date without grades is
+    # unusable regardless of trading-day status.
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            done_rows = await conn.fetch(
+                """SELECT DISTINCT date FROM us_option_daily_summary
+                   WHERE date BETWEEN $1 AND $2""",
+                ctx.start_date, ctx.end_date)
+            already_done = {r["date"] for r in done_rows}
+            grade_rows = await conn.fetch(
+                """SELECT DISTINCT date FROM us_stock_grade
+                   WHERE date BETWEEN $1 AND $2""",
+                ctx.start_date, ctx.end_date)
+            graded_days = {r["date"] for r in grade_rows}
+    finally:
+        await pool.close()
+    await ctx.log("info",
+                  f"options_top_n: {len(already_done)} already summarized, "
+                  f"{len(graded_days)} dates have grades (=trading days w/ top-N)")
+
     d = ctx.start_date
-    ok, fail = 0, 0
+    ok, fail, skipped, holidays = 0, 0, 0, 0
     while d <= ctx.end_date:
         if d.weekday() >= 5:
             d += timedelta(days=1); continue
+        if d not in graded_days:
+            # No grades for this date — either market holiday or grades_pass_a
+            # didn't cover it. Either way, options collection is unusable.
+            holidays += 1
+            d += timedelta(days=1); continue
+        if d in already_done:
+            skipped += 1
+            d += timedelta(days=1); continue
         try:
-            # Endpoint added separately in main.py — see /collect/us/options-top-n
+            # Per-date mode (no start_date/end_date → collector picks that date's
+            # top-N by grade). The score-affecting option signals (event_engine
+            # options_modifier + gex_modifier, growth NQ4) read only the latest
+            # option row ≤ analysis_date, so per-date coverage is sufficient for
+            # backtest results. Union (continuous 252-day history) is only needed
+            # for agent_metrics iv_percentile, which doesn't feed final_score.
             await _self_post(ctx, "collect/us/options-top-n",
                              params={"target_date": d.isoformat(),
-                                     "top_n": ctx.params.get("option_top_n", 200)})
+                                     "top_n":       ctx.params.get("option_top_n", 50)})
             ok += 1
         except Exception as e:
             await ctx.log("error", f"options {d}: {e}")
             fail += 1
         d += timedelta(days=1)
-    return {"success_days": ok, "failed_days": fail}
+    return {"success_days": ok, "failed_days": fail,
+            "skipped_days": skipped, "holiday_days": holidays}
 
 
 # -------------------------------------------- Pass-B grades w/ options (top-N)
 async def task_grades_pass_b(ctx: Ctx) -> dict:
     if ctx.country != "US":
         return {"skipped": "Pass-B only for US"}
-    # generate-grades is idempotent via skip_existing=False so it overwrites
+    # generate-grades is idempotent via skip_existing=False so it overwrites.
+    # use_prefilter=True restricts re-grading to the EM8 top-N per date (same
+    # universe as Pass-A) — without it the endpoint defaults to the FULL
+    # ~5,500-symbol universe (10x slower: ~19h vs ~1.5h). Options were only
+    # collected for the top-N union, so re-grading the full universe wastes
+    # time on ~5,000 symbols that have no options and thus produce identical
+    # grades to Pass-A.
     return await _quant_post(ctx, "backtest/generate-grades", {
         "country": ctx.country,
         "start_date": str(ctx.start_date),
         "end_date":   str(ctx.end_date),
         "skip_existing": False,
+        "use_prefilter":   True,
+        "prefilter_top_n": ctx.params.get("prefilter_top_n", 500),
+        # Pass-B folds in option signals (options_modifier + gex_modifier) now
+        # that options are collected — this is the entire point of the 2nd pass.
+        "with_event_modifier": True,
     })
 
 
@@ -1086,7 +1193,7 @@ async def task_us_stock_basic_compute(ctx: Ctx) -> dict:
     import pandas as pd
     import numpy as np
 
-    LOOKBACK_BUFFER_DAYS = 400
+    LOOKBACK_BUFFER_DAYS = DAILY_LOOKBACK_CALENDAR_DAYS
     start = ctx.start_date - timedelta(days=LOOKBACK_BUFFER_DAYS)
     end = ctx.end_date
 

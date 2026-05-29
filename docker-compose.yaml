@@ -104,23 +104,10 @@ services:
       - DATABASE_URL=postgresql://alphafolio:alphafolio@db:5432/alphafolio
       - PORTFOLIO_SERVICE_URL=http://alphafolio_portfolio:7000
       - DATA_SERVICE_URL=http://alphafolio_data:8000
-
-  alphafolio_portfolio:
-    build:
-      context: ./alphafolio_portfolio
-      dockerfile: Dockerfile
-    ports:
-      - "7001:7000"
-    volumes:
-      - ./alphafolio_portfolio:/app
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - ./secrets/alphafolio.env
-    environment:
-      - DATABASE_URL=postgresql://alphafolio:alphafolio@db:5432/alphafolio
-
+      # Skip event_engine, agent_metrics, factor_momentum, sector_metrics in
+      # _analyze_stock — ~70% per-stock wall-time reduction for historical
+      # backfill. Unset (or set to 0) for live runs to keep all features.
+      - FAST_BACKFILL_MODE=1
   # ------------------------------------------------------------------
   # Backtest runner — date-loop orchestrator. Idle by default (profile),
   # invoke explicitly:

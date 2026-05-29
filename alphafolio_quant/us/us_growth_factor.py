@@ -1032,7 +1032,9 @@ class USGrowthFactorV2:
 
         점수 범위: 0-100
         """
-        # Options 데이터 조회
+        # Options 데이터 조회 — point-in-time. ``date <= analysis_date`` 필요:
+        # 백테스트 시점 D 에 분석할 때 그 시점 이후의 옵션 데이터가 보이면
+        # PCR/IV 가 미래 정보를 반영하게 됨 (NQ4 sentiment 가 look-ahead).
         options_query = """
         SELECT
             total_call_volume,
@@ -1041,13 +1043,13 @@ class USGrowthFactorV2:
             avg_call_iv,
             avg_put_iv
         FROM us_option_daily_summary
-        WHERE symbol = $1
+        WHERE symbol = $1 AND date <= $2
         ORDER BY date DESC
         LIMIT 5
         """
 
         try:
-            result = await self.db.execute_query(options_query, self.symbol)
+            result = await self.db.execute_query(options_query, self.symbol, self.analysis_date)
 
             if not result:
                 return {'score': None, 'raw': None, 'reason': 'No options data'}

@@ -33,6 +33,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# Last N quarterly reports to persist per symbol. Most downstream analyses
+# need at least 4-8 quarters (TTM = rolling-4 sum; YoY growth = quarter
+# vs quarter-4-ago); 12 gives ~3 years of trend depth and is the upper
+# bound AV typically returns from a single endpoint call anyway. Used by
+# IncomeStatementCollector / BalanceSheetCollector / CashFlowCollector.
+MAX_QUARTERS = 12
+
+
 class IncomeStatementCollector:
     def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2, target_date: date = None, deadline: datetime = None, skip_symbols: set = None):
         self.api_key = api_key
@@ -108,7 +117,11 @@ class IncomeStatementCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -203,9 +216,19 @@ class IncomeStatementCollector:
                     elif 'Note' in data:
                         logger.warning(f"[INCOME_STMT] API limit reached: {data['Note']}")
                         return None
-                    elif 'annualReports' in data:
+                    elif 'quarterlyReports' in data or 'annualReports' in data:
                         return data
+                    elif not data:
+                        # Truly empty response ({}) — AV has no fundamentals for
+                        # this ticker (delisted / ETF / micro-cap). Persist
+                        # ``no_data`` in collection_state so subsequent runs
+                        # skip this symbol entirely (Option B speedup).
+                        logger.info(f"[INCOME_STMT] {symbol}: empty response → mark no_data")
+                        await self._mark_no_data(symbol)
+                        return None
                     else:
+                        # ['Information'] (rate limit text) or other unknown —
+                        # transient or unclassified; do NOT mark, retry next run.
                         logger.warning(f"[INCOME_STMT] Unexpected response format for {symbol}: {list(data.keys())}")
                         return None
                 else:
@@ -216,38 +239,40 @@ class IncomeStatementCollector:
             return None
     
     def transform_income_statement_data(self, api_data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
+        """Persist the latest ``_MAX_QUARTERS`` quarterly income statements.
+
+        Downstream (us_stock_basic_compute) computes TTM = rolling 4-quarter
+        sum and YoY growth = quarter / quarter-4-ago — both require multiple
+        consecutive quarters. Annual-only data (one row per fiscal year)
+        cannot support these metrics. AV returns both ``annualReports`` and
+        ``quarterlyReports`` in a single endpoint call, so switching to
+        quarterly costs nothing extra and is a strict superset of annual.
+        """
         try:
             transformed_records = []
 
-            annual_reports = api_data.get("annualReports", [])
-
-            if not annual_reports:
+            # Prefer quarterlyReports; fall back to annualReports if missing
+            # (some thinly-covered tickers only have annual).
+            reports = api_data.get("quarterlyReports") or api_data.get("annualReports") or []
+            if not reports:
                 return transformed_records
 
-            #   fiscal_date 
-            latest_report = None
-            latest_date = None
-
-            for report in annual_reports:
-                fiscal_date_ending = report.get("fiscalDateEnding", "")
-                if not fiscal_date_ending:
+            # Sort by fiscal_date_ending DESC and take the latest N.
+            dated_reports = []
+            for r in reports:
+                fde = r.get("fiscalDateEnding", "")
+                if not fde:
                     continue
-
                 try:
-                    parsed_date = datetime.strptime(fiscal_date_ending, "%Y-%m-%d").date()
-                    if latest_date is None or parsed_date > latest_date:
-                        latest_date = parsed_date
-                        latest_report = report
-                except:
+                    parsed = datetime.strptime(fde, "%Y-%m-%d").date()
+                    dated_reports.append((parsed, r))
+                except Exception:
                     continue
+            dated_reports.sort(key=lambda t: t[0], reverse=True)
+            dated_reports = dated_reports[:MAX_QUARTERS]
 
-            #   report 
-            if latest_report:
-                report = latest_report
+            for parsed_date, report in dated_reports:
                 try:
-                    fiscal_date_ending = report.get("fiscalDateEnding", "")
-                    parsed_date = datetime.strptime(fiscal_date_ending, "%Y-%m-%d").date()
-                    
                     # Safe currency code extraction (max 3 chars)
                     currency = report.get("reportedCurrency", "")
                     if currency and isinstance(currency, str):
@@ -255,7 +280,7 @@ class IncomeStatementCollector:
                     else:
                         currency = ""
 
-                    transformed = {
+                    transformed_records.append({
                         'symbol': symbol,
                         'fiscal_date_ending': parsed_date,
                         'reported_currency': currency,
@@ -284,15 +309,17 @@ class IncomeStatementCollector:
                         'ebitda': self.safe_bigint(report.get("ebitda")),
                         'net_income': self.safe_bigint(report.get("netIncome")),
                         'created_at': datetime.now()
-                    }
-                    
-                    transformed_records.append(transformed)
-
-                    logger.info(f"[INCOME_STMT] {symbol}: Latest fiscal date = {parsed_date}")
-
+                    })
                 except Exception as e:
-                    logger.error(f"[INCOME_STMT] Error transforming latest report for {symbol}: {str(e)}, Date: {fiscal_date_ending}")
+                    logger.error(
+                        f"[INCOME_STMT] Error transforming report for {symbol}: {str(e)}, "
+                        f"Date: {parsed_date}")
 
+            if transformed_records:
+                logger.info(
+                    f"[INCOME_STMT] {symbol}: {len(transformed_records)} quarters "
+                    f"({transformed_records[-1]['fiscal_date_ending']} ~ "
+                    f"{transformed_records[0]['fiscal_date_ending']})")
             return transformed_records
 
         except Exception as e:
@@ -781,7 +808,11 @@ class BalanceSheetCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -872,8 +903,12 @@ class BalanceSheetCollector:
                     elif 'Note' in data:
                         logger.warning(f"[BALANCE_SHEET] API limit reached: {data['Note']}")
                         return None
-                    elif 'annualReports' in data:
+                    elif 'quarterlyReports' in data or 'annualReports' in data:
                         return data
+                    elif not data:
+                        logger.info(f"[BALANCE_SHEET] {symbol}: empty response → mark no_data")
+                        await self._mark_no_data(symbol)
+                        return None
                     else:
                         logger.warning(f"[BALANCE_SHEET] Unexpected response format for {symbol}: {list(data.keys())}")
                         return None
@@ -885,24 +920,37 @@ class BalanceSheetCollector:
             return None
     
     def transform_balance_sheet_data(self, api_data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
+        """Persist the latest ``_MAX_QUARTERS`` quarterly balance sheets.
+
+        Quarterly cadence is required for downstream point-in-time analyses
+        (us_stock_basic_compute fills daily fundamentals via as-of merge on
+        ``available_at`` — quarterly granularity = up-to-quarter accuracy,
+        annual-only collapses three quarters of staleness into each row).
+        Falls back to ``annualReports`` for tickers AV only provides annual.
+        """
         try:
             transformed_records = []
-            
-            annual_reports = api_data.get("annualReports", [])
-            
-            start_date = date(2021, 1, 1)
-            
-            for report in annual_reports:
-                try:
-                    fiscal_date_ending = report.get("fiscalDateEnding", "")
-                    if not fiscal_date_ending:
-                        continue
-                    
-                    parsed_date = datetime.strptime(fiscal_date_ending, "%Y-%m-%d").date()
-                    
-                    if parsed_date < start_date:
-                        continue
 
+            reports = api_data.get("quarterlyReports") or api_data.get("annualReports") or []
+            if not reports:
+                return transformed_records
+
+            # Sort DESC and take the latest N quarters.
+            dated_reports = []
+            for r in reports:
+                fde = r.get("fiscalDateEnding", "")
+                if not fde:
+                    continue
+                try:
+                    parsed = datetime.strptime(fde, "%Y-%m-%d").date()
+                    dated_reports.append((parsed, r))
+                except Exception:
+                    continue
+            dated_reports.sort(key=lambda t: t[0], reverse=True)
+            dated_reports = dated_reports[:MAX_QUARTERS]
+
+            for parsed_date, report in dated_reports:
+                try:
                     # Safe currency code extraction (max 3 chars)
                     currency = report.get("reportedCurrency", "")
                     if currency and isinstance(currency, str):
@@ -954,11 +1002,11 @@ class BalanceSheetCollector:
                     }
                     
                     transformed_records.append(transformed)
-                    
+
                 except Exception as e:
-                    logger.error(f"Error transforming record for {symbol}: {str(e)}, Date: {fiscal_date_ending}")
+                    logger.error(f"Error transforming record for {symbol}: {str(e)}, Date: {parsed_date}")
                     continue
-            
+
             if transformed_records:
                 dates = [record['fiscal_date_ending'] for record in transformed_records]
                 earliest = min(dates)
@@ -1517,7 +1565,11 @@ class CashFlowCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -1608,8 +1660,12 @@ class CashFlowCollector:
                     elif 'Note' in data:
                         logger.warning(f"[CASH_FLOW] API limit reached: {data['Note']}")
                         return None
-                    elif 'annualReports' in data:
+                    elif 'quarterlyReports' in data or 'annualReports' in data:
                         return data
+                    elif not data:
+                        logger.info(f"[CASH_FLOW] {symbol}: empty response → mark no_data")
+                        await self._mark_no_data(symbol)
+                        return None
                     else:
                         logger.warning(f"[CASH_FLOW] Unexpected response format for {symbol}: {list(data.keys())}")
                         return None
@@ -1621,24 +1677,35 @@ class CashFlowCollector:
             return None
     
     def transform_cash_flow_data(self, api_data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
+        """Persist the latest ``_MAX_QUARTERS`` quarterly cash-flow statements.
+
+        Same rationale as income/balance: TTM operating cash flow, FCF
+        (= operating - capex) over the last 4 quarters, etc. all need
+        per-quarter granularity. Falls back to ``annualReports`` for
+        tickers AV only provides annual.
+        """
         try:
             transformed_records = []
-            
-            annual_reports = api_data.get("annualReports", [])
-            
-            start_date = date(2021, 1, 1)
-            
-            for report in annual_reports:
+
+            reports = api_data.get("quarterlyReports") or api_data.get("annualReports") or []
+            if not reports:
+                return transformed_records
+
+            dated_reports = []
+            for r in reports:
+                fde = r.get("fiscalDateEnding", "")
+                if not fde:
+                    continue
                 try:
-                    fiscal_date_ending = report.get("fiscalDateEnding", "")
-                    if not fiscal_date_ending:
-                        continue
-                    
-                    parsed_date = datetime.strptime(fiscal_date_ending, "%Y-%m-%d").date()
-                    
-                    if parsed_date < start_date:
-                        continue
-                    
+                    parsed = datetime.strptime(fde, "%Y-%m-%d").date()
+                    dated_reports.append((parsed, r))
+                except Exception:
+                    continue
+            dated_reports.sort(key=lambda t: t[0], reverse=True)
+            dated_reports = dated_reports[:MAX_QUARTERS]
+
+            for parsed_date, report in dated_reports:
+                try:
                     # Safe currency code extraction (max 3 chars)
                     currency = report.get("reportedCurrency", "")
                     if currency and isinstance(currency, str):
@@ -1681,11 +1748,11 @@ class CashFlowCollector:
                     }
                     
                     transformed_records.append(transformed)
-                    
+
                 except Exception as e:
-                    logger.error(f"Error transforming record for {symbol}: {str(e)}, Date: {fiscal_date_ending}")
+                    logger.error(f"Error transforming record for {symbol}: {str(e)}, Date: {parsed_date}")
                     continue
-            
+
             if transformed_records:
                 dates = [record['fiscal_date_ending'] for record in transformed_records]
                 earliest = min(dates)
@@ -2182,7 +2249,11 @@ class EarningsEstimatesCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -2740,7 +2811,11 @@ class EarningsCalendarCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -3257,7 +3332,11 @@ class InsiderTransactionsCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -3767,7 +3846,11 @@ class DividendsCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -4241,7 +4324,11 @@ class SplitsCollector:
     async def get_existing_symbols(self) -> List[str]:
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT required: us_stock_basic now has one row per (symbol,
+            # date, source) — without dedup this returns ~2.8M duplicates for
+            # ~6k unique symbols and the api_worker spends the deadline
+            # repeatedly calling AV for the alphabetically-first few tickers.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             if self.pool:
                 await self.pool.release(conn)
             else:

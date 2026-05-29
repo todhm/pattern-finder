@@ -276,6 +276,7 @@ async def backtest_generate_grades_endpoint(req: GradeGenerationRequest):
             req.country, req.start_date, req.end_date, req.skip_existing,
             use_prefilter=req.use_prefilter,
             prefilter_top_n=req.prefilter_top_n,
+            with_event_modifier=req.with_event_modifier,
         )
         return {"status": "completed", **result}
     except Exception as e:

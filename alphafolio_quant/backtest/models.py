@@ -11,8 +11,12 @@ class BacktestRequest(BaseModel):
     initial_cash: float = 10_000_000
     top_n: int = 10
     rebal_freq_days: int = 5
+    # NOTE: us_stock_grade stores Korean labels with a space — "강력 매수" / "매수".
+    # The old default used "강력매수" (no space), which silently matched nothing,
+    # so STRONG_BUY names were dropped from every backtest (English labels are
+    # never produced by the grader either, kept only for forward-compat).
     grades_filter: List[str] = Field(
-        default_factory=lambda: ["STRONG_BUY", "BUY", "강력매수", "매수"]
+        default_factory=lambda: ["STRONG_BUY", "BUY", "강력 매수", "매수"]
     )
     commission_rate: float = 0.0025
     slippage_rate: float = 0.001
@@ -25,6 +29,12 @@ class GradeGenerationRequest(BaseModel):
     skip_existing: bool = True
     use_prefilter: bool = False
     prefilter_top_n: int = 500
+    # Whether to apply the event_engine total_modifier (earnings/options/GEX/
+    # insider/news) to the score. Pass-A runs BEFORE options are collected, so
+    # it sets this False (faster, no stale-option noise — it only ranks symbols
+    # for option selection). Pass-B sets it True to fold in the freshly
+    # collected option signals (options_modifier + gex_modifier).
+    with_event_modifier: bool = True
 
 
 class BacktestSummary(BaseModel):

@@ -28,7 +28,7 @@ async def run_backtest(params: dict) -> dict:
             initial_cash=params["initial_cash"],
             top_n=params["top_n"],
             rebal_freq_days=params["rebal_freq_days"],
-            grades_filter=params.get("grades_filter") or ["STRONG_BUY", "BUY", "강력매수", "매수"],
+            grades_filter=params.get("grades_filter") or ["STRONG_BUY", "BUY", "강력 매수", "매수"],
             commission_rate=params.get("commission_rate", 0.0025),
             slippage_rate=params.get("slippage_rate", 0.001),
         )
@@ -62,6 +62,7 @@ async def generate_grades_for_range(
     skip_existing: bool = True,
     use_prefilter: bool = False,
     prefilter_top_n: int = 500,
+    with_event_modifier: bool = True,
 ) -> dict:
     """Loop call run_option1(target_date) to populate stock_grade for past dates.
 
@@ -130,9 +131,11 @@ async def generate_grades_for_range(
             # Pass symbols_filter to run_option1 if it accepts the kwarg
             try:
                 if symbols_filter is not None:
-                    await run_option1(target_date=d, symbols=symbols_filter)
+                    await run_option1(target_date=d, symbols=symbols_filter,
+                                      with_event_modifier=with_event_modifier)
                 else:
-                    await run_option1(target_date=d)
+                    await run_option1(target_date=d,
+                                      with_event_modifier=with_event_modifier)
             except TypeError:
                 # Older run_option1 doesn't accept 'symbols' kwarg yet —
                 # fall back to full universe (no speedup, but doesn't break)

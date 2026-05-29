@@ -10,9 +10,17 @@ logger = logging.getLogger(__name__)
 
 # 시장별 사용 테이블 — alphafolio_portfolio에서 동일하게 사용 중인 컬럼 가정
 COUNTRY_TABLES = {
-    "US": {"grade": "us_stock_grade", "price": "us_daily"},
-    "KR": {"grade": "kr_stock_grade", "price": "kr_intraday_total"},
+    "US": {"grade": "us_stock_grade", "price": "us_daily",
+           "benchmark_table": "us_daily_etf", "benchmark_symbol": "SPY"},
+    "KR": {"grade": "kr_stock_grade", "price": "kr_intraday_total",
+           "benchmark_table": None, "benchmark_symbol": None},
 }
+
+# A real trading day has thousands of price rows; market holidays occasionally
+# leave a single stray row in the price table. Treating that as a trading day
+# valued every holding with no price at 0, cratering NAV for one day and
+# destroying MDD/Sortino. Require a minimum row count to count as a trading day.
+MIN_ROWS_PER_TRADING_DAY = 100
 
 
 class PortfolioSimulator:
@@ -46,10 +54,15 @@ class PortfolioSimulator:
         self.holdings: Dict[str, int] = {}
         self.nav_history: List[Dict] = []
         self.trades: List[Dict] = []
+        # Most recent close seen per symbol — carry-forward valuation so a
+        # holding is never marked to 0 on a day its price row is missing.
+        self.last_prices: Dict[str, float] = {}
 
         tables = COUNTRY_TABLES[self.country]
         self.grade_table = tables["grade"]
         self.price_table = tables["price"]
+        self.benchmark_table = tables["benchmark_table"]
+        self.benchmark_symbol = tables["benchmark_symbol"]
 
     async def _get_top_n_grades(self, conn, d) -> List[str]:
         q = f"""
@@ -71,17 +84,34 @@ class PortfolioSimulator:
             WHERE date = $1 AND symbol = ANY($2::text[])
         """
         rows = await conn.fetch(q, d, symbols)
-        return {r["symbol"]: float(r["close"]) for r in rows if r["close"] is not None}
+        out = {r["symbol"]: float(r["close"]) for r in rows if r["close"] is not None}
+        # Remember the latest close per symbol for carry-forward valuation.
+        self.last_prices.update(out)
+        return out
 
     async def _trading_days(self, conn) -> List[date]:
         q = f"""
-            SELECT DISTINCT date
+            SELECT date
             FROM {self.price_table}
             WHERE date BETWEEN $1 AND $2
+            GROUP BY date
+            HAVING COUNT(*) >= $3
             ORDER BY date
         """
-        rows = await conn.fetch(q, self.start_date, self.end_date)
+        rows = await conn.fetch(q, self.start_date, self.end_date,
+                                MIN_ROWS_PER_TRADING_DAY)
         return [r["date"] for r in rows]
+
+    async def _benchmark_prices(self, conn, days: List[date]) -> Dict[date, float]:
+        """Buy-and-hold benchmark closes keyed by date (empty if unconfigured)."""
+        if not self.benchmark_symbol or not self.benchmark_table:
+            return {}
+        q = f"""
+            SELECT date, close FROM {self.benchmark_table}
+            WHERE symbol = $1 AND date BETWEEN $2 AND $3
+        """
+        rows = await conn.fetch(q, self.benchmark_symbol, days[0], days[-1])
+        return {r["date"]: float(r["close"]) for r in rows if r["close"] is not None}
 
     async def _rebalance(self, conn, d):
         target = await self._get_top_n_grades(conn, d)
@@ -146,10 +176,13 @@ class PortfolioSimulator:
         if not self.holdings:
             return self.cash, 0.0
         prices = await self._get_close_prices(conn, list(self.holdings.keys()), d)
-        holdings_value = sum(
-            shares * prices.get(sym, 0.0)
-            for sym, shares in self.holdings.items()
-        )
+        holdings_value = 0.0
+        for sym, shares in self.holdings.items():
+            # today's close → last known close → 0 (only if never priced)
+            px = prices.get(sym)
+            if px is None:
+                px = self.last_prices.get(sym, 0.0)
+            holdings_value += shares * px
         return self.cash + holdings_value, holdings_value
 
     async def run(self):
@@ -168,6 +201,10 @@ class PortfolioSimulator:
                 f"rebal_every={self.rebal_freq_days}d"
             )
 
+            bench_prices = await self._benchmark_prices(conn, days)
+            bench_shares = None        # set on first priced day
+            last_bench = None          # carry-forward benchmark close
+
             days_since_rebal = self.rebal_freq_days  # rebal on day 0
 
             for d in days:
@@ -176,13 +213,23 @@ class PortfolioSimulator:
                     days_since_rebal = 0
 
                 nav, holdings_value = await self._compute_nav(conn, d)
+
+                # Buy-and-hold benchmark NAV (carry-forward if a close is missing)
+                benchmark_value = None
+                bp = bench_prices.get(d, last_bench)
+                if bp is not None:
+                    last_bench = bp
+                    if bench_shares is None:
+                        bench_shares = self.initial_cash / bp
+                    benchmark_value = bench_shares * bp
+
                 self.nav_history.append({
                     "date": d,
                     "nav": nav,
                     "cash": self.cash,
                     "holdings_value": holdings_value,
                     "holdings_count": len(self.holdings),
-                    "benchmark_value": None,
+                    "benchmark_value": benchmark_value,
                 })
                 days_since_rebal += 1
 

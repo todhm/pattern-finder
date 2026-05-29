@@ -197,30 +197,57 @@ async def orch_cancel(run_id: str):
 
 # --- 2-pass option collection (top-N dynamic) -------------------------------
 @app.post("/collect/us/options-top-n")
-async def collect_us_options_top_n(target_date: _date, top_n: int = 200,
-                                   api_key: str = Depends(verify_api_key)):
-    """Backfill us_option only for top-N symbols by final_score at target_date.
+async def collect_us_options_top_n(
+    target_date: _date,
+    top_n: int = 200,
+    start_date: Optional[_date] = None,
+    end_date: Optional[_date] = None,
+    api_key: str = Depends(verify_api_key),
+):
+    """Backfill ``us_option`` for the dynamic top-N symbols at ``target_date``.
 
-    Sets env vars consumed by USOptionCollector.get_active_symbols() to switch
-    from the static 549-symbol whitelist to a dynamic top-N pick from
-    us_stock_grade. Requires grades_pass_a to have run first.
+    ``target_date`` is the AV ``HISTORICAL_OPTIONS`` query date (one date's
+    option chain per call). The symbol set is selected from ``us_stock_grade``:
+
+    - If ``start_date`` / ``end_date`` are given, the union of per-date top-N
+      grades over [start_date, end_date] is used. This keeps the same symbol
+      set across every date of a backfill so downstream 252-day IV percentile
+      and volatility calculations have continuous history.
+    - Otherwise, the top-N grades on ``target_date`` are used (legacy mode).
+
+    Requires grades_pass_a to have run first.
     """
     import os
     from us.us_option import USOptionCollector
     api_key_us = os.getenv("ALPHAVANTAGE_API_KEY")
     os.environ["US_OPTION_DYNAMIC_TOP_N"] = str(top_n)
     os.environ["US_OPTION_TARGET_GRADE_DATE"] = target_date.isoformat()
+    if start_date and end_date:
+        os.environ["US_OPTION_DYNAMIC_START_DATE"] = start_date.isoformat()
+        os.environ["US_OPTION_DYNAMIC_END_DATE"] = end_date.isoformat()
     try:
-        col = USOptionCollector(api_key_us, DATABASE_URL, 0.2, target_date=target_date)
+        # summary_only: aggregate the chain in memory → write only
+        # us_option_daily_summary (the table quant actually reads). Avoids
+        # persisting ~150k raw contract rows/day to us_option.
+        col = USOptionCollector(api_key_us, DATABASE_URL, 0.2,
+                                target_date=target_date, summary_only=True)
         await col.init_pool()
         try:
-            await col.run_collection_optimized()
+            await col.run_collection_summary_only()
         finally:
             await col.close_pool()
-        return {"status": "success", "date": target_date.isoformat(), "top_n": top_n}
+        return {
+            "status": "success",
+            "date": target_date.isoformat(),
+            "top_n": top_n,
+            "mode": "union" if (start_date and end_date) else "per-date",
+            "storage": "summary_only",
+        }
     finally:
         os.environ.pop("US_OPTION_DYNAMIC_TOP_N", None)
         os.environ.pop("US_OPTION_TARGET_GRADE_DATE", None)
+        os.environ.pop("US_OPTION_DYNAMIC_START_DATE", None)
+        os.environ.pop("US_OPTION_DYNAMIC_END_DATE", None)
 
 
 # Legacy root replaced — keep original handler available at /info for back-compat

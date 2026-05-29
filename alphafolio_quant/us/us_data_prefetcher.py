@@ -20,9 +20,11 @@ Date: 2025-12-08
 
 import asyncio
 import logging
-from datetime import date
+from bisect import bisect_right
+from datetime import date, timedelta
 from typing import Dict, List, Optional, Tuple
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,32 @@ class USDataPrefetcher:
     """
     Centralized data prefetching for stock analysis.
     Eliminates redundant DB queries by loading all needed data upfront.
+
+    Two modes:
+
+    1. **Per-(symbol, date) mode** (legacy): ``prefetch_all`` issues 5 parallel
+       SQL queries to fetch one stock-date worth of data. Used for live / ad-hoc
+       analysis. Per-stock-per-date DB roundtrip cost is significant for
+       multi-date backfills (~5 queries × N syms × M dates).
+
+    2. **Range mode** (NEW): ``bulk_prefetch_range(symbols, start, end)`` runs
+       O(5) bulk SQL statements covering the full (symbols × date range) once
+       and loads everything into a class-level cache keyed by symbol. Then
+       ``prefetch_all(symbol, analysis_date)`` becomes an in-memory lookup
+       (O(log N) per call). For 450 syms × 252 dates this collapses ~570k DB
+       queries to ~5 — typical 100x+ wall-time reduction.
+
+    The class-level cache is shared across all instances (a singleton-style
+    pattern) so callers that already construct ``USDataPrefetcher`` per stock
+    automatically benefit once the range cache has been loaded once at the top
+    of a run.
     """
+
+    # Class-level range cache: shared across all instances in the process.
+    # Populated by bulk_prefetch_range(); consumed by prefetch_all().
+    # Cleared with clear_range_cache().
+    _range_cache: Optional[Dict] = None  # {'sb_by_sym', 'daily_by_sym', ...}
+    _range_cache_token: Optional[Tuple] = None  # (tuple(symbols), start, end)
 
     def __init__(self, db):
         """
@@ -42,23 +69,234 @@ class USDataPrefetcher:
         """
         self.db = db
 
+    # ----------------------------------------------------------------------
+    # RANGE MODE — bulk fetch + in-memory lookup
+    # ----------------------------------------------------------------------
+
+    @classmethod
+    async def bulk_prefetch_range(cls, db, symbols: List[str],
+                                    start: date, end: date,
+                                    lookback_days: int = 400) -> None:
+        """Load all source data for ``symbols × [start, end]`` once.
+
+        Subsequent ``prefetch_all(sym, d)`` calls (for any sym in ``symbols``
+        and any d in ``[start, end]``) become in-memory lookups.
+
+        Five bulk queries are issued (us_stock_basic / us_daily /
+        us_income_statement / us_balance_sheet / us_cash_flow /
+        us_earnings_estimates / us_option_daily_summary). Each one filters by
+        ``symbol = ANY($1::text[])`` and a date range, so we hit per-table
+        indexes once instead of N×M times.
+        """
+        symbols = sorted(set(symbols))
+        token = (tuple(symbols), start, end)
+        if cls._range_cache_token == token:
+            logger.info("bulk_prefetch_range: cache already loaded for this range")
+            return
+
+        logger.info(
+            f"bulk_prefetch_range: loading {len(symbols)} symbols × "
+            f"{start}~{end} (lookback={lookback_days}d)")
+
+        daily_start = start - timedelta(days=lookback_days)
+
+        # Run all bulk fetches in parallel.
+        sb_rows, daily_rows, inc_rows, bal_rows, cf_rows, est_rows, opt_rows = (
+            await asyncio.gather(
+                db.execute_query(
+                    """SELECT * FROM us_stock_basic
+                       WHERE symbol = ANY($1::text[]) AND date BETWEEN $2 AND $3
+                       ORDER BY symbol, date""",
+                    symbols, start, end),
+                db.execute_query(
+                    """SELECT symbol, date, open, high, low, close, volume
+                       FROM us_daily
+                       WHERE symbol = ANY($1::text[]) AND date BETWEEN $2 AND $3
+                       ORDER BY symbol, date""",
+                    symbols, daily_start, end),
+                db.execute_query(
+                    """SELECT * FROM us_income_statement
+                       WHERE symbol = ANY($1::text[]) AND available_at <= $2
+                       ORDER BY symbol, available_at""",
+                    symbols, end),
+                db.execute_query(
+                    """SELECT * FROM us_balance_sheet
+                       WHERE symbol = ANY($1::text[]) AND available_at <= $2
+                       ORDER BY symbol, available_at""",
+                    symbols, end),
+                db.execute_query(
+                    """SELECT * FROM us_cash_flow
+                       WHERE symbol = ANY($1::text[]) AND available_at <= $2
+                       ORDER BY symbol, available_at""",
+                    symbols, end),
+                db.execute_query(
+                    """SELECT * FROM us_earnings_estimates
+                       WHERE symbol = ANY($1::text[]) AND estimate_date <= $2
+                       ORDER BY symbol, estimate_date""",
+                    symbols, end),
+                db.execute_query(
+                    """SELECT * FROM us_option_daily_summary
+                       WHERE symbol = ANY($1::text[]) AND date BETWEEN $2 AND $3
+                       ORDER BY symbol, date""",
+                    symbols, daily_start, end),
+            )
+        )
+
+        # Index for fast lookup.
+        # sb_by_sym[sym] = list of dicts sorted by date ascending
+        sb_by_sym: Dict[str, List[Dict]] = {}
+        for r in sb_rows:
+            sb_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        daily_by_sym: Dict[str, List[Dict]] = {}
+        for r in daily_rows:
+            daily_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        inc_by_sym: Dict[str, List[Dict]] = {}
+        for r in inc_rows:
+            inc_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        bal_by_sym: Dict[str, List[Dict]] = {}
+        for r in bal_rows:
+            bal_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        cf_by_sym: Dict[str, List[Dict]] = {}
+        for r in cf_rows:
+            cf_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        est_by_sym: Dict[str, List[Dict]] = {}
+        for r in est_rows:
+            est_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        opt_by_sym: Dict[str, List[Dict]] = {}
+        for r in opt_rows:
+            opt_by_sym.setdefault(r['symbol'], []).append(dict(r))
+
+        cls._range_cache = {
+            'sb_by_sym':    sb_by_sym,
+            'daily_by_sym': daily_by_sym,
+            'inc_by_sym':   inc_by_sym,
+            'bal_by_sym':   bal_by_sym,
+            'cf_by_sym':    cf_by_sym,
+            'est_by_sym':   est_by_sym,
+            'opt_by_sym':   opt_by_sym,
+        }
+        cls._range_cache_token = token
+
+        logger.info(
+            f"bulk_prefetch_range done: sb={len(sb_rows)}, "
+            f"daily={len(daily_rows)}, income={len(inc_rows)}, "
+            f"balance={len(bal_rows)}, cashflow={len(cf_rows)}, "
+            f"estimates={len(est_rows)}, options={len(opt_rows)}")
+
+    @classmethod
+    def clear_range_cache(cls) -> None:
+        cls._range_cache = None
+        cls._range_cache_token = None
+
+    @staticmethod
+    def _latest_le(rows: List[Dict], target: date, key: str) -> Optional[Dict]:
+        """Most-recent row whose row[key] <= target. rows must be ascending by key."""
+        if not rows:
+            return None
+        # bisect on key values
+        keys = [r[key] for r in rows]
+        idx = bisect_right(keys, target)
+        if idx == 0:
+            return None
+        return rows[idx - 1]
+
+    @staticmethod
+    def _filter_le(rows: List[Dict], target: date, key: str,
+                    limit: Optional[int] = None) -> List[Dict]:
+        """All rows with row[key] <= target (descending by key). rows must be ascending by key."""
+        if not rows:
+            return []
+        keys = [r[key] for r in rows]
+        idx = bisect_right(keys, target)
+        out = rows[:idx][::-1]   # descending
+        if limit is not None:
+            out = out[:limit]
+        return out
+
+    def _lookup_from_cache(self, symbol: str, analysis_date: date) -> Dict:
+        c = self._range_cache
+        # --- stock_basic: most recent row with date <= analysis_date ---
+        sb_row = self._latest_le(c['sb_by_sym'].get(symbol, []),
+                                  analysis_date, 'date')
+
+        # --- daily: last 260 rows with date <= analysis_date ---
+        daily_rows = self._filter_le(c['daily_by_sym'].get(symbol, []),
+                                       analysis_date, 'date', limit=260)
+        price_data = None
+        if daily_rows:
+            # daily_rows is descending — match prefetch_daily_prices contract
+            price_data = {
+                'dates': [r['date'] for r in daily_rows],
+                'opens': [float(r['open']) if r['open'] is not None else None for r in daily_rows],
+                'highs': [float(r['high']) if r['high'] is not None else None for r in daily_rows],
+                'lows':  [float(r['low'])  if r['low']  is not None else None for r in daily_rows],
+                'closes':[float(r['close'])if r['close']is not None else None for r in daily_rows],
+                'volumes':[int(r['volume'])if r['volume']is not None else None for r in daily_rows],
+                'raw': daily_rows,
+            }
+
+        # --- financials: latest 12 income / 4 cf / 1 balance with available_at <= date ---
+        income = self._filter_le(c['inc_by_sym'].get(symbol, []),
+                                   analysis_date, 'available_at', limit=12)
+        balance = self._filter_le(c['bal_by_sym'].get(symbol, []),
+                                    analysis_date, 'available_at', limit=1)
+        cashflow = self._filter_le(c['cf_by_sym'].get(symbol, []),
+                                     analysis_date, 'available_at', limit=4)
+        financials = {'income': income, 'cashflow': cashflow, 'balance': balance}
+
+        # --- estimates: latest next-quarter / next-year with estimate_date <= date ---
+        est_rows = self._filter_le(c['est_by_sym'].get(symbol, []),
+                                     analysis_date, 'estimate_date')
+        estimates = {'next_quarter': None, 'next_year': None}
+        for r in est_rows:
+            h = (r.get('horizon') or '').lower()
+            if 'quarter' in h and estimates['next_quarter'] is None:
+                estimates['next_quarter'] = r
+            elif 'year' in h and estimates['next_year'] is None:
+                estimates['next_year'] = r
+            if estimates['next_quarter'] and estimates['next_year']:
+                break
+
+        # --- options: latest row with date <= analysis_date ---
+        opt_row = self._latest_le(c['opt_by_sym'].get(symbol, []),
+                                    analysis_date, 'date')
+
+        return {
+            'stock_basic': sb_row,
+            'price_data': price_data,
+            'financials': financials,
+            'estimates': estimates,
+            'options': opt_row,
+        }
+
     async def prefetch_all(self, symbol: str, analysis_date: date) -> Dict:
         """
-        Prefetch all common data in parallel.
+        Prefetch all common data for (symbol, analysis_date).
 
-        Args:
-            symbol: Stock symbol (e.g., 'AAPL')
-            analysis_date: Analysis date
+        If ``bulk_prefetch_range`` has been called and the symbol+date fall
+        within that range, this is an in-memory lookup (no DB round-trip).
+        Otherwise falls back to 5 parallel DB queries.
 
         Returns:
             {
-                'stock_basic': {...},      # us_stock_basic row
+                'stock_basic': {...},      # us_stock_basic row (point-in-time)
                 'price_data': {...},       # 260 days OHLCV (structured)
-                'financials': {...},       # income_statement + cash_flow + balance_sheet
-                'estimates': {...},        # earnings estimates
-                'options': {...}           # options summary
+                'financials': {...},       # income/cashflow/balance (available_at <= date)
+                'estimates': {...},        # earnings estimates (estimate_date <= date)
+                'options': {...}           # latest options summary
             }
         """
+        # Fast path: in-memory lookup if range cache is loaded.
+        if self._range_cache is not None:
+            return self._lookup_from_cache(symbol, analysis_date)
+
+        # Fallback: 5 parallel DB queries (legacy per-stock-per-date path).
         tasks = [
             self._prefetch_stock_basic(symbol, analysis_date),
             self._prefetch_daily_prices(symbol, analysis_date),

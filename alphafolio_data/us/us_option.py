@@ -21,6 +21,15 @@ load_dotenv()
 # Common User-Agent header for API requests
 USER_AGENT_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
+# AlphaVantage throttle / retry. A symbol must not be silently dropped on a
+# transient hiccup (network error, 5xx, or a rate-limit "Note"/"Information"
+# response). On rate-limit we back off hard (adaptive throttle); on transient
+# network/5xx errors we use exponential backoff. Invalid-symbol / no-data
+# responses are NOT retried — they're terminal and correct.
+AV_MAX_RETRIES = 5
+AV_RETRY_BASE_DELAY = 5.0    # seconds; multiplied by attempt for backoff
+AV_RATELIMIT_DELAY = 20.0    # seconds to wait when AV signals a rate limit
+
 # Setup logging - Use Railway Volume (/app/log) if available
 if os.getenv('RAILWAY_PROJECT_ID'):
     log_dir = Path('/app/log')
@@ -44,13 +53,20 @@ logger = logging.getLogger(__name__)
 class USOptionCollector:
     """US Options Data Collector from Alpha Vantage"""
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float, target_date: date = None):
+    def __init__(self, api_key: str, database_url: str, call_interval: float,
+                 target_date: date = None, summary_only: bool = False):
         self.api_key = api_key
         if database_url.startswith('postgresql+asyncpg://'):
             database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
         self.database_url = database_url
         self.target_date = target_date if target_date else self.get_latest_business_day()
         self.call_interval = call_interval
+        # summary_only: aggregate each symbol's option chain in memory and write
+        # ONLY us_option_daily_summary, never persisting the raw chain to
+        # us_option. Eliminates ~150k raw rows/day (31 GB/yr), the COPY+UPSERT
+        # into the partitioned table, and the post-hoc delete. quant reads only
+        # the summary, so nothing downstream needs the raw contracts.
+        self.summary_only = summary_only
 
         # Setup collection logger path based on environment
         if os.getenv('RAILWAY_PROJECT_ID'):
@@ -79,24 +95,54 @@ class USOptionCollector:
         return today
 
     async def init_pool(self):
-        """Initialize connection pool - OPTIMIZED"""
+        """Initialize connection pool.
+
+        summary_only is a single sequential API worker that touches the DB only
+        for the spot-price fetch and batched upserts (≤2 concurrent acquires).
+        A large pool there was fatal: the options endpoint builds a fresh
+        collector per date, and min=10/max=50 pools stacked across the run
+        exhausted Postgres max_connections (TooManyConnectionsError → 500s,
+        dropping whole dates). Keep summary pools tiny; raw path keeps the
+        larger pool for its concurrent COPY workers.
+        """
+        if self.summary_only:
+            min_size, max_size = 1, 5
+        else:
+            min_size, max_size = 10, 50
         self.pool = await asyncpg.create_pool(
             self.database_url,
-            min_size=10,
-            max_size=50,
+            min_size=min_size,
+            max_size=max_size,
             command_timeout=120,
             max_queries=50000,
             max_cached_statement_lifetime=0,
             max_cacheable_statement_size=0
         )
         self.session = aiohttp.ClientSession(headers=USER_AGENT_HEADERS)
-        logger.info("[US_OPTION] Database connection pool initialized (OPTIMIZED: min=10, max=50)")
+        logger.info(
+            f"[US_OPTION] Database connection pool initialized "
+            f"(min={min_size}, max={max_size}, summary_only={self.summary_only})")
 
     async def close_pool(self):
+        """Release the pool, forcibly terminating if graceful close stalls.
+
+        The options endpoint builds one collector (one pool) per date. If
+        pool.close() hangs on a connection that wasn't released, the server
+        connections leak; after ~10 dates that exhausts max_connections and
+        every later date 500s. wait_for + terminate guarantees the slots are
+        freed before the next date's pool is created.
+        """
         if self.pool:
-            await self.pool.close()
+            try:
+                await asyncio.wait_for(self.pool.close(), timeout=10)
+            except Exception as e:
+                logger.warning(
+                    f"[US_OPTION] pool.close() stalled/failed ({e}); terminating")
+                self.pool.terminate()
+            self.pool = None
         if self.session:
             await self.session.close()
+            self.session = None
         logger.info("[US_OPTION] Database connection pool closed")
 
     async def get_connection(self):
@@ -106,44 +152,85 @@ class USOptionCollector:
             return await asyncpg.connect(self.database_url)
 
     async def get_option_data(self, symbol: str) -> Optional[Dict]:
-        """Fetch historical options data from Alpha Vantage API"""
-        try:
-            params = {
-                'function': 'HISTORICAL_OPTIONS',
-                'symbol': symbol,
-                'apikey': self.api_key,
-            }
+        """Fetch historical options data from Alpha Vantage with throttle+retry.
 
-            # Add date parameter to fetch historical data for specific date
-            if self.target_date:
-                params['date'] = self.target_date.strftime('%Y-%m-%d')
-                logger.info(f"[US_OPTION] Calling API for {symbol} on {params['date']}...")
-            else:
-                logger.info(f"[US_OPTION] Calling API for {symbol}...")
+        Retries transient failures (rate-limit Note/Information, HTTP 429/5xx,
+        network timeouts) with backoff so a symbol is never dropped on a
+        temporary hiccup. Terminal cases (invalid symbol 'Error Message',
+        unexpected payload) return None immediately without retry.
+        """
+        params = {
+            'function': 'HISTORICAL_OPTIONS',
+            'symbol': symbol,
+            'apikey': self.api_key,
+        }
+        if self.target_date:
+            params['date'] = self.target_date.strftime('%Y-%m-%d')
 
-            async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                logger.info(f"[US_OPTION] Received response for {symbol}, status: {response.status}")
-                if response.status == 200:
-                    data = await response.json()
+        last_err = None
+        for attempt in range(1, AV_MAX_RETRIES + 1):
+            try:
+                if self.target_date:
+                    logger.info(f"[US_OPTION] Calling API for {symbol} on {params['date']} (attempt {attempt})...")
+                else:
+                    logger.info(f"[US_OPTION] Calling API for {symbol} (attempt {attempt})...")
 
-                    if 'Error Message' in data:
-                        logger.error(f"[US_OPTION] API error for {symbol}: {data['Error Message']}")
-                        return None
-                    elif 'Note' in data:
-                        logger.warning(f"[US_OPTION] API limit reached: {data['Note']}")
-                        return None
-                    elif 'data' in data:
-                        # Check if it's successful response with data field
-                        return data
-                    else:
+                async with self.session.get(
+                    self.base_url, params=params,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    logger.info(f"[US_OPTION] Received response for {symbol}, status: {response.status}")
+                    if response.status == 200:
+                        data = await response.json()
+
+                        if 'Error Message' in data:
+                            # Invalid symbol / no options listed — terminal.
+                            logger.error(f"[US_OPTION] API error for {symbol}: {data['Error Message']}")
+                            return None
+                        if 'Note' in data or 'Information' in data:
+                            # Rate limit — adaptive throttle, then retry.
+                            msg = data.get('Note') or data.get('Information')
+                            logger.warning(
+                                f"[US_OPTION] rate limit for {symbol} "
+                                f"(attempt {attempt}/{AV_MAX_RETRIES}): {msg}; "
+                                f"throttling {AV_RATELIMIT_DELAY}s")
+                            last_err = f"rate-limit: {msg}"
+                            await asyncio.sleep(AV_RATELIMIT_DELAY)
+                            continue
+                        if 'data' in data:
+                            return data
                         logger.warning(f"[US_OPTION] Unexpected response format for {symbol}: {list(data.keys())}")
                         return None
-                else:
-                    logger.error(f"[US_OPTION] API request failed for {symbol}: Status {response.status}")
+
+                    if response.status == 429 or response.status >= 500:
+                        # Transient server-side — exponential backoff retry.
+                        delay = AV_RETRY_BASE_DELAY * attempt
+                        last_err = f"HTTP {response.status}"
+                        logger.warning(
+                            f"[US_OPTION] {symbol} HTTP {response.status} "
+                            f"(attempt {attempt}/{AV_MAX_RETRIES}); retry in {delay}s")
+                        await asyncio.sleep(delay)
+                        continue
+
+                    logger.error(f"[US_OPTION] API request failed for {symbol}: Status {response.status} (no retry)")
                     return None
-        except Exception as e:
-            logger.error(f"[US_OPTION] Error fetching data for {symbol}: {e}")
-            return None
+
+            except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+                delay = AV_RETRY_BASE_DELAY * attempt
+                last_err = repr(e)
+                logger.warning(
+                    f"[US_OPTION] {symbol} network error "
+                    f"(attempt {attempt}/{AV_MAX_RETRIES}): {e}; retry in {delay}s")
+                await asyncio.sleep(delay)
+                continue
+            except Exception as e:
+                logger.error(f"[US_OPTION] Error fetching data for {symbol}: {e}")
+                return None
+
+        logger.error(
+            f"[US_OPTION] {symbol}: exhausted {AV_MAX_RETRIES} retries "
+            f"(last error: {last_err})")
+        return None
 
     def safe_decimal(self, value: str, default=None) -> Optional[float]:
         """Safely convert string to decimal"""
@@ -528,40 +615,85 @@ class USOptionCollector:
         logger.info(f"[US_OPTION] Loaded {len(US_OPTION_SYMBOLS)} predefined symbols for option collection")
 
         # === Dynamic top-N mode (used by 2-pass orchestrator) ===========
-        # When env vars are set, override the whitelist with the top-N
-        # current symbols by final_score from us_stock_grade for the given
-        # grade_date. Falls through to whitelist on any failure.
+        # Two modes are supported, both opt-in via env vars:
+        #
+        # 1. **Per-date** (legacy): set ``US_OPTION_DYNAMIC_TOP_N`` and
+        #    ``US_OPTION_TARGET_GRADE_DATE``. Returns the top-N grades on the
+        #    target date only — different symbol set per date. Causes 252-day
+        #    history gaps for boundary symbols that bounce in/out of top-N.
+        #
+        # 2. **Range-union** (recommended for backtest backfill): also set
+        #    ``US_OPTION_DYNAMIC_START_DATE`` and ``US_OPTION_DYNAMIC_END_DATE``.
+        #    Returns the union of per-date top-N symbols across the whole
+        #    range — same symbol set for every date in the backfill. Ensures
+        #    agent_metrics 252-day IV percentile and volatility_adjustment
+        #    have continuous history for every union symbol.
+        #
+        # Falls through to whitelist on any failure.
         dyn_top_n  = os.getenv("US_OPTION_DYNAMIC_TOP_N")
         dyn_date   = os.getenv("US_OPTION_TARGET_GRADE_DATE")
+        dyn_start  = os.getenv("US_OPTION_DYNAMIC_START_DATE")
+        dyn_end    = os.getenv("US_OPTION_DYNAMIC_END_DATE")
         if dyn_top_n and dyn_date:
             try:
                 top_n_int = int(dyn_top_n)
+                # asyncpg's date codec needs date objects, not env-var strings,
+                # for the $n::date params below.
+                dyn_date_d = datetime.strptime(dyn_date, "%Y-%m-%d").date()
+                dyn_start_d = (
+                    datetime.strptime(dyn_start, "%Y-%m-%d").date()
+                    if dyn_start else None
+                )
+                dyn_end_d = (
+                    datetime.strptime(dyn_end, "%Y-%m-%d").date()
+                    if dyn_end else None
+                )
                 conn = await self.get_connection()
                 try:
-                    rows = await conn.fetch(
-                        """
-                        SELECT symbol FROM us_stock_grade
-                        WHERE date = $1::date
-                          AND final_grade IN
-                              ('STRONG_BUY','BUY','NEUTRAL','강력매수','매수','매수 고려','중립')
-                          AND final_score IS NOT NULL
-                        ORDER BY final_score DESC NULLS LAST
-                        LIMIT $2
-                        """,
-                        dyn_date, top_n_int,
-                    )
+                    if dyn_start_d and dyn_end_d:
+                        rows = await conn.fetch(
+                            """
+                            SELECT DISTINCT symbol FROM (
+                              SELECT symbol, final_score,
+                                ROW_NUMBER() OVER (
+                                  PARTITION BY date ORDER BY final_score DESC NULLS LAST
+                                ) AS rn
+                              FROM us_stock_grade
+                              WHERE date BETWEEN $1::date AND $2::date
+                                AND final_grade IN
+                                    ('STRONG_BUY','BUY','NEUTRAL','강력 매수','매수','매수 고려','중립')
+                                AND final_score IS NOT NULL
+                            ) t WHERE rn <= $3
+                            """,
+                            dyn_start_d, dyn_end_d, top_n_int,
+                        )
+                        mode_label = f"UNION top-{top_n_int} over {dyn_start}~{dyn_end}"
+                    else:
+                        rows = await conn.fetch(
+                            """
+                            SELECT symbol FROM us_stock_grade
+                            WHERE date = $1::date
+                              AND final_grade IN
+                                  ('STRONG_BUY','BUY','NEUTRAL','강력 매수','매수','매수 고려','중립')
+                              AND final_score IS NOT NULL
+                            ORDER BY final_score DESC NULLS LAST
+                            LIMIT $2
+                            """,
+                            dyn_date_d, top_n_int,
+                        )
+                        mode_label = f"per-date top-{top_n_int} for {dyn_date}"
                 finally:
                     await conn.close()
                 if rows:
                     dyn_symbols = [r["symbol"] for r in rows]
                     logger.info(
-                        f"[US_OPTION] DYNAMIC top-{top_n_int} for {dyn_date}: "
+                        f"[US_OPTION] DYNAMIC {mode_label}: "
                         f"{len(dyn_symbols)} symbols (overrides whitelist)"
                     )
                     return dyn_symbols
                 else:
                     logger.warning(
-                        f"[US_OPTION] DYNAMIC mode: no grades found for {dyn_date}, "
+                        f"[US_OPTION] DYNAMIC mode: no grades found ({mode_label}), "
                         "falling back to whitelist"
                     )
             except Exception as e:
@@ -570,6 +702,234 @@ class USOptionCollector:
                 )
 
         return US_OPTION_SYMBOLS
+
+    # ----- summary-only path (raw-bypass optimization) ------------------
+    @staticmethod
+    def _gamma_flip_distance(strike_net_gex: Dict[float, float], spot: float) -> Optional[float]:
+        """Nearest gamma-flip strike distance (% from spot).
+
+        Mirrors populate_option_summary SQL: walk strikes ascending, find where
+        per-strike net GEX changes sign, linear-interpolate the flip strike, and
+        pick the flip whose (current strike − spot) is smallest. Returns
+        (flip_strike − spot)/spot × 100.
+        """
+        pts = sorted((s, g) for s, g in strike_net_gex.items() if g != 0)
+        best_dist = None
+        best_flip = None
+        for i in range(1, len(pts)):
+            s0, g0 = pts[i - 1]
+            s1, g1 = pts[i]
+            sign0 = (g0 > 0) - (g0 < 0)
+            sign1 = (g1 > 0) - (g1 < 0)
+            if sign0 != 0 and sign1 != 0 and sign0 != sign1:
+                flip = s0 + (s1 - s0) * abs(g0) / (abs(g0) + abs(g1))
+                dist = abs(s1 - spot)  # SQL: distance_from_spot = ABS(strike - spot)
+                if best_dist is None or dist < best_dist:
+                    best_dist = dist
+                    best_flip = flip
+        if best_flip is None or spot <= 0:
+            return None
+        return (best_flip - spot) / spot * 100
+
+    @staticmethod
+    def _summarize_contracts(symbol: str, contracts: List[Dict],
+                              spot: Optional[float] = None) -> Optional[Dict]:
+        """Aggregate one symbol's option chain into a single daily-summary row.
+
+        Pure-Python mirror of populate_option_summary's full aggregation
+        (volume / IV / GEX / gamma_flip) — lets us write us_option_daily_summary
+        directly without persisting raw contracts. Qualified IV = IV>0 AND
+        volume>0 AND open_interest>0. GEX = gamma × OI × 100 × spot (calls minus
+        puts); requires spot (us_daily close). gamma_flip_distance from per-strike
+        sign reversal.
+        """
+        if not contracts:
+            return None
+        actual_date = contracts[0]['date']  # API returns the nearest trading day
+
+        def _f(v):
+            return float(v) if v is not None else None
+
+        call_vol = sum((c['volume'] or 0) for c in contracts if c['type'] == 'call')
+        put_vol = sum((c['volume'] or 0) for c in contracts if c['type'] == 'put')
+
+        all_iv = [_f(c['implied_volatility']) for c in contracts
+                  if c['implied_volatility'] is not None]
+        all_iv = [v for v in all_iv if v is not None]
+
+        def _qual_iv(typ):
+            return [_f(c['implied_volatility']) for c in contracts
+                    if c['type'] == typ
+                    and c['implied_volatility'] is not None
+                    and _f(c['implied_volatility']) > 0
+                    and (c['volume'] or 0) > 0
+                    and (c['open_interest'] or 0) > 0]
+        call_ivs = _qual_iv('call')
+        put_ivs = _qual_iv('put')
+
+        # ---- GEX (gamma exposure) — needs spot price ----
+        call_gex = put_gex = None
+        net_gex = gex_ratio = gamma_flip_distance = None
+        if spot is not None and spot > 0:
+            cg = pg = 0.0
+            total_oi = 0
+            strike_net_gex: Dict[float, float] = {}
+            for c in contracts:
+                g = c.get('gamma')
+                oi = c.get('open_interest')
+                if g is None or oi is None or oi <= 0:
+                    continue
+                gex = _f(g) * oi * 100 * spot
+                total_oi += oi
+                strike = _f(c.get('strike'))
+                if c['type'] == 'call':
+                    cg += gex
+                    if strike is not None:
+                        strike_net_gex[strike] = strike_net_gex.get(strike, 0.0) + gex
+                elif c['type'] == 'put':
+                    pg += gex
+                    if strike is not None:
+                        strike_net_gex[strike] = strike_net_gex.get(strike, 0.0) - gex
+            call_gex, put_gex = cg, pg
+            net_gex = cg - pg
+            gex_ratio = (net_gex / (spot * total_oi * 100)) if total_oi > 0 else None
+            gamma_flip_distance = USOptionCollector._gamma_flip_distance(strike_net_gex, spot)
+
+        return {
+            'symbol': symbol,
+            'date': actual_date,
+            'total_call_volume': call_vol,
+            'total_put_volume': put_vol,
+            'avg_implied_volatility': (sum(all_iv) / len(all_iv)) if all_iv else None,
+            'min_implied_volatility': min(all_iv) if all_iv else None,
+            'max_implied_volatility': max(all_iv) if all_iv else None,
+            'avg_call_iv': (sum(call_ivs) / len(call_ivs)) if call_ivs else None,
+            'avg_put_iv': (sum(put_ivs) / len(put_ivs)) if put_ivs else None,
+            'call_option_count': len(call_ivs),
+            'put_option_count': len(put_ivs),
+            'call_gex': call_gex,
+            'put_gex': put_gex,
+            'net_gex': net_gex,
+            'gex_ratio': gex_ratio,
+            'gamma_flip_distance': gamma_flip_distance,
+        }
+
+    async def save_summaries_batch(self, summaries: List[Dict]) -> int:
+        """UPSERT a batch of pre-aggregated summary rows into
+        us_option_daily_summary (summary_only path, no raw table touched)."""
+        if not summaries:
+            return 0
+        cols = ['symbol', 'date', 'total_call_volume', 'total_put_volume',
+                'avg_implied_volatility', 'min_implied_volatility',
+                'max_implied_volatility', 'avg_call_iv', 'avg_put_iv',
+                'call_option_count', 'put_option_count',
+                'call_gex', 'put_gex', 'net_gex', 'gex_ratio', 'gamma_flip_distance']
+        records = [tuple(s.get(c) for c in cols) for s in summaries]
+        conn = await self.get_connection()
+        try:
+            async with conn.transaction():
+                await conn.execute(
+                    "CREATE TEMP TABLE _opt_sum (LIKE us_option_daily_summary "
+                    "INCLUDING DEFAULTS) ON COMMIT DROP")
+                await conn.copy_records_to_table('_opt_sum', records=records, columns=cols)
+                await conn.execute(f"""
+                    INSERT INTO us_option_daily_summary ({', '.join(cols)})
+                    SELECT {', '.join(cols)} FROM _opt_sum
+                    ON CONFLICT (symbol, date) DO UPDATE SET
+                        total_call_volume = EXCLUDED.total_call_volume,
+                        total_put_volume = EXCLUDED.total_put_volume,
+                        avg_implied_volatility = EXCLUDED.avg_implied_volatility,
+                        min_implied_volatility = EXCLUDED.min_implied_volatility,
+                        max_implied_volatility = EXCLUDED.max_implied_volatility,
+                        avg_call_iv = EXCLUDED.avg_call_iv,
+                        avg_put_iv = EXCLUDED.avg_put_iv,
+                        call_option_count = EXCLUDED.call_option_count,
+                        put_option_count = EXCLUDED.put_option_count,
+                        call_gex = EXCLUDED.call_gex,
+                        put_gex = EXCLUDED.put_gex,
+                        net_gex = EXCLUDED.net_gex,
+                        gex_ratio = EXCLUDED.gex_ratio,
+                        gamma_flip_distance = EXCLUDED.gamma_flip_distance
+                """)
+        finally:
+            if self.pool:
+                await self.pool.release(conn)
+            else:
+                await conn.close()
+        return len(records)
+
+    async def _summary_api_worker(self, symbols: List[str], queue: Queue,
+                                   spot_map: Dict[str, float]):
+        """Fetch + transform + in-memory summarize; queue summary dicts.
+
+        spot_map: {symbol: us_daily close on the actual option date} — used for
+        GEX (gamma × OI × 100 × spot). Keyed by the summary's actual date.
+        """
+        for i, symbol in enumerate(symbols, 1):
+            try:
+                api_data = await self.get_option_data(symbol)
+                if api_data:
+                    contracts = self.transform_option_data(api_data, symbol)
+                    if contracts:
+                        spot = spot_map.get((symbol, contracts[0]['date']))
+                        summary = self._summarize_contracts(symbol, contracts, spot=spot)
+                        if summary:
+                            await queue.put(summary)
+                if i < len(symbols):
+                    await asyncio.sleep(self.call_interval)
+            except Exception as e:
+                logger.error(f"[US_OPTION SUMMARY] {symbol}: {e}")
+        await queue.put(None)
+
+    async def run_collection_summary_only(self):
+        """Summary-only collection: never persists raw us_option."""
+        logger.info(f"[US_OPTION SUMMARY-ONLY] Starting for {self.target_date}")
+        await self.init_pool()
+        try:
+            symbols = await self.get_active_symbols()
+            if not symbols:
+                logger.error("[US_OPTION] No symbols found")
+                return
+
+            # Spot prices for GEX (gamma × OI × 100 × spot). The option API may
+            # return the nearest trading day rather than exactly target_date, so
+            # fetch a small window of us_daily closes and key by (symbol, date).
+            spot_map: Dict[tuple, float] = {}
+            conn = await self.get_connection()
+            try:
+                rows = await conn.fetch(
+                    """SELECT symbol, date, close FROM us_daily
+                       WHERE symbol = ANY($1::text[])
+                         AND date BETWEEN $2::date - INTERVAL '7 days' AND $2::date""",
+                    symbols, self.target_date)
+                for r in rows:
+                    if r['close'] is not None:
+                        spot_map[(r['symbol'], r['date'])] = float(r['close'])
+            finally:
+                if self.pool:
+                    await self.pool.release(conn)
+                else:
+                    await conn.close()
+
+            queue: Queue = Queue(maxsize=100)
+            api_task = asyncio.create_task(
+                self._summary_api_worker(symbols, queue, spot_map))
+
+            batch, total = [], 0
+            while True:
+                item = await queue.get()
+                if item is None:
+                    if batch:
+                        total += await self.save_summaries_batch(batch)
+                    break
+                batch.append(item)
+                if len(batch) >= 100:
+                    total += await self.save_summaries_batch(batch)
+                    batch = []
+            await api_task
+            logger.info(f"[US_OPTION SUMMARY-ONLY] {self.target_date}: {total} summaries upserted")
+        finally:
+            await self.close_pool()
 
     async def aggregate_daily_summary(self, target_date: date) -> int:
         """Aggregate us_option to us_option_daily_summary using single query (including M19 strategy columns)"""
@@ -825,6 +1185,25 @@ class USOptionCollector:
         try:
             summary_count = await self.aggregate_daily_summary(self.target_date)
             logger.info(f"[US_OPTION] Summary aggregation completed: {summary_count} symbols")
+
+            # Free the per-date partition rows once they have been summarized.
+            # ``us_option`` raw rows (one per (contract, date), 100k+/day) are
+            # intermediate — only ``us_option_daily_summary`` is read by quant
+            # downstream. Without this delete, 1 date ≈ 150 MB and 252 dates ≈
+            # 31 GB of raw chain data accumulates and exhausts the Postgres
+            # tablespace (we hit DiskFullError after ~191 dates).
+            if summary_count > 0:
+                conn = await self.get_connection()
+                try:
+                    deleted = await conn.execute(
+                        "DELETE FROM us_option WHERE date = $1",
+                        self.target_date)
+                    logger.info(f"[US_OPTION] Freed raw rows for {self.target_date}: {deleted}")
+                finally:
+                    if self.pool:
+                        await self.pool.release(conn)
+                    else:
+                        await conn.close()
         except Exception as e:
             logger.error(f"[US_OPTION] Summary aggregation failed: {e}")
         finally:
