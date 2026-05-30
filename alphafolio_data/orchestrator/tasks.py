@@ -230,6 +230,194 @@ async def _quant_post(ctx: Ctx, path: str, body: dict) -> dict:
 
 # ================================================================= TASKS
 
+async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
+                                       news_per_symbol: int = 5,
+                                       insider_lookback_days: int = 90) -> dict:
+    """buy_now 종목별 호재 — bullish 뉴스 + 내부자 매수.
+
+    각 종목당 AV NEWS_SENTIMENT + INSIDER_TRANSACTIONS 1콜씩 (총 6콜 for top-3).
+    bullish 뉴스 상위 N + 최근 N일 인사이더 매수 집계를 반환. us_news /
+    us_insider_transactions 에 best-effort 저장(ON CONFLICT DO NOTHING).
+    호출 실패는 무시 — reco 본체 출력에 영향 없음.
+    """
+    import aiohttp
+    import asyncio as _asyncio
+    from datetime import datetime as _dt, timedelta as _td_l
+    base = "https://www.alphavantage.co/query"
+    result: dict = {}
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
+    try:
+        async with aiohttp.ClientSession() as session:
+            for sym in symbols:
+                rec = {"news": [], "insider_buys": None}
+
+                # ----- News (AV NEWS_SENTIMENT) -----
+                try:
+                    async with session.get(base, params={
+                        "function": "NEWS_SENTIMENT", "tickers": sym,
+                        "limit": "50", "apikey": api_key,
+                    }, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                        data = await r.json()
+                    feed = data.get("feed", []) if isinstance(data, dict) else []
+                    bullish, persist = [], []
+                    for art in feed:
+                        ts_list = art.get("ticker_sentiment", []) or []
+                        ts = next((t for t in ts_list if t.get("ticker") == sym), None)
+                        if not ts:
+                            continue
+                        label = ts.get("ticker_sentiment_label", "") or ""
+                        try:    score = float(ts.get("ticker_sentiment_score") or 0)
+                        except: score = 0.0
+                        try:    rel = float(ts.get("relevance_score") or 0)
+                        except: rel = 0.0
+                        tp_raw = art.get("time_published", "") or ""
+                        try:    tp = _dt.strptime(tp_raw[:15], "%Y%m%dT%H%M%S")
+                        except: tp = None
+                        is_bull = label in ("Bullish", "Somewhat-Bullish") or score >= 0.15
+                        if is_bull:
+                            bullish.append({
+                                "title": (art.get("title") or "")[:140],
+                                "url": art.get("url"),
+                                "published": tp.strftime("%Y-%m-%d") if tp else None,
+                                "source": art.get("source") or "",
+                                "sentiment": label or "—",
+                                "score": round(score, 2),
+                            })
+                        if art.get("url"):
+                            persist.append((
+                                art.get("title"), art.get("url"), tp,
+                                art.get("summary"), art.get("source"),
+                                art.get("source_domain"),
+                                json.dumps(art.get("topics") or []),
+                                float(art.get("overall_sentiment_score") or 0) or None,
+                                art.get("overall_sentiment_label"),
+                                sym, rel, score, label,
+                            ))
+                    bullish.sort(key=lambda x: (x["published"] or "", x["score"]), reverse=True)
+                    rec["news"] = bullish[:news_per_symbol]
+                    if persist:
+                        try:
+                            async with pool.acquire() as conn:
+                                await conn.executemany(
+                                    """INSERT INTO us_news
+                                       (title,url,time_published,summary,source,source_domain,
+                                        topics,overall_sentiment_score,overall_sentiment_label,
+                                        ticker,relevance_score_t,ticker_sentiment_score,
+                                        ticker_sentiment_label,created_at)
+                                       VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,now())
+                                       ON CONFLICT (url, ticker) DO NOTHING""",
+                                    persist)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+                # ----- Insider transactions (AV INSIDER_TRANSACTIONS) -----
+                try:
+                    async with session.get(base, params={
+                        "function": "INSIDER_TRANSACTIONS", "symbol": sym,
+                        "apikey": api_key,
+                    }, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                        data = await r.json()
+                    txs = data.get("data", []) if isinstance(data, dict) else []
+                    cutoff = _dt.now().date() - _td_l(days=insider_lookback_days)
+                    buys, dollar, execs = 0, 0.0, set()
+                    ins_persist = []
+                    for t in txs:
+                        ds = (t.get("transaction_date") or "").strip()
+                        try:    tdate = _dt.strptime(ds, "%Y-%m-%d").date()
+                        except: continue
+                        # 모든 거래(매수+매도)를 적재 — event_engine 이 두 방향
+                        # 모두 활용 (인사이더 매도는 -, 매수는 + signal).
+                        name = (t.get("executive") or "").strip()
+                        title = (t.get("executive_title") or "").strip()
+                        if not name:
+                            continue
+                        sec = (t.get("security_type") or "")[:255]
+                        acq = (t.get("acquisition_or_disposal") or "")[:255]
+                        try:    shares = float(t.get("shares") or 0) or None
+                        except: shares = None
+                        try:    price = float(t.get("share_price") or 0) or None
+                        except: price = None
+                        ins_persist.append((tdate, sym, [name], [title],
+                                            sec, acq, shares, price))
+                        # 최근 N일 매수 집계(reco 화면용)
+                        if tdate >= cutoff and acq.upper() == "A":
+                            buys += 1
+                            if shares and price:
+                                dollar += shares * price
+                            execs.add(name)
+                    if ins_persist:
+                        try:
+                            async with pool.acquire() as conn:
+                                await conn.executemany(
+                                    """INSERT INTO us_insider_transactions
+                                       (date, symbol, executive, executive_title,
+                                        security_type, acquisition_or_disposal,
+                                        shares, share_price, created_at)
+                                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now())
+                                       ON CONFLICT (date, symbol, executive, executive_title)
+                                       DO UPDATE SET
+                                         security_type = EXCLUDED.security_type,
+                                         acquisition_or_disposal = EXCLUDED.acquisition_or_disposal,
+                                         shares = EXCLUDED.shares,
+                                         share_price = EXCLUDED.share_price""",
+                                    ins_persist)
+                        except Exception:
+                            pass
+                    if buys > 0:
+                        rec["insider_buys"] = {
+                            "count": buys,
+                            "dollar_value": int(dollar),
+                            "distinct_executives": len(execs),
+                            "lookback_days": insider_lookback_days,
+                        }
+                except Exception:
+                    pass
+
+                result[sym] = rec
+                await _asyncio.sleep(0.2)
+    finally:
+        await pool.close()
+    return result
+
+
+async def _symbols_due_for_report(days_threshold: int) -> list:
+    """Publication-aware skip 용 — '발표일(reported_date) 기준 새 분기보고서가
+    출시됐을 가능성이 있는' 종목 리스트.
+
+    각 종목의 us_earnings_history MAX(reported_date) 가 days_threshold 일 이상
+    지났거나 reportedDate 가 한 번도 없는(=신규/누락) 종목 = 새 10-Q/10-K 가
+    이미 나왔거나 곧 나올 시점 → 재수집 대상. 그 외(최근에 보고한 종목)는 다음
+    분기까지 새 statement 가 안 나오므로 skip 안전.
+
+    수집 시각(updated_at)이 아닌 **발표일** 기반이라, "n일 전에 받아왔으면
+    날짜와 상관없이 안 받음" 식의 잘못된 collection-time skip 이 아니다.
+    """
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                WITH last_rep AS (
+                    SELECT symbol, MAX(reported_date) AS last_rep
+                    FROM us_earnings_history GROUP BY symbol
+                ),
+                active AS (
+                    SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true
+                )
+                SELECT a.symbol
+                FROM active a LEFT JOIN last_rep r USING (symbol)
+                WHERE r.last_rep IS NULL
+                   OR r.last_rep < CURRENT_DATE - make_interval(days => $1)
+                """,
+                days_threshold,
+            )
+    finally:
+        await pool.close()
+    return [r["symbol"] for r in rows]
+
+
 async def task_partitions(ctx: Ctx) -> dict:
     return await _self_post(ctx, "admin/create-partitions")
 
@@ -249,11 +437,32 @@ async def task_finnhub_symbol(ctx: Ctx) -> dict:
 async def task_stock_basic(ctx: Ctx) -> dict:
     if ctx.country != "US":
         return {"skipped": "KR run"}
+    # Publication-aware skip — 발표일(reported_date) 기준 due 종목만 재수집.
+    # 마지막 분기보고서가 75일 이상 지났거나 미보고 = 새 10-Q/10-K 가 출시됐을
+    # 가능성 → 그 종목만 fetch. 최근 분기보고를 한 종목은 다음 분기까지 새
+    # statement 가 안 나오므로 skip 안전. (collection-time blanket skip 이 아님)
+    days = int(ctx.params.get("fundamentals_due_days", 75))
+    targets = await _symbols_due_for_report(days)
+    if not targets:
+        await ctx.log("ok", f"stock_basic skip: 발표일 기준 due 종목 0개 "
+                            f"(모든 활성 종목이 최근 {days}일 내 보고)")
+        return {"status": "skipped_no_due", "due_count": 0,
+                "threshold_days": days}
+    await ctx.log("info",
+                  f"stock_basic: due {len(targets)}종목만 재수집 "
+                  f"(전체 활성 대비)")
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+    from us.alphavantage import AlphaVantageCollector
     async with capture_logs(ctx), monitor_progress(
         ctx,
         "SELECT COUNT(*) FROM us_stock_basic",
         "us_stock_basic rows", interval=30):
-        return await _self_post(ctx, "collect/us/stock-basic")
+        collector = AlphaVantageCollector(api_key, DATABASE_URL)
+        await collector.collect_stock_data(symbols=targets)
+    return {"status": "completed", "due_count": len(targets),
+            "threshold_days": days}
 
 
 async def task_us_daily(ctx: Ctx) -> dict:
@@ -294,14 +503,26 @@ async def task_us_daily(ctx: Ctx) -> dict:
                 "SELECT symbol, MIN(date) AS mind, MAX(date) AS maxd "
                 "FROM us_daily GROUP BY symbol")
             symbol_range = {r["symbol"]: (r["mind"], r["maxd"]) for r in range_rows}
+            # DISTINCT 필수 — us_stock_basic 에는 'computed' source 가 종목별로
+            # 수백 행(시점별)이라 DISTINCT 없으면 ~6,200종목이 2.86M 항목으로
+            # 부풀어, 종목 분류 카운트가 폭증하고 collector 가 같은 종목을 수십~
+            # 수백 번 처리해 us_daily 가 정상보다 수십 배 느려진다.
             active_rows = await conn.fetch(
-                "SELECT symbol FROM us_stock_basic WHERE is_active = true")
+                "SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true")
             active_symbols = [r["symbol"] for r in active_rows]
     finally:
         await pool.close()
 
-    # 분류
-    needed_start, needed_end = extended_start, ctx.end_date
+    # 분류 — needed_end 가 주말이면 직전 평일로 클립. AV 는 휴장일에 새
+    # 데이터를 만들지 않으므로 토/일을 needed_end 로 쓰면 6,200종목이 전부
+    # "forward (recent 누락)" 으로 분류돼 의미 없는 compact fetch 6,200번이
+    # 돌아간다(같은 금요일 데이터만 반복 수신, 45분+ 낭비). 토→금, 일→금.
+    # US 공휴일(예: Presidents Day)은 별도 calendar 가 없으면 못 잡지만,
+    # 가장 빈번한 케이스(주말)는 이걸로 해결된다.
+    needed_end_eff = ctx.end_date
+    while needed_end_eff.weekday() >= 5:    # Sat=5, Sun=6
+        needed_end_eff -= timedelta(days=1)
+    needed_start, needed_end = extended_start, needed_end_eff
     outputsize_map: Dict[str, str] = {}
     target_symbols: List[str] = []
     counts = {"covered": 0, "forward": 0, "backward": 0, "new": 0}
@@ -1140,6 +1361,186 @@ async def task_backtest(ctx: Ctx) -> dict:
     })
 
 
+# ---------------------------------------------- News + Insider 사전수집 (reco 전용)
+async def task_news_insider_top_n(ctx: Ctx) -> dict:
+    """Reco DAG 전용 — top-N 후보 종목들의 news / insider 데이터를 미리 적재.
+
+    event_engine 이 grade 계산 시 us_news (7일 lookback) 와 us_insider_transactions
+    (90일 lookback) 를 읽어 news_modifier / insider_modifier 를 산출하는데,
+    테이블이 비어있으면 두 modifier 가 0 으로 무력화돼 호재가 grade 점수에
+    반영되지 않는다. 이 task 가 select_top_n 직후, grades_pass_b 직전에
+    돌아 두 테이블을 채워준다.
+
+    full 백테스트 DAG 에는 들어가지 않음 (1년치 backfill 비용이 크고, 역사
+    뉴스는 AV 가 회수 안 줌). reco DAG (kind='reco') 한정.
+    """
+    if ctx.country != "US":
+        return {"skipped": "US only"}
+    top_n = int(ctx.params.get("option_top_n", 50))
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT DISTINCT symbol FROM (
+                  SELECT date, symbol, final_score,
+                         ROW_NUMBER() OVER (PARTITION BY date
+                                            ORDER BY final_score DESC NULLS LAST) AS rn
+                  FROM us_stock_grade
+                  WHERE date BETWEEN $1 AND $2
+                    AND final_grade IN ('STRONG_BUY','BUY','NEUTRAL',
+                                        '강력 매수','매수','매수 고려','중립')
+                    AND final_score IS NOT NULL
+                ) t WHERE rn <= $3
+                """,
+                ctx.start_date, ctx.end_date, top_n,
+            )
+            symbols = [r["symbol"] for r in rows]
+    finally:
+        await pool.close()
+
+    if not symbols:
+        return {"status": "no_top_n_symbols"}
+
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+
+    await ctx.log("info",
+                  f"news/insider 사전수집: {len(symbols)}종목 × 2 endpoint")
+    result = await _fetch_catalysts_for_symbols(
+        api_key, symbols,
+        news_per_symbol=10,
+        insider_lookback_days=90,
+    )
+    bullish_news = sum(len(v.get("news") or []) for v in result.values())
+    insider_active = sum(1 for v in result.values() if v.get("insider_buys"))
+    await ctx.log("ok",
+                  f"news/insider 적재 완료 → bullish news {bullish_news}건, "
+                  f"인사이더 매수 활성 종목 {insider_active}/{len(symbols)}")
+    return {
+        "status": "completed",
+        "symbols_processed": len(symbols),
+        "bullish_news_total": bullish_news,
+        "insider_active_symbols": insider_active,
+    }
+
+
+# ---------------------------------------------- 최고 signal 종목 추천 (DAG node)
+async def task_top_signal_reco(ctx: Ctx) -> dict:
+    """현재 시점 '최고 signal' 종목 추천.
+
+    백테스트에서 가장 견고하게 우수했던 전략 — top-3 / STRONG_BUY(강력 매수) /
+    20거래일 리밸 (총수익 +166.1%, Sharpe 1.87, MDD -25.3%, Calmar 6.56) —
+    의 종목 선택 규칙을 그대로 적용한다: 최신 grade 일자에서 final_grade='강력
+    매수'인 종목을 final_score 내림차순으로 정렬해 상위를 추천.
+
+    output:
+      - buy_now    : 실제 매수 대상(reco_top_n, 기본 3) — 전략이 보유하는 종목
+      - watchlist  : 차순위 STRONG_BUY 후보(reco_watch_n, 기본 7)
+    dashboard 의 task output(JSON)이 곧 추천 '페이지' 역할을 한다.
+    """
+    if ctx.country != "US":
+        return {"skipped": "US only"}
+
+    reco_n = int(ctx.params.get("reco_top_n", 3))
+    watch_n = int(ctx.params.get("reco_watch_n", 7))
+
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            as_of = await conn.fetchval("SELECT MAX(date) FROM us_stock_grade")
+            if as_of is None:
+                return {"error": "no grades in us_stock_grade"}
+            rows = await conn.fetch(
+                """
+                SELECT g.symbol, g.final_score, g.final_grade, d.close
+                FROM us_stock_grade g
+                LEFT JOIN us_daily d ON d.symbol = g.symbol AND d.date = g.date
+                WHERE g.date = $1
+                  AND g.final_grade = '강력 매수'
+                  AND g.final_score IS NOT NULL
+                ORDER BY g.final_score DESC
+                LIMIT $2
+                """,
+                as_of, reco_n + watch_n,
+            )
+            sb_count = await conn.fetchval(
+                "SELECT COUNT(*) FROM us_stock_grade "
+                "WHERE date = $1 AND final_grade = '강력 매수'",
+                as_of,
+            )
+    finally:
+        await pool.close()
+
+    def _fmt(rank, r):
+        return {
+            "rank": rank,
+            "symbol": r["symbol"],
+            "final_score": round(float(r["final_score"]), 2),
+            "final_grade": r["final_grade"],
+            "close": round(float(r["close"]), 2) if r["close"] is not None else None,
+        }
+
+    picks = [_fmt(i + 1, r) for i, r in enumerate(rows)]
+
+    # 실거래 일정. 백테스트 simulator 는 등급일(as_of) 종가에 체결하지만
+    # 실제로는 종가 확정 후에야 등급을 알 수 있으므로 live 권장 매수는 다음
+    # 거래일 시가. 리밸런싱 주기는 최우수 전략(top-3 STRONG_BUY / 20 거래일).
+    def _next_bday(d, n=1):
+        from datetime import timedelta as _td_local
+        while n > 0:
+            d = d + _td_local(days=1)
+            if d.weekday() < 5:   # Mon-Fri
+                n -= 1
+        return d
+
+    rebal_n = int(ctx.params.get("strategy_rebal_freq_days", 20))
+    buy_date = _next_bday(as_of, 1)
+    next_rebal = _next_bday(buy_date, rebal_n)
+
+    # 호재 — buy_now 종목만 (top-3 × 2 API콜 = 6 호출, ~3초). best-effort.
+    catalysts = {}
+    buy_now_symbols = [p["symbol"] for p in picks[:reco_n]]
+    av_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if av_key and buy_now_symbols:
+        try:
+            catalysts = await _fetch_catalysts_for_symbols(av_key, buy_now_symbols)
+            await ctx.log("info", "catalysts: " + ", ".join(
+                f"{s}:📰{len(v.get('news') or [])}"
+                + (f"/💰{v['insider_buys']['count']}건"
+                   if v.get('insider_buys') else "")
+                for s, v in catalysts.items()))
+        except Exception as e:
+            await ctx.log("warn", f"catalyst fetch failed (ignored): {e}")
+
+    out = {
+        "as_of_date": str(as_of),
+        "strategy": ("top-3 / STRONG_BUY(강력 매수) / 20거래일 리밸 — "
+                     "backtest +166.1% (Sharpe 1.87, MDD -25.3%, Calmar 6.56)"),
+        "buy_now": picks[:reco_n],
+        "watchlist": picks[reco_n:reco_n + watch_n],
+        "strong_buy_universe_size": sb_count,
+        "execution": {
+            "buy_date": str(buy_date),
+            "buy_timing": "open",
+            "buy_note": f"실거래: {buy_date} 시가(OPEN)에 매수 권장. "
+                        f"백테스트는 {as_of} 종가(CLOSE) 기준 — 종가 확정 후에야 "
+                        f"등급을 알 수 있어 live 는 다음 거래일 OPEN 이 현실적.",
+            "rebal_freq_days": rebal_n,
+            "next_rebal_date": str(next_rebal),
+            "next_rebal_note": f"{buy_date} 이후 {rebal_n} 거래일째인 "
+                               f"{next_rebal} 에 reco DAG 재실행 → 그날 신규 "
+                               f"top-3 로 교체(시가 매수/매도).",
+        },
+        "catalysts": catalysts,
+    }
+    await ctx.log("ok", f"[reco] {as_of} buy_now="
+                  f"{[p['symbol'] for p in out['buy_now']]} "
+                  f"buy={buy_date} next_rebal={next_rebal}")
+    return out
+
+
 async def task_earnings_history(ctx: Ctx) -> dict:
     """AV EARNINGS endpoint 호출 → us_earnings_history 적재.
 
@@ -1151,6 +1552,17 @@ async def task_earnings_history(ctx: Ctx) -> dict:
     """
     if ctx.country != "US":
         return {"skipped": "KR run"}
+    # Publication-aware: 새 분기보고서가 출시됐을 가능성이 있는 종목만 재수집
+    # (stock_basic 과 동일 로직). reported_date 가 75일+ 지났거나 없는 종목만.
+    days = int(ctx.params.get("fundamentals_due_days", 75))
+    targets = await _symbols_due_for_report(days)
+    if not targets:
+        await ctx.log("ok", f"earnings_history skip: 발표일 기준 due 종목 0개")
+        return {"status": "skipped_no_due", "due_count": 0,
+                "threshold_days": days}
+    await ctx.log("info",
+                  f"earnings_history: due {len(targets)}종목만 재수집")
+
     api_key = os.getenv("ALPHAVANTAGE_API_KEY")
     if not api_key:
         raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
@@ -1160,7 +1572,9 @@ async def task_earnings_history(ctx: Ctx) -> dict:
         ctx,
         "SELECT COUNT(*) FROM us_earnings_history",
         "us_earnings_history rows", interval=30):
-        col = EarningsHistoryCollector(api_key, DATABASE_URL, max_concurrent=3)
+        col = EarningsHistoryCollector(api_key, DATABASE_URL,
+                                       max_concurrent=3,
+                                       target_symbols=targets)
         result = await col.run_collection()
     return result
 
@@ -1516,12 +1930,24 @@ TASK_REGISTRY: dict[str, Callable] = {
     "options_top_n": task_options_top_n,
     "grades_pass_b": task_grades_pass_b,
     "backtest":      task_backtest,
+    "news_insider_top_n": task_news_insider_top_n,
+    "top_signal_reco": task_top_signal_reco,
 }
 
 
-def build_dag(country: str) -> List[dict]:
+def build_dag(country: str, kind: str = "full") -> List[dict]:
+    """DAG 정의.
+
+    kind="full"  : 데이터 수집 → 등급 → 백테스트 (종단 = backtest).
+    kind="reco"  : 동일한 당일 데이터/등급 체인을 그대로 타되, 종단 노드만
+                   backtest → top_signal_reco 로 교체. 즉 backtester 와 같은
+                   구조로 "당일 데이터 적재 → Pass-A → 옵션 → Pass-B" 를 줄줄이
+                   엮은 뒤 마지막에 최신 등급으로 추천을 산출한다. 데이터 태스크는
+                   모두 멱등/증분이라 이미 쌓인 날짜는 건너뛰어 빠르게 끝난다.
+                   (짧은 최근 구간으로 실행 — main.py 가 reco 기본 윈도우를 좁힘)
+    """
     if country == "US":
-        return [
+        dag = [
             {"id": "partitions",     "name": "0. DB partitions",                  "depends_on": []},
             {"id": "stock_listing",  "name": "1. NASDAQ/NYSE listing",            "depends_on": ["partitions"]},
             {"id": "finnhub_symbol", "name": "2. Finnhub symbol master",          "depends_on": ["stock_listing"]},
@@ -1542,11 +1968,41 @@ def build_dag(country: str) -> List[dict]:
             {"id": "grades_pass_b",  "name": "12. Pass-B grades (with options)",  "depends_on": ["options_top_n"]},
             {"id": "backtest",       "name": "13. Run backtest",                  "depends_on": ["grades_pass_b"]},
         ]
+        reco_dep = "grades_pass_b"
     else:
-        return [
+        dag = [
             {"id": "partitions",     "name": "0. DB partitions",          "depends_on": []},
             {"id": "kr_daily",       "name": "1. KR daily pipeline",       "depends_on": ["partitions"]},
             {"id": "kr_dart",        "name": "2. KR DART filings",         "depends_on": ["partitions"]},
             {"id": "grades_pass_a",  "name": "3. Generate grades",         "depends_on": ["kr_daily","kr_dart"]},
             {"id": "backtest",       "name": "4. Run backtest",            "depends_on": ["grades_pass_a"]},
         ]
+        reco_dep = "grades_pass_a"
+
+    if kind == "reco":
+        # 종단 backtest → top_signal_reco 교체. 추가로 select_top_n 직후
+        # news/insider 사전수집을 끼워, grades_pass_b 의 event_modifier 가
+        # news_modifier + insider_modifier 를 실제로 점수에 반영하게 한다
+        # (테이블이 비어있으면 두 modifier 가 0 으로 무력화됨). full 백테스트
+        # 에는 추가하지 않음 — 역사 뉴스 backfill 비용/유효성 문제.
+        dag = [t for t in dag if t["id"] != "backtest"]
+        if country == "US":
+            dag.append({
+                "id": "news_insider_top_n",
+                "name": "11b. News + Insider 사전수집 (top-N, reco 한정)",
+                "depends_on": ["select_top_n"],
+            })
+            # grades_pass_b 가 news_insider 완료도 기다리도록 의존성 추가
+            for t in dag:
+                if t["id"] == "grades_pass_b":
+                    deps = list(t.get("depends_on") or [])
+                    if "news_insider_top_n" not in deps:
+                        deps.append("news_insider_top_n")
+                    t["depends_on"] = deps
+                    break
+        dag.append({
+            "id": "top_signal_reco",
+            "name": "14. 최고 signal 종목 추천 (top-3 STRONG_BUY / 20일 리밸 전략)",
+            "depends_on": [reco_dep],
+        })
+    return dag

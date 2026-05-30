@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>최고 Signal 종목 추천</title>
+  <style>
+    :root { --bg:#0f1216; --card:#181d24; --line:#2a313c; --fg:#e6e9ee;
+            --muted:#9aa4b2; --buy:#1f9d57; --accent:#3b82f6; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--fg);
+           font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+    header { padding:22px 28px; border-bottom:1px solid var(--line); }
+    h1 { margin:0; font-size:20px; }
+    .sub { color:var(--muted); font-size:13px; margin-top:6px; }
+    main { padding:24px 28px; max-width:1200px; margin:0 auto; }
+    .bar { display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+    button { background:var(--accent); color:#fff; border:0; border-radius:8px;
+             padding:9px 16px; font-size:14px; cursor:pointer; }
+    button.ghost { background:transparent; border:1px solid var(--line); color:var(--fg); }
+    button:disabled { opacity:.5; cursor:default; }
+    select { background:var(--card); color:var(--fg); border:1px solid var(--line);
+             border-radius:8px; padding:8px; }
+    .meta { color:var(--muted); font-size:13px; }
+    .strategy { background:var(--card); border:1px solid var(--line); border-radius:10px;
+                padding:12px 16px; font-size:13px; color:var(--muted); margin-bottom:20px; }
+    .strategy b { color:var(--fg); }
+    .grid { display:grid; grid-template-columns:1.1fr .9fr; gap:22px; align-items:start; }
+    @media (max-width:860px){ .grid { grid-template-columns:1fr; } }
+    h2 { font-size:15px; margin:6px 0 10px; }
+    table { width:100%; border-collapse:collapse; background:var(--card);
+            border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    th, td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); font-size:14px; }
+    th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    tr:last-child td { border-bottom:0; }
+    td.sym { font-weight:700; }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .empty { color:var(--muted); padding:24px; text-align:center; }
+
+    /* DAG progress */
+    .dag { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px 4px; }
+    .dag ul { list-style:none; margin:0; padding:0; }
+    .dag li { display:flex; justify-content:space-between; gap:10px;
+              padding:7px 12px; border-bottom:1px solid var(--line); font-size:13px; }
+    .dag li:last-child { border-bottom:0; }
+    .dag .nm { color:var(--fg); }
+    .dag .st { font-variant-numeric:tabular-nums; color:var(--muted); white-space:nowrap; }
+    .status-success .st { color:#56d364; }
+    .status-running { background:rgba(210,153,34,.08); }
+    .status-running .st { color:#d29922; font-weight:700; }
+    .status-failed  .st { color:#f85149; }
+    .status-pending .st, .status-skipped .st { color:#6e7681; }
+    .logs { margin-top:12px; background:#0b0e12; border:1px solid var(--line);
+            border-radius:8px; padding:10px; height:220px; overflow:auto;
+            font-family:ui-monospace,Menlo,monospace; font-size:12px; line-height:1.5; }
+    .log-line.error { color:#f85149; } .log-line.warn { color:#d29922; }
+    .log-line.ok { color:#56d364; } .log-line.run { color:#3b82f6; }
+    .log-line { color:#aeb6c2; }
+    code { background:#0b0e12; padding:1px 6px; border-radius:5px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📈 최고 Signal 종목 추천</h1>
+    <div class="sub">백테스트 최우수 전략 기준 — 별도 reco DAG가 <b>당일 데이터 적재 → 등급 → 추천</b>을 줄줄이 실행합니다 (수 분 소요).</div>
+  </header>
+  <main>
+    <div class="bar">
+      <button id="refreshBtn" onclick="trigger()">🔄 새로 생성</button>
+      <select id="country"><option value="US">US</option><option value="KR">KR</option></select>
+      <span class="meta" id="meta"></span>
+      <span class="meta" id="runId"></span>
+    </div>
+    <div class="strategy" id="strategy"></div>
+
+    <div class="grid">
+      <section>
+        <h2>🟢 추천 종목</h2>
+        <div id="content"><div class="empty">불러오는 중…</div></div>
+      </section>
+      <section>
+        <h2>🧩 DAG 진행 상황 <span class="meta" id="progress"></span></h2>
+        <div class="dag"><ul id="dagTasks"><li class="empty">실행 이력 없음</li></ul></div>
+        <div class="logs" id="dagLogs"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    let activeRun = null, pollTimer = null, logCursor = 0;
+
+    // ---------- recommendation ----------
+    // buy_now 행은 "진입 시점"(언제 어떤 시각에 매수)을 표시. 과거 종가는 시그널
+    // 계산의 참고값일 뿐 실제 진입가가 아니므로 표에서 제외. watchlist 는 매수
+    // 대상이 아니라 진입 시점 비움.
+    function rows(list, exec) {
+      if (!list || !list.length) return '<tr><td colspan="5" class="empty">없음</td></tr>';
+      return list.map(p => {
+        const entry = exec && exec.buy_date
+          ? `${exec.buy_date} <b>${(exec.buy_timing||'').toUpperCase()}</b>`
+          : '—';
+        return `<tr>
+          <td class="num">${p.rank}</td>
+          <td class="sym">${p.symbol}</td>
+          <td class="num">${p.final_score != null ? p.final_score.toFixed(2) : '-'}</td>
+          <td>${p.final_grade || '-'}</td>
+          <td>${entry}</td>
+        </tr>`;
+      }).join('');
+    }
+    function table(title, list, exec) {
+      return `<h2 style="font-size:13px;color:var(--muted)">${title}</h2>
+        <table><thead><tr><th>#</th><th>종목</th><th>score</th><th>등급</th><th>진입 시점</th></tr></thead>
+        <tbody>${rows(list, exec)}</tbody></table>`;
+    }
+
+    // ---------- catalysts (호재: bullish 뉴스 + 내부자 매수) ----------
+    function escapeHTML(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function renderCatalysts(cats, buyNow) {
+      if (!cats || !buyNow || !buyNow.length) return '';
+      const empty = Object.values(cats).every(c =>
+        !(c.news && c.news.length) && !c.insider_buys);
+      if (empty) return `<div style="margin-top:18px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:12px">호재 데이터를 받지 못했습니다 (AV NEWS_SENTIMENT / INSIDER_TRANSACTIONS 응답 없음 또는 호출 실패).</div>`;
+      let html = '<h2 style="margin-top:22px">🔥 호재 (Catalysts)</h2>';
+      buyNow.forEach(p => {
+        const c = cats[p.symbol] || {};
+        const news = c.news || [];
+        const ins = c.insider_buys;
+        const dollarK = ins ? Math.round((ins.dollar_value||0)/1000) : 0;
+        const insSummary = ins
+          ? `💰 내부자 매수 ${ins.count}건 · $${dollarK.toLocaleString()}K · 임원 ${ins.distinct_executives}명 · 최근 ${ins.lookback_days||90}일`
+          : '<span style="color:#6e7681">💰 최근 인사이더 매수 없음</span>';
+        html += `<div class="strategy" style="margin-bottom:10px;border-color:#2a3a4a">
+          <div><b>${p.symbol}</b> &nbsp;·&nbsp; 📰 호재 뉴스 ${news.length}건 &nbsp;·&nbsp; ${insSummary}</div>`;
+        if (news.length) {
+          html += `<ul style="margin:8px 0 0;padding-left:18px;font-size:12px">`;
+          news.forEach(n => {
+            const dt = n.published || '?';
+            html += `<li style="margin:4px 0">
+              <span style="color:var(--muted)">[${dt}]</span>
+              <a href="${n.url||'#'}" target="_blank" rel="noopener" style="color:#cbd5e1;text-decoration:none">${escapeHTML(n.title)}</a>
+              &nbsp;<span style="color:#56d364;font-size:11px">${escapeHTML(n.sentiment)} ${n.score}</span>
+              &nbsp;<span style="color:#6e7681;font-size:11px">— ${escapeHTML(n.source)}</span>
+            </li>`;
+          });
+          html += `</ul>`;
+        }
+        html += `</div>`;
+      });
+      return html;
+    }
+    // 등급일(as_of) 기준 다음 N영업일(Mon-Fri) 계산 — 진입 시점/다음 리밸일 산출용.
+    // 서버측 task_top_signal_reco 가 같은 로직을 쓰지만, 기존 저장 output 에
+    // execution 필드가 없는 경우 페이지에서도 동일하게 채워줘서 항상 표시되게 한다.
+    function nextBday(d, n) {
+      const r = new Date(d.getTime());
+      while (n > 0) { r.setUTCDate(r.getUTCDate() + 1);
+        const w = r.getUTCDay(); if (w >= 1 && w <= 5) n -= 1; }
+      return r;
+    }
+    function fmtD(d) { return d.toISOString().slice(0,10); }
+    function deriveExecution(asOfStr, rebalN) {
+      if (!asOfStr) return null;
+      const asOf = new Date(asOfStr + 'T00:00:00Z');
+      const buy = nextBday(asOf, 1);
+      const next = nextBday(buy, rebalN);
+      return {
+        buy_date: fmtD(buy), buy_timing: 'open',
+        rebal_freq_days: rebalN, next_rebal_date: fmtD(next),
+        buy_note: `실거래: ${fmtD(buy)} 시가(OPEN) 에 매수 권장. 백테스트는 ${asOfStr} 종가 기준 — 종가 확정 후에야 등급을 알 수 있어 live 는 다음 거래일 OPEN 이 현실적.`,
+        next_rebal_note: `${fmtD(buy)} 이후 ${rebalN} 거래일째인 ${fmtD(next)} 에 reco DAG 재실행 → 그날 신규 top-3 로 교체(시가 매수/매도).`,
+      };
+    }
+
+    async function loadReco() {
+      const c = $('#country').value;
+      const d = await (await fetch(`/reco/latest?country=${c}`)).json();
+      if (d.status !== 'ok') {
+        $('#strategy').textContent = '';
+        $('#content').innerHTML = `<div class="empty">${d.message || '추천 없음'}</div>`;
+        return;
+      }
+      $('#strategy').innerHTML = `전략: <b>${d.strategy}</b>`;
+      $('#meta').innerHTML = `기준일 <b>${d.as_of_date}</b> · 생성 ${(d.generated_at||'').slice(0,19)} · 강력 매수 ${d.strong_buy_universe_size}종목`;
+      // 서버 output 에 execution 있으면 사용, 없으면 페이지에서 파생.
+      d.execution = d.execution || deriveExecution(d.as_of_date, 20);
+      const e = d.execution || {};
+      const exec = e.buy_date ? `
+        <div class="strategy" style="margin-bottom:14px;border-color:#1f9d57">
+          📅 <b>매수일: ${e.buy_date}</b> · <b>${(e.buy_timing||'').toUpperCase()}</b> (시가)
+          &nbsp;·&nbsp; 다음 리밸: <b>${e.next_rebal_date}</b> (${e.rebal_freq_days}거래일 후)
+          <div style="margin-top:6px;font-size:12px;color:var(--muted)">
+            ${e.buy_note || ''}
+          </div>
+        </div>` : '';
+      $('#content').innerHTML = exec +
+                                table('매수 대상 (buy_now)', d.buy_now, d.execution) +
+                                renderCatalysts(d.catalysts, d.buy_now) +
+                                '<div style="height:14px"></div>' +
+                                table('관심목록 (watchlist)', d.watchlist, null);
+    }
+
+    // ---------- DAG progress (localhost console 과 동일 구조) ----------
+    function renderTasks(tasks) {
+      const ul = $('#dagTasks');
+      if (!tasks || !tasks.length) { ul.innerHTML = '<li class="empty">태스크 없음</li>'; return; }
+      ul.innerHTML = tasks.map(t => {
+        const dur = t.duration_seconds ? ` (${t.duration_seconds.toFixed(1)}s)` : '';
+        const err = t.error ? ' — ' + t.error.slice(0,60) : '';
+        return `<li class="status-${t.status}"><span class="nm">${t.name}</span>
+                <span class="st">${t.status}${dur}${err}</span></li>`;
+      }).join('');
+    }
+    function appendLogs(logs) {
+      if (!logs || !logs.length) return;
+      const box = $('#dagLogs');
+      logs.forEach(l => {
+        const ts = (l.ts ? new Date(l.ts).toLocaleTimeString() : '');
+        const tid = l.task_id ? `[${l.task_id}] ` : '';
+        const div = document.createElement('div');
+        div.className = `log-line ${l.level}`;
+        div.textContent = `${ts} ${tid}${l.message}`;
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+    async function pollDag() {
+      if (!activeRun) return;
+      try {
+        const [runR, logR] = await Promise.all([
+          fetch(`/orchestrator/runs/${activeRun}`),
+          fetch(`/orchestrator/runs/${activeRun}/logs?after_id=${logCursor}&limit=200`),
+        ]);
+        const { run, tasks } = await runR.json();
+        renderTasks(tasks);
+        const lg = await logR.json(); appendLogs(lg.logs); logCursor = lg.next_after_id;
+        const done = (tasks||[]).filter(t => t.status === 'success').length;
+        const running = (tasks||[]).find(t => t.status === 'running');
+        $('#progress').textContent = `· ${done}/${(tasks||[]).length} 완료`
+          + (running ? ` · 진행: ${running.name}` : '');
+        if (run && ['completed','failed','cancelled'].includes(run.status)) {
+          clearInterval(pollTimer); pollTimer = null;
+          await loadReco();   // 파이프라인 끝나면 추천 갱신
+        }
+      } catch (e) { console.error(e); }
+    }
+    function startDag(runId) {
+      activeRun = runId; logCursor = 0;
+      $('#runId').innerHTML = `· <code>${runId}</code>`;
+      $('#dagLogs').innerHTML = '';
+      if (pollTimer) clearInterval(pollTimer);
+      pollDag();
+      pollTimer = setInterval(pollDag, 2500);
+    }
+    async function findLatestRecoRun() {
+      const c = $('#country').value;
+      const d = await (await fetch('/orchestrator/runs?limit=100')).json();
+      // 실행 중인 run 우선 → 완료 → 그 외. cancelled/failed 는 표시 안 함
+      // (이미 끝나거나 취소된 run 을 화면에 띄우지 않기 위함).
+      const PRI = {running: 0, pending: 1, completed: 2};
+      const recos = (d.runs||[])
+        .filter(r => r.run_id.startsWith('reco_')
+                  && (r.country||'').toUpperCase() === c
+                  && !['cancelled', 'failed'].includes(r.status))
+        .sort((a,b) => {
+          const pa = PRI[a.status] ?? 9, pb = PRI[b.status] ?? 9;
+          if (pa !== pb) return pa - pb;
+          return new Date(b.started_at||0) - new Date(a.started_at||0);
+        });
+      if (recos.length) startDag(recos[0].run_id);
+    }
+
+    // ---------- trigger new reco DAG ----------
+    // 오늘 날짜(주말이면 직전 평일)를 YYYY-MM-DD 로 — reco 는 단일 거래일만
+    // 등급해도 충분(top_signal_reco 가 MAX(date) 한 줄만 읽음).
+    function todayBday() {
+      const d = new Date();
+      while (d.getDay() === 0 || d.getDay() === 6) {  // Sun=0, Sat=6
+        d.setDate(d.getDate() - 1);
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    }
+
+    async function trigger() {
+      const btn = $('#refreshBtn'); const c = $('#country').value;
+      btn.disabled = true; btn.textContent = '⏳ 실행 중…';
+      try {
+        const t = todayBday();
+        const { run_id } = await (await fetch('/orchestrator/runs', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          // 단일 거래일 명시 — 서버 default 에 의존하지 않고 클라이언트가
+          // 명확히 "오늘 하루만" 요청. grade-gen 14일 → 1일로 단축.
+          body: JSON.stringify({country: c, kind: 'reco',
+                                start_date: t, end_date: t})
+        })).json();
+        startDag(run_id);   // DAG 패널이 진행 상황을 라이브로 표시
+      } finally {
+        btn.disabled = false; btn.textContent = '🔄 새로 생성';
+      }
+    }
+
+    $('#country').addEventListener('change', () => { loadReco(); findLatestRecoRun(); });
+    loadReco();
+    findLatestRecoRun();
+  </script>
+</body>
+</html>

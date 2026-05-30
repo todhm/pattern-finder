@@ -485,15 +485,19 @@ class USEventEngine:
         # 7-day lookback for news sentiment
         start_date = analysis_date - timedelta(days=7)
 
+        # us_news 의 실제 컬럼은 `ticker` (not symbol) 와 `time_published`
+        # (not date). 기존 SQL 은 SQLerror → except → modifier=0 으로 silent
+        # fail. ticker / time_published 로 정정 + 인덱스(ticker, time_published)
+        # 활용을 위해 ::date cast 없이 timestamp 범위로 비교.
         query = """
         SELECT
             ticker_sentiment_score,
-            overall_sentiment_score,
-            date
+            overall_sentiment_score
         FROM us_news
-        WHERE symbol = $1
-          AND date BETWEEN $2 AND $3
-        ORDER BY date DESC
+        WHERE ticker = $1
+          AND time_published >= $2
+          AND time_published < ($3 + INTERVAL '1 day')
+        ORDER BY time_published DESC
         """
 
         try:

@@ -28,11 +28,17 @@ _RUNNING: dict[str, asyncio.Task] = {}
 
 
 async def create_pipeline_run(country: str, start_date: date, end_date: date,
-                              params: Optional[dict] = None) -> str:
-    """Create a new run and persist initial task list. Returns run_id."""
-    run_id = f"{uuid4().hex[:8]}_{country.lower()}_{start_date.isoformat()}"
+                              params: Optional[dict] = None,
+                              kind: str = "full") -> str:
+    """Create a new run and persist initial task list. Returns run_id.
+
+    kind="reco" builds the standalone recommendation-serving DAG instead of the
+    full backtest pipeline; run_id is prefixed ``reco_`` so the two never mix.
+    """
+    prefix = "reco_" if kind == "reco" else ""
+    run_id = f"{prefix}{uuid4().hex[:8]}_{country.lower()}_{start_date.isoformat()}"
     params = params or {}
-    dag = build_dag(country)
+    dag = build_dag(country, kind)
     await storage.create_run(run_id, country, start_date, end_date, params)
     await storage.init_tasks(run_id, dag)
     await storage.log(run_id, "info",

@@ -375,7 +375,10 @@ class AlphaVantageCollector:
         """Get all symbols currently in the database"""
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT 필수 — us_stock_basic 의 'computed' source 가 종목별
+            # 수백 행이라 DISTINCT 없으면 같은 종목이 list 에 수십~수백 번
+            # 들어가 API 가 중복 호출돼 정상보다 수십 배 느려짐.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             await conn.close()
             return {row['symbol'] for row in rows}
         except Exception as e:
@@ -715,7 +718,10 @@ class DailyCollector:
         """
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT 필수 — us_stock_basic 의 'computed' source 가 종목별
+            # 수백 행이라 DISTINCT 없으면 같은 종목이 list 에 수십~수백 번
+            # 들어가 API 가 중복 호출돼 정상보다 수십 배 느려짐.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             no_data_rows = await conn.fetch(
                 """SELECT DISTINCT symbol FROM collection_state
                    WHERE collection_name='us_daily' AND status='no_data'
@@ -1455,7 +1461,10 @@ class MonthlyCollector:
         """Get all symbols from us_stock_basic table"""
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true')
+            # DISTINCT 필수 — us_stock_basic 의 'computed' source 가 종목별
+            # 수백 행이라 DISTINCT 없으면 같은 종목이 list 에 수십~수백 번
+            # 들어가 API 가 중복 호출돼 정상보다 수십 배 느려짐.
+            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
             await conn.close()
             return {row['symbol'] for row in rows}
         except Exception as e:
@@ -3038,7 +3047,8 @@ class EarningsHistoryCollector:
     이걸로 financials 의 available_at 을 정밀하게 채울 수 있음.
     """
 
-    def __init__(self, api_key: str, database_url: str, max_concurrent: int = 3):
+    def __init__(self, api_key: str, database_url: str, max_concurrent: int = 3,
+                 target_symbols: Optional[List[str]] = None):
         self.api_key = api_key
         if database_url.startswith('postgresql+asyncpg://'):
             database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
@@ -3049,6 +3059,9 @@ class EarningsHistoryCollector:
         self.session = None
         self.semaphore = None
         self.max_concurrent = max_concurrent
+        # publication-aware skip 용 — 호출부가 발표일 기준 due 종목만 넘기면
+        # get_active_symbols 가 그 부분집합만 반환. None 이면 기존 전체 동작.
+        self.target_symbols = target_symbols
 
     async def init(self):
         self.pool = await asyncpg.create_pool(self.database_url, min_size=2, max_size=8)
@@ -3071,7 +3084,15 @@ class EarningsHistoryCollector:
                      AND date >= CURRENT_DATE - 7 AND date < CURRENT_DATE""")
             no_data = {r['symbol'] for r in no_data_rows}
         symbols = [r['symbol'] for r in rows if r['symbol'] not in no_data]
-        logger.info(f"[EARNINGS_HIST] {len(symbols)} symbols ({len(no_data)} skipped no_data)")
+        if self.target_symbols is not None:
+            target_set = set(self.target_symbols)
+            before = len(symbols)
+            symbols = [s for s in symbols if s in target_set]
+            logger.info(
+                f"[EARNINGS_HIST] target_symbols filter: {before} → {len(symbols)} symbols "
+                f"({len(no_data)} no_data skipped)")
+        else:
+            logger.info(f"[EARNINGS_HIST] {len(symbols)} symbols ({len(no_data)} skipped no_data)")
         return symbols
 
     @retry_on_exception(RateLimitError, max_retries=15, base_delay=15.0, max_delay=300.0)

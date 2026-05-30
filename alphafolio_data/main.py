@@ -120,6 +120,48 @@ async def dashboard():
     return FileResponse(index)
 
 
+@app.get("/reco", include_in_schema=False)
+async def reco_page():
+    """Standalone recommendation-serving page (separate from the data console)."""
+    page = os.path.join(STATIC_DIR, "reco.html")
+    if not os.path.exists(page):
+        raise HTTPException(404, detail="reco.html not built")
+    return FileResponse(page)
+
+
+@app.get("/reco/latest")
+async def reco_latest(country: str = "US"):
+    """Latest recommendation produced by the standalone reco DAG.
+
+    Returns the most recent successful ``top_signal_reco`` task output. The
+    reco page polls this; trigger a fresh one via POST /orchestrator/runs
+    with kind=reco.
+    """
+    import asyncpg
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """SELECT t.run_id, t.output, t.completed_at
+                   FROM orch_tasks t JOIN orch_runs r USING (run_id)
+                   WHERE t.task_id = 'top_signal_reco'
+                     AND t.status = 'success' AND t.output IS NOT NULL
+                     AND UPPER(r.country) = UPPER($1)
+                   ORDER BY t.completed_at DESC NULLS LAST LIMIT 1""",
+                country)
+    finally:
+        await pool.close()
+    if not row:
+        return {"status": "empty",
+                "message": "아직 생성된 추천이 없습니다. '새로 생성'을 눌러 reco DAG를 실행하세요."}
+    import json as _json
+    out = row["output"]
+    if isinstance(out, str):
+        out = _json.loads(out)
+    return {"status": "ok", "run_id": row["run_id"],
+            "generated_at": str(row["completed_at"]), **out}
+
+
 @app.get("/api/status")
 async def api_status():
     return {"service": "Alpha Data Collector API", "status": "running",
@@ -136,24 +178,40 @@ class PipelineRequest(BaseModel):
     backtest_top_n: int = 10
     rebal_freq_days: int = 5
     initial_cash: float = 10_000_000
+    # kind="reco" runs the standalone recommendation-serving DAG (top_signal_reco
+    # only) instead of the full backtest pipeline.
+    kind: str = "full"
+    reco_top_n: int = 3       # buy_now size (best strategy = top-3)
+    reco_watch_n: int = 7     # watchlist runner-ups
 
 
 @app.post("/orchestrator/runs")
 async def orch_create_run(req: PipelineRequest, bg: BackgroundTasks):
     from orchestrator import runner as orch_runner
     end_date = req.end_date or _date.today()
-    start_date = req.start_date or (end_date - _td(days=365))
+    # reco 는 top_signal_reco 가 MAX(date) 한 줄만 읽으므로 등급 생성 구간을
+    # 단일 거래일로 축소(이전 14일 → 1일). 데이터 태스크는 내부적으로 400일
+    # lookback 을 별도 증분 수집하므로 지표/등급의 시점 정확도엔 영향 없음.
+    # 또 end_date 가 주말이면 직전 평일로 클립 — 휴장일을 grade-gen 시도
+    # 대상으로 넣어 75초씩 낭비하는 걸 막는다. (홀리데이는 별도 캘린더
+    # 없으면 못 잡지만 weekend 만으로도 큰 절감)
+    if req.kind == "reco":
+        while end_date.weekday() >= 5:   # Sat=5, Sun=6
+            end_date -= _td(days=1)
+        start_date = req.start_date or end_date
+    else:
+        start_date = req.start_date or (end_date - _td(days=365))
     params = req.model_dump()
     params["start_date"] = str(start_date)
     params["end_date"]   = str(end_date)
     run_id = await orch_runner.create_pipeline_run(
         country=req.country.upper(),
         start_date=start_date, end_date=end_date,
-        params=params,
+        params=params, kind=req.kind,
     )
     bg.add_task(orch_runner.execute, run_id)
     return {"run_id": run_id, "status": "started",
-            "country": req.country.upper(),
+            "country": req.country.upper(), "kind": req.kind,
             "start_date": str(start_date), "end_date": str(end_date)}
 
 
