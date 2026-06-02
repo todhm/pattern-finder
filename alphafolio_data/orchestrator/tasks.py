@@ -712,6 +712,460 @@ async def task_financials(ctx: Ctx) -> dict:
     }
 
 
+async def task_news_history_backfill(ctx: Ctx) -> dict:
+    """11b. 백테스트 윈도우 동안 select_top_n 의 후보 종목 news 분기-단위 backfill.
+
+    reco DAG 의 ``news_insider_top_n`` 과 동일 위치 (select_top_n → grades_pass_b)
+    에 끼는 11b 노드. 단 reco 가 "당일" 의 top-3 만 받는 반면 이 노드는 backtest
+    윈도우 전체 (start_date~end_date) 의 일자별 top-N union 종목들에 대해 분기
+    단위로 historical news 를 받는다. AV NEWS_SENTIMENT 가 2018-01 부터 안정.
+
+    Universe: select_top_n 와 동일 — us_stock_grade 의 (date in window,
+              rank<=option_top_n by final_score, grade in STRONG_BUY/BUY/NEUTRAL)
+              union. grades_pass_a 결과를 그대로 활용 → reco 와 일관.
+    호출 단위: (symbol, quarter). limit 1000 (분기당 뉴스가 보통 <100건).
+    Skip:    collection_state 'us_news_history' (symbol + quarter_start_date)
+             success 마킹 → 다음 run 자동 skip. 0 건도 success (영구).
+
+    Params:
+      option_top_n        (int,   default 50):  종목 universe 의 일자별 top-N
+                                                (select_top_n 와 동일 값 권장)
+      news_call_interval  (float, default 0.5): API 페이스 (초/콜)
+      news_max_concurrent (int,   default 3):   동시 호출 수
+
+    비용 (option_top_n=50, 7.5년 = 30 분기):
+      top-N union ≈ 200-500 unique symbols × 30 q ≈ 6k-15k calls / 1-3h
+    """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+
+    import aiohttp, json as _json
+    from datetime import datetime as _dt
+
+    top_n           = int(ctx.params.get("option_top_n", 50))
+    call_interval   = float(ctx.params.get("news_call_interval", 0.5))
+    max_concurrent  = int(ctx.params.get("news_max_concurrent", 3))
+
+    # AV NEWS_SENTIMENT 는 2018-01 부터 안정 → start_date 클립
+    av_news_min_date = _dt(2018, 1, 1).date()
+    win_start = max(ctx.start_date, av_news_min_date)
+    win_end   = ctx.end_date
+
+    # 분기 chunks 생성
+    def _quarter_chunks(s, e):
+        q_start = s.replace(month=((s.month - 1) // 3) * 3 + 1, day=1)
+        chunks = []
+        cur = q_start
+        while cur <= e:
+            ny, nm = (cur.year + 1, 1) if cur.month >= 10 else (cur.year, cur.month + 3)
+            nxt = cur.replace(year=ny, month=nm, day=1)
+            chunks.append((max(cur, s), min(nxt - timedelta(days=1), e)))
+            cur = nxt
+        return chunks
+
+    chunks = _quarter_chunks(win_start, win_end)
+    await ctx.log("info",
+                  f"news_history: window {win_start}~{win_end}, "
+                  f"{len(chunks)} quarter-chunks")
+
+    # Universe = select_top_n union (grades_pass_a 결과 활용)
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=6)
+    try:
+        async with pool.acquire() as conn:
+            uni_rows = await conn.fetch("""
+                SELECT DISTINCT symbol FROM (
+                  SELECT date, symbol, final_score,
+                         ROW_NUMBER() OVER (PARTITION BY date
+                                            ORDER BY final_score DESC NULLS LAST) AS rn
+                  FROM us_stock_grade
+                  WHERE date BETWEEN $1 AND $2
+                    AND final_grade IN ('STRONG_BUY','BUY','NEUTRAL','강력 매수','매수','중립','매수 고려')
+                    AND final_score IS NOT NULL
+                ) t WHERE rn <= $3
+                ORDER BY symbol
+            """, ctx.start_date, ctx.end_date, top_n)
+            universe = [r["symbol"] for r in uni_rows]
+
+            done_rows = await conn.fetch("""
+                SELECT symbol, date FROM collection_state
+                WHERE collection_name='us_news_history' AND status='success'
+            """)
+            done_set = {(r["symbol"], r["date"]) for r in done_rows}
+    finally:
+        await pool.close()
+
+    await ctx.log("info",
+                  f"news_history: universe={len(universe)} (top-{top_n}/date union), "
+                  f"already-done chunks={len(done_set)}")
+
+    # Plan tasks: 각 (symbol, chunk) 가 한 unit
+    todo = []
+    for sym in universe:
+        for (cs, ce) in chunks:
+            if (sym, cs) in done_set:
+                continue
+            todo.append((sym, cs, ce))
+    if not todo:
+        await ctx.log("ok", "news_history: all chunks already collected")
+        return {"universe": len(universe), "chunks": len(chunks), "todo": 0,
+                "status": "clean"}
+
+    await ctx.log("info",
+                  f"news_history: {len(todo)} (symbol, quarter) units to fetch "
+                  f"(~{len(todo)*call_interval/60:.0f} minutes at {call_interval}s/call)")
+
+    sem = asyncio.Semaphore(max_concurrent)
+    base_url = "https://www.alphavantage.co/query"
+    saved_total = 0
+    failures = 0
+
+    async def _fetch_chunk(session, symbol, cs, ce, max_retries=4):
+        params = {
+            "function": "NEWS_SENTIMENT", "tickers": symbol,
+            "time_from": cs.strftime("%Y%m%dT0000"),
+            "time_to":   ce.strftime("%Y%m%dT2359"),
+            "limit": "1000",
+            "sort": "RELEVANCE",
+            "apikey": api_key,
+        }
+        for attempt in range(max_retries):
+            try:
+                async with session.get(base_url, params=params,
+                                       timeout=aiohttp.ClientTimeout(total=30)) as r:
+                    if r.status != 200:
+                        return None, f"HTTP {r.status}"
+                    data = await r.json()
+                if "Error Message" in data:
+                    return None, data["Error Message"][:80]
+                if "Note" in data or "Information" in data:
+                    msg = (data.get("Note") or data.get("Information") or "")[:80]
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(5 * (2 ** attempt))
+                        continue
+                    return None, f"rate-limited: {msg}"
+                return data.get("feed", []), None
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 * (2 ** attempt))
+                    continue
+                return None, "timeout retries exhausted"
+            except Exception as e:
+                return None, str(e)[:80]
+        return None, "unknown"
+
+    upsert_sql = """
+        INSERT INTO us_news (
+            title, url, time_published, authors, summary, banner_image,
+            source, category_within_source, source_domain, topics,
+            overall_sentiment_score, overall_sentiment_label,
+            ticker, relevance_score_t, ticker_sentiment_score,
+            ticker_sentiment_label, created_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW())
+        ON CONFLICT (url, ticker) DO NOTHING
+    """
+
+    def _parse_tp(s):
+        if not s:
+            return None
+        try:
+            return _dt.strptime(s, "%Y%m%dT%H%M%S")
+        except Exception:
+            try:
+                return _dt.strptime(s, "%Y%m%dT%H%M")
+            except Exception:
+                return None
+
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=8)
+
+    async def _process(session, symbol, cs, ce):
+        nonlocal saved_total, failures
+        async with sem:
+            feed, err = await _fetch_chunk(session, symbol, cs, ce)
+            await asyncio.sleep(call_interval)
+            if feed is None:
+                failures += 1
+                return
+            # 같은 url+ticker 가 한 feed 안에 중복일 수 있어 dedup
+            seen = set()
+            rows = []
+            for item in feed:
+                url = item.get("url")
+                if not url:
+                    continue
+                tp = _parse_tp(item.get("time_published"))
+                if tp is None:
+                    continue
+                # ticker_sentiment 안에서 우리 symbol 의 점수/관련도 추출
+                ts_score, ts_label, rel = None, None, None
+                for ts in item.get("ticker_sentiment", []) or []:
+                    if ts.get("ticker") == symbol:
+                        try: ts_score = float(ts.get("ticker_sentiment_score"))
+                        except Exception: pass
+                        ts_label = ts.get("ticker_sentiment_label")
+                        try: rel = float(ts.get("relevance_score"))
+                        except Exception: pass
+                        break
+                key = (url, symbol)
+                if key in seen:
+                    continue
+                seen.add(key)
+                try: o_score = float(item.get("overall_sentiment_score"))
+                except Exception: o_score = None
+                rows.append((
+                    item.get("title"), url, tp,
+                    ", ".join(item.get("authors", []) or [])[:1000],
+                    item.get("summary"), item.get("banner_image"),
+                    item.get("source"), item.get("category_within_source"),
+                    item.get("source_domain"),
+                    _json.dumps(item.get("topics", [])),
+                    o_score, item.get("overall_sentiment_label"),
+                    symbol, rel, ts_score, ts_label,
+                ))
+            inserted = 0
+            try:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        if rows:
+                            await conn.executemany(upsert_sql, rows)
+                            inserted = len(rows)
+                        # success 마킹 — 0건이라도 (그 분기에 그 종목 뉴스 없음)
+                        await conn.execute("""
+                            INSERT INTO collection_state
+                              (collection_name, symbol, date, status)
+                            VALUES ('us_news_history', $1, $2, 'success')
+                            ON CONFLICT (collection_name, symbol, date) DO UPDATE
+                              SET status='success', collected_at=NOW()
+                        """, symbol, cs)
+            except Exception as e:
+                failures += 1
+                await ctx.log("warn", f"news_history {symbol} {cs}: db err {str(e)[:80]}")
+                return
+            saved_total += inserted
+
+    try:
+        async with capture_logs(ctx), monitor_progress(
+            ctx,
+            "SELECT COUNT(*) FROM us_news",
+            "us_news rows", interval=120):
+            async with aiohttp.ClientSession(headers={"User-Agent": "Mozilla/5.0"}) as session:
+                # ctx.log 진행 상황: 1000 units 마다
+                tasks = []
+                for i, (sym, cs, ce) in enumerate(todo):
+                    tasks.append(asyncio.create_task(_process(session, sym, cs, ce)))
+                    if (i + 1) % 500 == 0:
+                        # backpressure: 500 in-flight 이상 쌓이지 않도록
+                        done, pending = await asyncio.wait(
+                            tasks, return_when=asyncio.ALL_COMPLETED, timeout=None)
+                        tasks = list(pending)
+                        await ctx.log("info",
+                                      f"news_history progress: {i+1}/{len(todo)} units, "
+                                      f"saved={saved_total}, fail={failures}")
+                if tasks:
+                    await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+    finally:
+        await pool.close()
+
+    await ctx.log("ok",
+                  f"news_history done: {len(todo)} units, saved={saved_total} rows, "
+                  f"failures={failures}")
+    return {"universe": len(universe), "chunks_per_symbol": len(chunks),
+            "units_attempted": len(todo), "rows_saved": saved_total,
+            "failures": failures, "status": "completed"}
+
+
+async def task_listing_status(ctx: Ctx) -> dict:
+    """AV LISTING_STATUS → us_listing_status (active + delisted).
+
+    백테스트 시점별 PIT universe 구성용. 1회 호출에 13k active + 9k delisted
+    (1997~) 가 CSV 로 옴. cheap (2 calls).
+    """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+    from us.finance_data import ListingStatusCollector
+    async with capture_logs(ctx):
+        col = ListingStatusCollector(api_key, DATABASE_URL)
+        result = await col.run_collection()
+    await ctx.log("ok",
+                  f"listing_status: active={result.get('active_rows')}, "
+                  f"delisted={result.get('delisted_rows')}")
+    return result
+
+
+async def task_financials_verify(ctx: Ctx) -> dict:
+    """task_financials 의 belt-and-suspenders 검증 + 누락 종목 재시도.
+
+    이전 silent-drop 버그 (AV "Note"/"Information" rate-limit 응답을 그냥 drop
+    했던 것) 가 finance_data.py 의 retry-with-backoff 로 고쳐졌지만, 대량
+    parallel 호출 + burst-limit 조합에선 일부 종목이 그래도 누락될 수 있음.
+
+    이 노드는 task_financials 직후에 돌면서:
+      1) 12 개월 내 데이터 없는 active 종목 (≡ '누락') 식별
+      2) collection_state 에 no_data 로 마킹된 종목은 제외 (AV 자체에 없음)
+      3) 누락 종목만 좁은 universe 로 collector 재실행 — call_interval 0.7s
+         (≈85 calls/min) 의 conservative pace, 3 collector 직렬 (parallel X)
+         → burst-limit 회피
+      4) 결과는 warning 로그만 남기고 raise 안 함 — 다음 run 이 자연 backfill
+
+    사용자가 "다음 백테스트 때 자연 backfill" 하길 원했으므로 이 노드 자체가
+    그 메커니즘. backtest DAG (kind=full or reco) 가 grades_pass_a 전에 이걸
+    돌리도록 dependency 가 들어가 있음.
+    """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+
+    from datetime import datetime, time as time_obj
+    from us.finance_data import (
+        IncomeStatementCollector,
+        BalanceSheetCollector,
+        CashFlowCollector,
+    )
+
+    # 누락 식별: active=true 인데 12 개월 내 fiscal row 가 없고, no_data 로
+    # 마킹되지도 않은 종목들. (active=false 면 자연 폐기, no_data 면 AV 가
+    # 실제로 안 주는 것이라 재시도 무의미.)
+    GAP_SQL = """
+        WITH active AS (SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active=true),
+        present AS (
+          SELECT DISTINCT symbol FROM {tbl}
+          WHERE fiscal_date_ending >= CURRENT_DATE - INTERVAL '12 months'
+        ),
+        nd AS (
+          SELECT DISTINCT symbol FROM collection_state
+          WHERE collection_name = $1 AND status='no_data'
+        )
+        SELECT a.symbol
+        FROM active a
+        LEFT JOIN present p USING(symbol)
+        LEFT JOIN nd USING(symbol)
+        WHERE p.symbol IS NULL AND nd.symbol IS NULL
+        ORDER BY a.symbol
+    """
+
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
+    try:
+        async with pool.acquire() as conn:
+            inc_gap = [r["symbol"] for r in await conn.fetch(
+                GAP_SQL.format(tbl="us_income_statement"), "us_income_statement")]
+            bal_gap = [r["symbol"] for r in await conn.fetch(
+                GAP_SQL.format(tbl="us_balance_sheet"), "us_balance_sheet")]
+            cf_gap  = [r["symbol"] for r in await conn.fetch(
+                GAP_SQL.format(tbl="us_cash_flow"), "us_cash_flow")]
+    finally:
+        await pool.close()
+
+    await ctx.log("info",
+                  f"financials_verify gaps — income:{len(inc_gap)}, "
+                  f"balance:{len(bal_gap)}, cashflow:{len(cf_gap)}")
+
+    # 누락 0 → 깔끔, 그대로 종료
+    if not inc_gap and not bal_gap and not cf_gap:
+        return {"income_gap": 0, "balance_gap": 0, "cashflow_gap": 0,
+                "status": "clean"}
+
+    # 좁은 deadline (2 시간) — 누락이 적어 그 안에 다 들어와야 함
+    deadline = datetime.now() + timedelta(hours=2)
+    call_interval = 0.7   # ~85 calls/min, conservative
+
+    # 핵심 트릭: collector 가 skip_symbols 가 set 일 때 그것만 제외하므로,
+    # "처리해야 할 종목" 을 받는 메커니즘이 없다. 대신 'all active' 에서
+    # 'gap' 만 남기려면 skip = active - gap 으로 invert.
+    async def _run_one(CollectorCls, gap_list: list, label: str) -> dict:
+        if not gap_list:
+            return {"skipped": "no gap"}
+        async with capture_logs(ctx):
+            col = CollectorCls(api_key, DATABASE_URL,
+                               call_interval=call_interval, deadline=deadline)
+            # 직접 universe 주입 — get_existing_symbols 우회
+            col.skip_symbols = None
+            col._gap_only = set(gap_list)
+            # monkey-patch: get_existing_symbols 가 gap 만 반환하도록
+            async def _gap_universe():
+                return list(gap_list)
+            col.get_existing_symbols = _gap_universe
+            await col.run_collection_optimized()
+        return {"attempted": len(gap_list)}
+
+    # 직렬 실행 (병렬 X) — burst-limit 회피
+    inc_result = await _run_one(IncomeStatementCollector, inc_gap, "INCOME")
+    bal_result = await _run_one(BalanceSheetCollector,    bal_gap, "BALANCE")
+    cf_result  = await _run_one(CashFlowCollector,        cf_gap,  "CASHFLOW")
+
+    # 사후 점검
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            inc_after = [r["symbol"] for r in await conn.fetch(
+                GAP_SQL.format(tbl="us_income_statement"), "us_income_statement")]
+            bal_after = [r["symbol"] for r in await conn.fetch(
+                GAP_SQL.format(tbl="us_balance_sheet"), "us_balance_sheet")]
+            cf_after  = [r["symbol"] for r in await conn.fetch(
+                GAP_SQL.format(tbl="us_cash_flow"), "us_cash_flow")]
+    finally:
+        await pool.close()
+
+    await ctx.log("ok",
+                  f"financials_verify after-pass gaps — "
+                  f"income:{len(inc_after)} (was {len(inc_gap)}), "
+                  f"balance:{len(bal_after)} (was {len(bal_gap)}), "
+                  f"cashflow:{len(cf_after)} (was {len(cf_gap)}). "
+                  f"잔여 누락은 다음 run 이 자연 backfill.")
+
+    # available_at fallback 비율 로깅 — 백테스트 leak 위험 정량화
+    # +45d fallback 이 많을수록 look-ahead 위험. 정상 reported_date 비율을
+    # 분기 연도별로 집계해 보고.
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            fallback_dist = await conn.fetch("""
+                SELECT EXTRACT(YEAR FROM fiscal_date_ending)::int AS year,
+                       COUNT(*) AS rows,
+                       COUNT(*) FILTER (
+                         WHERE available_at = (fiscal_date_ending + INTERVAL '45 days')::date
+                       ) AS fallback_rows,
+                       ROUND(100.0 * COUNT(*) FILTER (
+                         WHERE available_at = (fiscal_date_ending + INTERVAL '45 days')::date
+                       ) / NULLIF(COUNT(*),0), 1) AS pct_fallback
+                FROM us_income_statement
+                GROUP BY 1 ORDER BY 1 DESC LIMIT 15
+            """)
+    finally:
+        await pool.close()
+
+    fb_summary = [
+        {"year": int(r["year"]), "rows": int(r["rows"]),
+         "fallback_rows": int(r["fallback_rows"]),
+         "pct_fallback": float(r["pct_fallback"]) if r["pct_fallback"] is not None else None}
+        for r in fallback_dist
+    ]
+    high_fb = [y for y in fb_summary if y["pct_fallback"] and y["pct_fallback"] > 30]
+    if high_fb:
+        parts = [f"{y['year']}({y['pct_fallback']}%)" for y in high_fb[:6]]
+        await ctx.log("warn",
+                      "+45d fallback >30% (look-ahead 위험) 분기-연도: "
+                      + ", ".join(parts)
+                      + ". earnings_history backfill 로 reported_date 보강 필요.")
+    else:
+        await ctx.log("ok", "+45d fallback 비율 모든 연도 <30% — look-ahead 위험 낮음.")
+
+    return {
+        "income_gap_before": len(inc_gap),  "income_gap_after": len(inc_after),
+        "balance_gap_before": len(bal_gap), "balance_gap_after": len(bal_after),
+        "cashflow_gap_before": len(cf_gap), "cashflow_gap_after": len(cf_after),
+        "fallback_by_year": fb_summary,
+        "status": "completed",
+    }
+
+
 async def task_us_etf(ctx: Ctx) -> dict:
     """ETF backfill via direct Alpha Vantage call + collection_state.
 
@@ -1920,6 +2374,8 @@ TASK_REGISTRY: dict[str, Callable] = {
     "us_weekly":     task_us_weekly,
     "us_calculator": task_us_calculator,
     "financials":    task_financials,
+    "financials_verify": task_financials_verify,
+    "listing_status": task_listing_status,
     "macros":        task_macros,
     "kr_daily":      task_kr_daily,
     "kr_dart":       task_kr_dart,
@@ -1930,7 +2386,8 @@ TASK_REGISTRY: dict[str, Callable] = {
     "options_top_n": task_options_top_n,
     "grades_pass_b": task_grades_pass_b,
     "backtest":      task_backtest,
-    "news_insider_top_n": task_news_insider_top_n,
+    "news_insider_top_n":   task_news_insider_top_n,
+    "news_history_backfill": task_news_history_backfill,
     "top_signal_reco": task_top_signal_reco,
 }
 
@@ -1950,6 +2407,7 @@ def build_dag(country: str, kind: str = "full") -> List[dict]:
         dag = [
             {"id": "partitions",     "name": "0. DB partitions",                  "depends_on": []},
             {"id": "stock_listing",  "name": "1. NASDAQ/NYSE listing",            "depends_on": ["partitions"]},
+            {"id": "listing_status", "name": "1b. AV listing_status (active+delisted, PIT universe)", "depends_on": ["partitions"]},
             {"id": "finnhub_symbol", "name": "2. Finnhub symbol master",          "depends_on": ["stock_listing"]},
             {"id": "stock_basic",    "name": "3. US Stock Basic (fundamentals)",  "depends_on": ["finnhub_symbol"]},
             {"id": "us_daily",       "name": "4. US Daily OHLCV (outputsize=full)","depends_on": ["stock_basic"]},
@@ -1958,14 +2416,16 @@ def build_dag(country: str, kind: str = "full") -> List[dict]:
             {"id": "us_calculator",  "name": "6. Technical indicators (14종, DB 계산)", "depends_on": ["us_daily","us_weekly"]},
             {"id": "earnings_history", "name": "7a. Earnings history (reportedDate)", "depends_on": ["stock_basic"]},
             {"id": "financials",     "name": "7. Income / Balance / CashFlow",    "depends_on": ["stock_basic","earnings_history"]},
-            {"id": "stock_basic_compute", "name": "7b. Stock Basic 시점별 computed (pandas asof, 17 컬럼)", "depends_on": ["us_daily","stock_basic","financials"]},
+            {"id": "financials_verify", "name": "7a-2. Financials gap-fill (silent-drop 보호)", "depends_on": ["financials"]},
+            {"id": "stock_basic_compute", "name": "7b. Stock Basic 시점별 computed (pandas asof, 17 컬럼)", "depends_on": ["us_daily","stock_basic","financials_verify"]},
             {"id": "macros",         "name": "8. Macros (Fed/Treasury/CPI/UE)",   "depends_on": ["partitions"]},
             {"id": "em8_pre_filter", "name": "9. EM8 pre-filter (top-500/date)",  "depends_on": ["us_daily","us_weekly","us_calculator"]},
             {"id": "us_mv_sector_refresh", "name": "9b. Sector MV (mv_us_sector_daily_performance)", "depends_on": ["us_daily","stock_basic"]},
-            {"id": "grades_pass_a",  "name": "10. Pass-A grades (top-N only)",    "depends_on": ["us_calculator","us_etf","financials","macros","em8_pre_filter","stock_basic_compute","us_mv_sector_refresh"]},
+            {"id": "grades_pass_a",  "name": "10. Pass-A grades (top-N only)",    "depends_on": ["us_calculator","us_etf","financials_verify","macros","em8_pre_filter","stock_basic_compute","us_mv_sector_refresh","listing_status"]},
             {"id": "select_top_n",   "name": "10. Pick top-N symbols",            "depends_on": ["grades_pass_a"]},
             {"id": "options_top_n",  "name": "11. Options backfill (top-N only)", "depends_on": ["select_top_n"]},
-            {"id": "grades_pass_b",  "name": "12. Pass-B grades (with options)",  "depends_on": ["options_top_n"]},
+            {"id": "news_history_backfill", "name": "11b. News history backfill (top-N union, 분기 단위)", "depends_on": ["select_top_n"]},
+            {"id": "grades_pass_b",  "name": "12. Pass-B grades (with options)",  "depends_on": ["options_top_n","news_history_backfill"]},
             {"id": "backtest",       "name": "13. Run backtest",                  "depends_on": ["grades_pass_b"]},
         ]
         reco_dep = "grades_pass_b"

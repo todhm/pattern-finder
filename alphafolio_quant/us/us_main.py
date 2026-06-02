@@ -151,10 +151,10 @@ class USQuantSystemV2:
         logger.info(f"  Regime: {self.current_regime}")
         logger.info(f"  Weights: {self.regime_weights}")
 
-        # 2. 분석 대상 종목 로드
+        # 2. 분석 대상 종목 로드 — analysis_date 기준 PIT universe
         if symbols is None:
-            symbols = await self._load_analysis_symbols()
-        logger.info(f"Step 2: Loaded {len(symbols)} symbols for analysis")
+            symbols = await self._load_analysis_symbols(analysis_date)
+        logger.info(f"Step 2: Loaded {len(symbols)} symbols for analysis (PIT @ {analysis_date})")
 
         # 3. 각 종목 분석
         logger.info("Step 3: Analyzing stocks...")
@@ -280,18 +280,64 @@ class USQuantSystemV2:
             'hmm_transition_probs': transition_probs
         }
 
-    async def _load_analysis_symbols(self) -> List[str]:
-        """분석 대상 종목 로드"""
+    async def _load_analysis_symbols(self, analysis_date: Optional[date] = None) -> List[str]:
+        """분석 대상 종목 로드 — Point-in-Time universe (survivorship-bias 제거).
 
-        query = """
-        SELECT DISTINCT symbol
-        FROM us_stock_basic
-        WHERE sector IS NOT NULL
-          AND sector != ''
-        ORDER BY symbol
+        analysis_date 가 주어지면 us_listing_status 와 JOIN 해서:
+          - ipo_date <= analysis_date (그 시점에 이미 상장)
+          - delisting_date IS NULL OR delisting_date > analysis_date (그 시점에 아직 상장 중)
+          - asset_type = 'Stock' (ETF/SPAC 등 제외)
+        조건을 만족하는 종목만 반환. us_stock_basic 의 sector 정보는 LEFT JOIN
+        하되 sector NULL 인 delisted 종목도 universe 에 포함 (단, 일부 sector
+        기반 점수는 계산 안 됨).
+
+        analysis_date=None 인 경우 (legacy) → 현재 sector 가 있는 모든 종목.
+
+        Note: us_listing_status 가 비어있으면 (data 수집 전) 자동으로 legacy
+        쿼리로 폴백 — orchestrator 첫 run 깨지지 않도록.
         """
+        if analysis_date is None:
+            query = """
+            SELECT DISTINCT symbol FROM us_stock_basic
+            WHERE sector IS NOT NULL AND sector != ''
+            ORDER BY symbol
+            """
+            result = await self.db.execute_query(query)
+            return [r['symbol'] for r in result] if result else []
 
-        result = await self.db.execute_query(query)
+        # us_listing_status 존재 + 데이터 유무 체크 (graceful fallback)
+        has_ls = await self.db.execute_query("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.tables
+                           WHERE table_name='us_listing_status') AS exists
+        """)
+        ls_exists = bool(has_ls and has_ls[0]['exists'])
+        if ls_exists:
+            row_count = await self.db.execute_query("SELECT COUNT(*) AS n FROM us_listing_status")
+            ls_exists = ls_exists and (row_count and row_count[0]['n'] > 0)
+
+        if not ls_exists:
+            # 폴백: us_stock_basic 기반 (survivorship bias 있음 — 경고 로그)
+            logger.warning(
+                f"_load_analysis_symbols: us_listing_status 비어있음 → "
+                f"survivorship-biased universe 사용 ({analysis_date})")
+            query = """
+            SELECT DISTINCT symbol FROM us_stock_basic
+            WHERE sector IS NOT NULL AND sector != '' AND date <= $1
+            ORDER BY symbol
+            """
+            result = await self.db.execute_query(query, analysis_date)
+            return [r['symbol'] for r in result] if result else []
+
+        # PIT universe — us_listing_status 기준
+        pit_query = """
+        SELECT DISTINCT ls.symbol
+        FROM us_listing_status ls
+        WHERE (ls.ipo_date IS NULL OR ls.ipo_date <= $1)
+          AND (ls.delisting_date IS NULL OR ls.delisting_date > $1)
+          AND (ls.asset_type IS NULL OR ls.asset_type = 'Stock')
+        ORDER BY ls.symbol
+        """
+        result = await self.db.execute_query(pit_query, analysis_date)
         return [r['symbol'] for r in result] if result else []
 
     async def _get_sector_benchmarks(self, sector: str,
@@ -2380,30 +2426,74 @@ async def analyze_all_stocks_specific_dates(
         # us_stock_basic is point-in-time (one row per trading day per symbol).
         # Use ``b.date <= $1`` so the sector check sees the most recent row that
         # existed on the analysis date, not a future one.
-        if symbols_filter:
+        # PIT universe (survivorship-bias 제거):
+        #   us_listing_status 의 (ipo_date, delisting_date) 기준으로 그 시점에
+        #   상장 중이었던 종목만. 가격 데이터 (us_daily) 도 그 날 있어야 분석
+        #   가능. us_listing_status 가 비어있으면 (마이그레이션/수집 전) 자동
+        #   폴백.
+        ls_check = await db_manager.execute_query("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.tables
+                           WHERE table_name='us_listing_status') AS exists
+        """)
+        ls_ready = bool(ls_check and ls_check[0]['exists'])
+        if ls_ready:
+            row_check = await db_manager.execute_query(
+                "SELECT COUNT(*) AS n FROM us_listing_status")
+            ls_ready = ls_ready and (row_check and row_check[0]['n'] > 0)
+
+        if ls_ready and symbols_filter:
+            symbol_query = """
+            SELECT DISTINCT d.symbol
+            FROM us_daily d
+            JOIN us_listing_status ls ON ls.symbol = d.symbol
+            LEFT JOIN us_stock_basic b ON b.symbol = d.symbol AND b.date <= $1
+            WHERE d.date = $1
+              AND (ls.ipo_date IS NULL OR ls.ipo_date <= $1)
+              AND (ls.delisting_date IS NULL OR ls.delisting_date > $1)
+              AND (ls.asset_type IS NULL OR ls.asset_type = 'Stock')
+              AND d.symbol = ANY($2::text[])
+            ORDER BY d.symbol
+            """
+            symbol_result = await db_manager.execute_query(
+                symbol_query, analysis_date, symbols_filter)
+        elif ls_ready:
+            symbol_query = """
+            SELECT DISTINCT d.symbol
+            FROM us_daily d
+            JOIN us_listing_status ls ON ls.symbol = d.symbol
+            WHERE d.date = $1
+              AND (ls.ipo_date IS NULL OR ls.ipo_date <= $1)
+              AND (ls.delisting_date IS NULL OR ls.delisting_date > $1)
+              AND (ls.asset_type IS NULL OR ls.asset_type = 'Stock')
+            ORDER BY d.symbol
+            """
+            symbol_result = await db_manager.execute_query(symbol_query, analysis_date)
+        elif symbols_filter:
+            # 폴백 (legacy, survivorship-biased)
             symbol_query = """
             SELECT DISTINCT b.symbol
             FROM us_stock_basic b
             INNER JOIN us_daily d ON b.symbol = d.symbol AND d.date = $1
             WHERE b.date <= $1
-              AND b.sector IS NOT NULL
-              AND b.sector != ''
+              AND b.sector IS NOT NULL AND b.sector != ''
               AND b.symbol = ANY($2::text[])
             ORDER BY b.symbol
             """
             symbol_result = await db_manager.execute_query(
                 symbol_query, analysis_date, symbols_filter)
+            logger.warning(f"PIT universe 불가 (us_listing_status 비어있음) → "
+                           f"survivorship-biased universe 사용 @ {analysis_date}")
         else:
             symbol_query = """
             SELECT DISTINCT b.symbol
             FROM us_stock_basic b
             INNER JOIN us_daily d ON b.symbol = d.symbol AND d.date = $1
             WHERE b.date <= $1
-              AND b.sector IS NOT NULL
-              AND b.sector != ''
+              AND b.sector IS NOT NULL AND b.sector != ''
             ORDER BY b.symbol
             """
             symbol_result = await db_manager.execute_query(symbol_query, analysis_date)
+            logger.warning(f"PIT universe 불가 → survivorship-biased universe @ {analysis_date}")
         symbols = [r['symbol'] for r in symbol_result] if symbol_result else []
 
         if not symbols:

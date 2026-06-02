@@ -34,12 +34,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Last N quarterly reports to persist per symbol. Most downstream analyses
-# need at least 4-8 quarters (TTM = rolling-4 sum; YoY growth = quarter
-# vs quarter-4-ago); 12 gives ~3 years of trend depth and is the upper
-# bound AV typically returns from a single endpoint call anyway. Used by
-# IncomeStatementCollector / BalanceSheetCollector / CashFlowCollector.
-MAX_QUARTERS = 12
+# AV INCOME_STATEMENT/BALANCE_SHEET/CASH_FLOW endpoints return every quarter
+# they have on file in a single call (verified: ~81 quarters/20 years for
+# AAPL/TER/NVDA; 29q since IPO for PLTR). We persist all of them — storage
+# cost is trivial (~80 rows/symbol × 6k symbols = 0.5M rows total) and
+# downstream backtests over earlier regimes (2018 bear, 2020 COVID, 2022
+# bear) need the depth. No outputsize/horizon parameter extends this — the
+# default response is already the maximum.
 
 
 class IncomeStatementCollector:
@@ -52,7 +53,6 @@ class IncomeStatementCollector:
         self.retry_count = 3
         self.retry_delay = 1
         self.call_interval = call_interval
-        self.start_date = date(2021, 1, 1)  # Income statements from 2021
         self.deadline = deadline
         self.skip_symbols = skip_symbols
 
@@ -199,47 +199,82 @@ class IncomeStatementCollector:
             logger.error(f"[INCOME_STMT] Failed to get DB symbols: {e}")
             return set()
 
-    async def get_income_statement_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch Income Statement data with async aiohttp - OPTIMIZED"""
-        try:
-            params = {
-                'function': 'INCOME_STATEMENT',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
+    async def get_income_statement_data(self, symbol: str, max_retries: int = 4) -> Optional[Dict[str, Any]]:
+        """Fetch Income Statement data with rate-limit retry.
+
+        AV signals rate-limiting via ``Note`` or ``Information`` keys (and
+        sometimes an unknown response shape). The old code silently dropped
+        the symbol on those responses; with 3 collectors hitting AV in
+        parallel the burst-limit response was the common reason ~1k symbols
+        permanently missed income/balance/cashflow rows. We now retry with
+        exponential backoff (5/10/20/40s) before giving up — and giving up
+        is non-marking (no ``no_data`` row), so the next run retries.
+        """
+        params = {
+            'function': 'INCOME_STATEMENT',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        for attempt in range(max_retries):
+            try:
+                async with self.session.get(self.base_url, params=params,
+                                            timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        logger.error(f"[INCOME_STMT] HTTP {response.status} for {symbol}")
+                        return None
                     data = await response.json()
+
                     if 'Error Message' in data:
-                        logger.error(f"[INCOME_STMT] API error for {symbol}: {data['Error Message']}")
+                        logger.error(f"[INCOME_STMT] {symbol}: {data['Error Message']}")
                         return None
-                    elif 'Note' in data:
-                        logger.warning(f"[INCOME_STMT] API limit reached: {data['Note']}")
+
+                    # AV rate-limit signals — retry with exponential backoff
+                    if 'Note' in data or 'Information' in data:
+                        msg = (data.get('Note') or data.get('Information') or '')[:120]
+                        if attempt < max_retries - 1:
+                            backoff = 5 * (2 ** attempt)
+                            logger.warning(f"[INCOME_STMT] {symbol}: rate-limited "
+                                           f"(attempt {attempt+1}/{max_retries}, sleep {backoff}s): {msg}")
+                            await asyncio.sleep(backoff)
+                            continue
+                        logger.error(f"[INCOME_STMT] {symbol}: rate-limit retries exhausted, "
+                                     f"will retry on next run: {msg}")
                         return None
-                    elif 'quarterlyReports' in data or 'annualReports' in data:
+
+                    if 'quarterlyReports' in data or 'annualReports' in data:
                         return data
-                    elif not data:
+
+                    if not data:
                         # Truly empty response ({}) — AV has no fundamentals for
                         # this ticker (delisted / ETF / micro-cap). Persist
-                        # ``no_data`` in collection_state so subsequent runs
-                        # skip this symbol entirely (Option B speedup).
+                        # ``no_data`` so subsequent runs skip.
                         logger.info(f"[INCOME_STMT] {symbol}: empty response → mark no_data")
                         await self._mark_no_data(symbol)
                         return None
-                    else:
-                        # ['Information'] (rate limit text) or other unknown —
-                        # transient or unclassified; do NOT mark, retry next run.
-                        logger.warning(f"[INCOME_STMT] Unexpected response format for {symbol}: {list(data.keys())}")
-                        return None
-                else:
-                    logger.error(f"[INCOME_STMT] API request failed for {symbol}: Status {response.status}")
+
+                    # Unknown shape — likely transient. Log keys + retry once.
+                    logger.warning(f"[INCOME_STMT] {symbol}: unexpected keys "
+                                   f"{list(data.keys())[:5]} (attempt {attempt+1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(3)
+                        continue
                     return None
-        except Exception as e:
-            logger.error(f"[INCOME_STMT] Error fetching data for {symbol}: {e}")
-            return None
-    
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    backoff = 2 * (2 ** attempt)
+                    logger.warning(f"[INCOME_STMT] {symbol}: timeout (attempt {attempt+1}/{max_retries}, "
+                                   f"sleep {backoff}s)")
+                    await asyncio.sleep(backoff)
+                    continue
+                logger.error(f"[INCOME_STMT] {symbol}: timeout retries exhausted")
+                return None
+            except Exception as e:
+                logger.error(f"[INCOME_STMT] {symbol}: {e}")
+                return None
+        return None
+
     def transform_income_statement_data(self, api_data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
-        """Persist the latest ``_MAX_QUARTERS`` quarterly income statements.
+        """Persist every quarterly income statement AV returns for the symbol.
 
         Downstream (us_stock_basic_compute) computes TTM = rolling 4-quarter
         sum and YoY growth = quarter / quarter-4-ago — both require multiple
@@ -257,7 +292,6 @@ class IncomeStatementCollector:
             if not reports:
                 return transformed_records
 
-            # Sort by fiscal_date_ending DESC and take the latest N.
             dated_reports = []
             for r in reports:
                 fde = r.get("fiscalDateEnding", "")
@@ -268,8 +302,6 @@ class IncomeStatementCollector:
                     dated_reports.append((parsed, r))
                 except Exception:
                     continue
-            dated_reports.sort(key=lambda t: t[0], reverse=True)
-            dated_reports = dated_reports[:MAX_QUARTERS]
 
             for parsed_date, report in dated_reports:
                 try:
@@ -744,7 +776,6 @@ class BalanceSheetCollector:
         self.retry_count = 3
         self.retry_delay = 1
         self.call_interval = call_interval
-        self.start_date = date(2021, 1, 1)  # Balance sheets from 2021
         self.deadline = deadline
         self.skip_symbols = skip_symbols
 
@@ -886,41 +917,70 @@ class BalanceSheetCollector:
             logger.error(f"[BALANCE_SHEET] Failed to get DB symbols: {e}")
             return set()
 
-    async def get_balance_sheet_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch Balance Sheet data with async aiohttp - OPTIMIZED"""
-        try:
-            params = {
-                'function': 'BALANCE_SHEET',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
+    async def get_balance_sheet_data(self, symbol: str, max_retries: int = 4) -> Optional[Dict[str, Any]]:
+        """Fetch Balance Sheet data with rate-limit retry. See income_statement
+        analogue for the rationale — same silent-drop bug fix.
+        """
+        params = {
+            'function': 'BALANCE_SHEET',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        for attempt in range(max_retries):
+            try:
+                async with self.session.get(self.base_url, params=params,
+                                            timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        logger.error(f"[BALANCE_SHEET] HTTP {response.status} for {symbol}")
+                        return None
                     data = await response.json()
+
                     if 'Error Message' in data:
-                        logger.error(f"[BALANCE_SHEET] API error for {symbol}: {data['Error Message']}")
+                        logger.error(f"[BALANCE_SHEET] {symbol}: {data['Error Message']}")
                         return None
-                    elif 'Note' in data:
-                        logger.warning(f"[BALANCE_SHEET] API limit reached: {data['Note']}")
+
+                    if 'Note' in data or 'Information' in data:
+                        msg = (data.get('Note') or data.get('Information') or '')[:120]
+                        if attempt < max_retries - 1:
+                            backoff = 5 * (2 ** attempt)
+                            logger.warning(f"[BALANCE_SHEET] {symbol}: rate-limited "
+                                           f"(attempt {attempt+1}/{max_retries}, sleep {backoff}s): {msg}")
+                            await asyncio.sleep(backoff)
+                            continue
+                        logger.error(f"[BALANCE_SHEET] {symbol}: rate-limit retries exhausted, "
+                                     f"will retry on next run: {msg}")
                         return None
-                    elif 'quarterlyReports' in data or 'annualReports' in data:
+
+                    if 'quarterlyReports' in data or 'annualReports' in data:
                         return data
-                    elif not data:
+
+                    if not data:
                         logger.info(f"[BALANCE_SHEET] {symbol}: empty response → mark no_data")
                         await self._mark_no_data(symbol)
                         return None
-                    else:
-                        logger.warning(f"[BALANCE_SHEET] Unexpected response format for {symbol}: {list(data.keys())}")
-                        return None
-                else:
-                    logger.error(f"[BALANCE_SHEET] API request failed for {symbol}: Status {response.status}")
+
+                    logger.warning(f"[BALANCE_SHEET] {symbol}: unexpected keys "
+                                   f"{list(data.keys())[:5]} (attempt {attempt+1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(3)
+                        continue
                     return None
-        except Exception as e:
-            logger.error(f"[BALANCE_SHEET] Error fetching data for {symbol}: {e}")
-            return None
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    backoff = 2 * (2 ** attempt)
+                    logger.warning(f"[BALANCE_SHEET] {symbol}: timeout (attempt {attempt+1}/{max_retries}, "
+                                   f"sleep {backoff}s)")
+                    await asyncio.sleep(backoff)
+                    continue
+                logger.error(f"[BALANCE_SHEET] {symbol}: timeout retries exhausted")
+                return None
+            except Exception as e:
+                logger.error(f"[BALANCE_SHEET] {symbol}: {e}")
+                return None
+        return None
     
     def transform_balance_sheet_data(self, api_data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
-        """Persist the latest ``_MAX_QUARTERS`` quarterly balance sheets.
+        """Persist every quarterly balance sheet AV returns for the symbol.
 
         Quarterly cadence is required for downstream point-in-time analyses
         (us_stock_basic_compute fills daily fundamentals via as-of merge on
@@ -935,7 +995,6 @@ class BalanceSheetCollector:
             if not reports:
                 return transformed_records
 
-            # Sort DESC and take the latest N quarters.
             dated_reports = []
             for r in reports:
                 fde = r.get("fiscalDateEnding", "")
@@ -946,8 +1005,6 @@ class BalanceSheetCollector:
                     dated_reports.append((parsed, r))
                 except Exception:
                     continue
-            dated_reports.sort(key=lambda t: t[0], reverse=True)
-            dated_reports = dated_reports[:MAX_QUARTERS]
 
             for parsed_date, report in dated_reports:
                 try:
@@ -1501,7 +1558,6 @@ class CashFlowCollector:
         self.retry_count = 3
         self.retry_delay = 1
         self.call_interval = call_interval
-        self.start_date = date(2021, 1, 1)  # Cash flow statements from 2021
         self.deadline = deadline
         self.skip_symbols = skip_symbols
 
@@ -1643,41 +1699,70 @@ class CashFlowCollector:
             logger.error(f"[CASH_FLOW] Failed to get DB symbols: {e}")
             return set()
 
-    async def get_cash_flow_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch Cash Flow data with async aiohttp - OPTIMIZED"""
-        try:
-            params = {
-                'function': 'CASH_FLOW',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
+    async def get_cash_flow_data(self, symbol: str, max_retries: int = 4) -> Optional[Dict[str, Any]]:
+        """Fetch Cash Flow data with rate-limit retry. See income_statement
+        analogue for the rationale — same silent-drop bug fix.
+        """
+        params = {
+            'function': 'CASH_FLOW',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        for attempt in range(max_retries):
+            try:
+                async with self.session.get(self.base_url, params=params,
+                                            timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        logger.error(f"[CASH_FLOW] HTTP {response.status} for {symbol}")
+                        return None
                     data = await response.json()
+
                     if 'Error Message' in data:
-                        logger.error(f"[CASH_FLOW] API error for {symbol}: {data['Error Message']}")
+                        logger.error(f"[CASH_FLOW] {symbol}: {data['Error Message']}")
                         return None
-                    elif 'Note' in data:
-                        logger.warning(f"[CASH_FLOW] API limit reached: {data['Note']}")
+
+                    if 'Note' in data or 'Information' in data:
+                        msg = (data.get('Note') or data.get('Information') or '')[:120]
+                        if attempt < max_retries - 1:
+                            backoff = 5 * (2 ** attempt)
+                            logger.warning(f"[CASH_FLOW] {symbol}: rate-limited "
+                                           f"(attempt {attempt+1}/{max_retries}, sleep {backoff}s): {msg}")
+                            await asyncio.sleep(backoff)
+                            continue
+                        logger.error(f"[CASH_FLOW] {symbol}: rate-limit retries exhausted, "
+                                     f"will retry on next run: {msg}")
                         return None
-                    elif 'quarterlyReports' in data or 'annualReports' in data:
+
+                    if 'quarterlyReports' in data or 'annualReports' in data:
                         return data
-                    elif not data:
+
+                    if not data:
                         logger.info(f"[CASH_FLOW] {symbol}: empty response → mark no_data")
                         await self._mark_no_data(symbol)
                         return None
-                    else:
-                        logger.warning(f"[CASH_FLOW] Unexpected response format for {symbol}: {list(data.keys())}")
-                        return None
-                else:
-                    logger.error(f"[CASH_FLOW] API request failed for {symbol}: Status {response.status}")
+
+                    logger.warning(f"[CASH_FLOW] {symbol}: unexpected keys "
+                                   f"{list(data.keys())[:5]} (attempt {attempt+1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(3)
+                        continue
                     return None
-        except Exception as e:
-            logger.error(f"[CASH_FLOW] Error fetching data for {symbol}: {e}")
-            return None
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    backoff = 2 * (2 ** attempt)
+                    logger.warning(f"[CASH_FLOW] {symbol}: timeout (attempt {attempt+1}/{max_retries}, "
+                                   f"sleep {backoff}s)")
+                    await asyncio.sleep(backoff)
+                    continue
+                logger.error(f"[CASH_FLOW] {symbol}: timeout retries exhausted")
+                return None
+            except Exception as e:
+                logger.error(f"[CASH_FLOW] {symbol}: {e}")
+                return None
+        return None
     
     def transform_cash_flow_data(self, api_data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
-        """Persist the latest ``_MAX_QUARTERS`` quarterly cash-flow statements.
+        """Persist every quarterly cash-flow statement AV returns for the symbol.
 
         Same rationale as income/balance: TTM operating cash flow, FCF
         (= operating - capex) over the last 4 quarters, etc. all need
@@ -1701,8 +1786,6 @@ class CashFlowCollector:
                     dated_reports.append((parsed, r))
                 except Exception:
                     continue
-            dated_reports.sort(key=lambda t: t[0], reverse=True)
-            dated_reports = dated_reports[:MAX_QUARTERS]
 
             for parsed_date, report in dated_reports:
                 try:
@@ -5879,6 +5962,147 @@ class EarningsEstimatesCollectorOptimized:
 
         duration = datetime.now() - start_time
         logger.info(f"[EARNINGS_EST_OPT] Completed in {duration}, saved {total_saved} records")
+
+
+class ListingStatusCollector:
+    """AV LISTING_STATUS endpoint → us_listing_status (active + delisted).
+
+    Survivorship-bias 제거용. 한 호출에 모든 active/delisted 종목을 CSV 로
+    받아 ipo_date / delisting_date 와 함께 upsert 한다. 백테스트 시점별
+    universe 는 `SELECT symbol WHERE (ipo_date IS NULL OR ipo_date<=$d) AND
+    (delisting_date IS NULL OR delisting_date>$d)` 로 구성.
+
+    AV 응답: CSV — symbol,name,exchange,assetType,ipoDate,delistingDate,status
+    호출은 state=active / state=delisted 두 번 (~3KB+1MB).
+    """
+
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.5):
+        self.api_key = api_key
+        if database_url.startswith('postgresql+asyncpg://'):
+            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        self.database_url = database_url
+        self.base_url = "https://www.alphavantage.co/query"
+        self.call_interval = call_interval
+        self.pool = None
+        self.session = None
+
+    async def init_pool(self):
+        self.pool = await asyncpg.create_pool(self.database_url, min_size=2, max_size=5)
+        self.session = aiohttp.ClientSession(headers=USER_AGENT_HEADERS)
+
+    async def close_pool(self):
+        if self.session:
+            await self.session.close()
+        if self.pool:
+            await self.pool.close()
+
+    async def _fetch_csv(self, state: str, max_retries: int = 4) -> Optional[str]:
+        """Fetch LISTING_STATUS CSV for state in {'active','delisted'}."""
+        params = {'function': 'LISTING_STATUS', 'apikey': self.api_key}
+        if state == 'delisted':
+            params['state'] = 'delisted'
+        for attempt in range(max_retries):
+            try:
+                async with self.session.get(self.base_url, params=params,
+                                            timeout=aiohttp.ClientTimeout(total=60)) as r:
+                    if r.status != 200:
+                        logger.error(f"[LISTING_STATUS:{state}] HTTP {r.status}")
+                        return None
+                    text = await r.text()
+                # CSV first line is header. Rate-limit / Note responses come as JSON-ish.
+                if text.lstrip().startswith('{') or 'rate limit' in text.lower() or 'Note' in text[:200]:
+                    if attempt < max_retries - 1:
+                        backoff = 5 * (2 ** attempt)
+                        logger.warning(f"[LISTING_STATUS:{state}] rate-limited (attempt "
+                                       f"{attempt+1}/{max_retries}, sleep {backoff}s)")
+                        await asyncio.sleep(backoff)
+                        continue
+                    logger.error(f"[LISTING_STATUS:{state}] rate-limit retries exhausted")
+                    return None
+                if 'symbol' not in text.split('\n', 1)[0].lower():
+                    logger.warning(f"[LISTING_STATUS:{state}] unexpected response head: {text[:200]}")
+                    return None
+                return text
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 * (2 ** attempt))
+                    continue
+                return None
+            except Exception as e:
+                logger.error(f"[LISTING_STATUS:{state}] {e}")
+                return None
+        return None
+
+    @staticmethod
+    def _parse_date(s: str) -> Optional[date]:
+        if not s or s == 'null' or s == 'None':
+            return None
+        try:
+            return date.fromisoformat(s[:10])
+        except (TypeError, ValueError):
+            return None
+
+    def _parse_csv(self, csv_text: str) -> List[tuple]:
+        import csv as _csv
+        import io
+        rdr = _csv.DictReader(io.StringIO(csv_text))
+        records = []
+        for r in rdr:
+            sym = (r.get('symbol') or '').strip()
+            if not sym:
+                continue
+            records.append((
+                sym,
+                (r.get('name') or '').strip() or None,
+                (r.get('exchange') or '').strip() or None,
+                (r.get('assetType') or '').strip() or None,
+                self._parse_date(r.get('ipoDate')),
+                self._parse_date(r.get('delistingDate')),
+                (r.get('status') or '').strip() or None,
+            ))
+        return records
+
+    async def _upsert(self, records: List[tuple]) -> int:
+        if not records:
+            return 0
+        async with self.pool.acquire() as conn:
+            await conn.executemany(
+                """INSERT INTO us_listing_status
+                   (symbol, name, exchange, asset_type, ipo_date, delisting_date, status)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7)
+                   ON CONFLICT (symbol) DO UPDATE SET
+                     name           = EXCLUDED.name,
+                     exchange       = EXCLUDED.exchange,
+                     asset_type     = EXCLUDED.asset_type,
+                     ipo_date       = EXCLUDED.ipo_date,
+                     delisting_date = EXCLUDED.delisting_date,
+                     status         = EXCLUDED.status,
+                     updated_at     = NOW()""",
+                records)
+        return len(records)
+
+    async def run_collection(self) -> Dict[str, Any]:
+        await self.init_pool()
+        try:
+            logger.info("[LISTING_STATUS] fetching active list")
+            csv_active = await self._fetch_csv('active')
+            await asyncio.sleep(self.call_interval)
+            logger.info("[LISTING_STATUS] fetching delisted list")
+            csv_del = await self._fetch_csv('delisted')
+
+            recs_active = self._parse_csv(csv_active) if csv_active else []
+            recs_del    = self._parse_csv(csv_del)    if csv_del    else []
+
+            n_active = await self._upsert(recs_active)
+            n_del    = await self._upsert(recs_del)
+            logger.info(f"[LISTING_STATUS] upserted active={n_active}, delisted={n_del}")
+            return {
+                "active_rows":   n_active,
+                "delisted_rows": n_del,
+                "total":         n_active + n_del,
+            }
+        finally:
+            await self.close_pool()
 
 
 if __name__ == "__main__":
