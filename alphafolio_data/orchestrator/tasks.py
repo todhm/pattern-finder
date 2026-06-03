@@ -1336,11 +1336,16 @@ async def task_us_weekly(ctx: Ctx) -> dict:
 
     from us.alphavantage import WeeklyCollector
 
+    # ctx.start_date 가 collector 의 start_date 보다 더 과거이면 weekly
+    # 데이터 누락 → us_calculator 가 weekly 지표 계산 못 함. extra buffer
+    # 60일 (≈ EM8 lookback margin) 으로 더 일찍 잡음.
+    weekly_start = ctx.start_date - timedelta(days=60)
     async with capture_logs(ctx), monitor_progress(
         ctx,
         "SELECT COUNT(*) FROM us_weekly",
         "us_weekly rows", interval=30):
-        col = WeeklyCollector(api_key, DATABASE_URL, max_concurrent=20)
+        col = WeeklyCollector(api_key, DATABASE_URL, max_concurrent=20,
+                              start_date=weekly_start)
         await col.run_collection()
 
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
@@ -1427,16 +1432,39 @@ async def task_us_calculator(ctx: Ctx) -> dict:
 
 
 async def task_macros(ctx: Ctx) -> dict:
+    """FED Funds / Treasury / CPI / Unemployment 매크로 backfill.
+
+    ctx.start_date 를 collector 의 start_date 로 주입 — 이전엔 base 가
+    date(2025,1,1) 하드코드 + endpoint 가 그 default 만 사용해서 2019-2024
+    macro 전부 결손이었음 (검증: us_fed_funds_rate / us_cpi / us_unemployment
+    모두 16 rows / 2025-01-01 부터만). 이제 ctx.start_date - 30d 부터 적재.
+    Endpoint 대신 collector 직접 호출 — start_date 주입 깔끔.
+    """
     if ctx.country != "US":
         return {"skipped": "KR run"}
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+    from us.finance_data import (FederalFundsRateCollector, TreasuryYieldCollector,
+                                  CPICollector, UnemploymentRateCollector)
+    macro_start = ctx.start_date - timedelta(days=30)
+    collectors = [
+        ("us_fed_funds_rate",    FederalFundsRateCollector),
+        ("us_treasury_yield",    TreasuryYieldCollector),
+        ("us_cpi",               CPICollector),
+        ("us_unemployment_rate", UnemploymentRateCollector),
+    ]
     out = {}
-    for ep in ["collect/us/fed-funds-rate", "collect/us/treasury-yield",
-               "collect/us/cpi", "collect/us/unemployment-rate"]:
+    for name, Cls in collectors:
         try:
-            out[ep] = await _self_post(ctx, ep)
+            async with capture_logs(ctx):
+                col = Cls(api_key, DATABASE_URL, call_interval=0.2,
+                          start_date=macro_start)
+                await col.run_collection_optimized()
+            out[name] = "ok"
         except Exception as e:
-            await ctx.log("warn", f"{ep} failed ({e}) — continuing")
-            out[ep] = {"error": str(e)[:200]}
+            await ctx.log("warn", f"{name} failed ({e}) — continuing")
+            out[name] = {"error": str(e)[:200]}
     return out
 
 
@@ -2033,17 +2061,305 @@ async def task_earnings_history(ctx: Ctx) -> dict:
     return result
 
 
+async def _compute_stock_basic_window(
+    pool, load_start, load_end, output_start, output_end,
+    *, api_df=None,
+) -> "tuple[int, int]":
+    """Pure compute helper — 하나의 [load_start, load_end] 윈도우 처리.
+
+    INSERT 대상은 [output_start, output_end] 만 (lookback row 는 drop).
+    청크 외부 루프 / 단일 처리 둘 다 같은 함수 사용 → 결과 동등성 보장.
+
+    Returns (staged, total_records_in_chunk).
+
+    lookback 요구:
+      - daily: output_start - 400 days  (252-day rolling 안전)
+      - financials: load_start - 5 years (TTM 4Q + YoY 4Q-ago 안전)
+      - api_df: 시점 무관 메타 (한 번 로드 후 청크 간 공유 가능)
+    """
+    import pandas as pd
+    import numpy as np
+    import gc
+
+    async with pool.acquire() as conn:
+        daily_rows = await conn.fetch(
+            "SELECT symbol, date, close FROM us_daily "
+            "WHERE date BETWEEN $1 AND $2", load_start, load_end)
+        inc_rows = await conn.fetch(
+            """SELECT symbol, fiscal_date_ending, available_at,
+                      net_income, total_revenue, operating_income,
+                      gross_profit, ebitda
+               FROM us_income_statement
+               WHERE fiscal_date_ending >= $1::date - INTERVAL '5 years'
+                 AND fiscal_date_ending <= $2::date""",
+            load_start, load_end)
+        bal_rows = await conn.fetch(
+            """SELECT symbol, fiscal_date_ending, available_at,
+                      total_assets, total_shareholder_equity,
+                      common_stock_shares_outstanding,
+                      short_long_term_debt_total,
+                      cash_and_short_term_investments
+               FROM us_balance_sheet
+               WHERE fiscal_date_ending >= $1::date - INTERVAL '5 years'
+                 AND fiscal_date_ending <= $2::date""",
+            load_start, load_end)
+        if api_df is None:
+            api_rows = await conn.fetch(
+                """SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
+                          currency, sector, industry, beta, is_active,
+                          sharesoutstanding AS api_shares
+                   FROM us_stock_basic WHERE source='api'
+                   ORDER BY symbol, date DESC""")
+            api_df = pd.DataFrame(api_rows,
+                columns=['symbol', 'stock_name', 'exchange', 'currency',
+                         'sector', 'industry', 'beta', 'is_active', 'api_shares'])
+
+    logger.info(f"[compute_window {output_start}~{output_end}] "
+                f"loaded daily={len(daily_rows)} inc={len(inc_rows)} bal={len(bal_rows)}")
+
+    if not daily_rows:
+        return 0, 0
+
+    daily_df = pd.DataFrame(daily_rows, columns=['symbol', 'date', 'close'])
+    daily_df['date'] = pd.to_datetime(daily_df['date'])
+    daily_df['close'] = daily_df['close'].astype('float64')
+
+    # ---------- financials → TTM + YoY ----------
+    if inc_rows or bal_rows:
+        inc_df = pd.DataFrame(inc_rows, columns=[
+            'symbol', 'fiscal_date_ending', 'available_at_inc',
+            'net_income', 'total_revenue', 'operating_income',
+            'gross_profit', 'ebitda'])
+        bal_df = pd.DataFrame(bal_rows, columns=[
+            'symbol', 'fiscal_date_ending', 'available_at_bal',
+            'total_assets', 'total_shareholder_equity',
+            'common_stock_shares_outstanding',
+            'short_long_term_debt_total',
+            'cash_and_short_term_investments'])
+        fin_df = pd.merge(inc_df, bal_df,
+                          on=['symbol', 'fiscal_date_ending'], how='outer')
+        del inc_df, bal_df
+    else:
+        fin_df = pd.DataFrame(columns=['symbol', 'fiscal_date_ending'])
+
+    if not fin_df.empty:
+        fin_df['fiscal_date_ending'] = pd.to_datetime(fin_df['fiscal_date_ending'])
+        fin_df = fin_df.sort_values(['symbol', 'fiscal_date_ending']).reset_index(drop=True)
+
+        num_cols = ['net_income', 'total_revenue', 'operating_income',
+                    'gross_profit', 'ebitda',
+                    'total_assets', 'total_shareholder_equity',
+                    'common_stock_shares_outstanding',
+                    'short_long_term_debt_total',
+                    'cash_and_short_term_investments']
+        for c in num_cols:
+            fin_df[c] = pd.to_numeric(fin_df[c], errors='coerce')
+
+        grp = fin_df.groupby('symbol', sort=False)
+        for c in ['net_income', 'total_revenue', 'operating_income',
+                  'gross_profit', 'ebitda']:
+            fin_df[f'{c}_ttm'] = grp[c].transform(
+                lambda s: s.rolling(4, min_periods=1).sum())
+        for c in ['total_assets', 'total_shareholder_equity']:
+            fin_df[f'{c}_avg'] = grp[c].transform(
+                lambda s: s.rolling(2, min_periods=1).mean())
+        fin_df['net_income_4q_ago'] = grp['net_income'].shift(4)
+        fin_df['revenue_4q_ago'] = grp['total_revenue'].shift(4)
+
+        fin_df['available_at'] = pd.to_datetime(
+            fin_df.get('available_at_inc')).fillna(
+            pd.to_datetime(fin_df.get('available_at_bal'))).fillna(
+            fin_df['fiscal_date_ending'] + pd.Timedelta(days=45))
+        fin_df = fin_df.dropna(subset=['available_at'])
+        fin_df = fin_df.sort_values('available_at', kind='mergesort').reset_index(drop=True)
+
+        daily_df_for_merge = daily_df.sort_values('date', kind='mergesort').reset_index(drop=True)
+        merged = pd.merge_asof(
+            daily_df_for_merge, fin_df,
+            left_on='date', right_on='available_at',
+            by='symbol', direction='backward')
+        del fin_df, daily_df_for_merge
+    else:
+        merged = daily_df.copy()
+
+    # ---------- rolling (52w high/low, 50/200 MA) ----------
+    daily_df_sorted = daily_df.sort_values(['symbol', 'date']).reset_index(drop=True)
+    grpd = daily_df_sorted.groupby('symbol', sort=False)['close']
+    daily_df_sorted['week52high'] = grpd.transform(
+        lambda s: s.rolling(252, min_periods=1).max())
+    daily_df_sorted['week52low'] = grpd.transform(
+        lambda s: s.rolling(252, min_periods=1).min())
+    daily_df_sorted['day50movingaverage'] = grpd.transform(
+        lambda s: s.rolling(50, min_periods=1).mean())
+    daily_df_sorted['day200movingaverage'] = grpd.transform(
+        lambda s: s.rolling(200, min_periods=1).mean())
+
+    merged = pd.merge(merged,
+        daily_df_sorted[['symbol', 'date', 'week52high', 'week52low',
+                         'day50movingaverage', 'day200movingaverage']],
+        on=['symbol', 'date'], how='left')
+    del daily_df, daily_df_sorted
+
+    merged = merged.merge(api_df, on='symbol', how='left')
+
+    # ---------- 17 컬럼 벡터 계산 ----------
+    so = merged.get('common_stock_shares_outstanding')
+    if so is None:
+        so = pd.Series([np.nan] * len(merged))
+    so = so.fillna(merged['api_shares']).astype('float64')
+    close = merged['close']
+
+    def _safe_div(num, den):
+        d = den.where(den > 0)
+        return num / d
+
+    merged['sharesoutstanding'] = so
+    merged['market_cap'] = (close * so).where(so > 0)
+    ni_ttm = merged.get('net_income_ttm', pd.Series([np.nan] * len(merged)))
+    merged['eps'] = _safe_div(ni_ttm, so)
+    merged['dilutedepsttm'] = merged['eps']
+    merged['per'] = _safe_div(close, merged['eps'])
+    equity = merged.get('total_shareholder_equity',
+                        pd.Series([np.nan] * len(merged)))
+    merged['bookvalue'] = _safe_div(equity, so)
+    merged['pricetobookratio'] = _safe_div(close, merged['bookvalue'])
+    rev_ttm = merged.get('total_revenue_ttm', pd.Series([np.nan] * len(merged)))
+    merged['revenuettm'] = rev_ttm
+    merged['grossprofitttm'] = merged.get('gross_profit_ttm')
+    merged['profitmargin'] = _safe_div(ni_ttm, rev_ttm)
+    merged['operatingmarginttm'] = _safe_div(
+        merged.get('operating_income_ttm',
+                   pd.Series([np.nan] * len(merged))), rev_ttm)
+    merged['returnonequityttm'] = _safe_div(ni_ttm,
+        merged.get('total_shareholder_equity_avg',
+                   pd.Series([np.nan] * len(merged))))
+    merged['returnonassetsttm'] = _safe_div(ni_ttm,
+        merged.get('total_assets_avg',
+                   pd.Series([np.nan] * len(merged))))
+    merged['pricetosalesratiottm'] = _safe_div(merged['market_cap'], rev_ttm)
+    debt = merged.get('short_long_term_debt_total',
+                      pd.Series([np.nan] * len(merged))).fillna(0)
+    cash = merged.get('cash_and_short_term_investments',
+                      pd.Series([np.nan] * len(merged))).fillna(0)
+    ev = merged['market_cap'].fillna(0) + debt - cash
+    merged['evtorevenue'] = _safe_div(ev, rev_ttm)
+    merged['evtoebitda'] = _safe_div(ev,
+        merged.get('ebitda_ttm', pd.Series([np.nan] * len(merged))))
+    ni = merged.get('net_income', pd.Series([np.nan] * len(merged)))
+    ni_yoy_base = merged.get('net_income_4q_ago',
+                             pd.Series([np.nan] * len(merged)))
+    rev = merged.get('total_revenue', pd.Series([np.nan] * len(merged)))
+    rev_yoy_base = merged.get('revenue_4q_ago',
+                              pd.Series([np.nan] * len(merged)))
+    merged['quarterlyearningsgrowthyoy'] = _safe_div(ni, ni_yoy_base.abs()) - 1
+    merged['quarterlyrevenuegrowthyoy'] = _safe_div(rev, rev_yoy_base.abs()) - 1
+
+    merged['market_cap'] = merged['market_cap'].astype('Float64').round().astype('Int64')
+
+    # ---------- 출력 윈도우 필터 (lookback row drop) ----------
+    out_start_ts = pd.Timestamp(output_start)
+    out_end_ts = pd.Timestamp(output_end)
+    merged = merged[(merged['date'] >= out_start_ts) & (merged['date'] <= out_end_ts)]
+    merged = merged.reset_index(drop=True)
+    logger.info(f"[compute_window {output_start}~{output_end}] "
+                f"after output filter: {len(merged)} rows")
+
+    if merged.empty:
+        return 0, 0
+
+    # ---------- INSERT ----------
+    now_ts = datetime.now(timezone.utc)
+    insert_cols = [
+        'symbol', 'date', 'source',
+        'market_cap', 'per', 'pricetobookratio',
+        'eps', 'dilutedepsttm', 'bookvalue', 'sharesoutstanding',
+        'revenuettm', 'grossprofitttm',
+        'profitmargin', 'operatingmarginttm',
+        'returnonequityttm', 'returnonassetsttm',
+        'pricetosalesratiottm', 'evtorevenue', 'evtoebitda',
+        'quarterlyearningsgrowthyoy', 'quarterlyrevenuegrowthyoy',
+        'week52high', 'week52low',
+        'day50movingaverage', 'day200movingaverage',
+        'stock_name', 'exchange', 'currency', 'sector', 'industry',
+        'beta', 'is_active', 'created_at', 'updated_at',
+    ]
+
+    out = pd.DataFrame()
+    out['symbol'] = merged['symbol']
+    out['date'] = merged['date'].dt.date
+    out['source'] = 'computed'
+    for c in ['market_cap', 'per', 'pricetobookratio',
+              'eps', 'dilutedepsttm', 'bookvalue', 'sharesoutstanding',
+              'revenuettm', 'grossprofitttm',
+              'profitmargin', 'operatingmarginttm',
+              'returnonequityttm', 'returnonassetsttm',
+              'pricetosalesratiottm', 'evtorevenue', 'evtoebitda',
+              'quarterlyearningsgrowthyoy', 'quarterlyrevenuegrowthyoy',
+              'week52high', 'week52low',
+              'day50movingaverage', 'day200movingaverage']:
+        out[c] = merged[c] if c in merged.columns else None
+    for c in ['stock_name', 'exchange', 'currency', 'sector', 'industry',
+              'beta', 'is_active']:
+        out[c] = merged[c]
+    out['created_at'] = now_ts
+    out['updated_at'] = now_ts
+
+    out = out.astype(object).where(pd.notna(out), None)
+
+    def _to_bigint(v):
+        if v is None or (isinstance(v, float) and (v != v)):
+            return None
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+    for _bc in ('market_cap', 'revenuettm', 'grossprofitttm', 'sharesoutstanding'):
+        out[_bc] = pd.Series(
+            [_to_bigint(v) for v in out[_bc]],
+            index=out.index, dtype=object)
+
+    records = list(out[insert_cols].itertuples(index=False, name=None))
+    total_records = len(records)
+    del merged, out
+    gc.collect()
+
+    CHUNK = 50000
+    inserted = 0
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("""
+                CREATE TEMP TABLE _us_stock_basic_compute (LIKE us_stock_basic
+                INCLUDING DEFAULTS) ON COMMIT DROP""")
+            for i in range(0, total_records, CHUNK):
+                chunk = records[i:i + CHUNK]
+                await conn.copy_records_to_table(
+                    '_us_stock_basic_compute',
+                    records=chunk, columns=insert_cols)
+                inserted += len(chunk)
+                logger.info(f"  staged {inserted}/{total_records}")
+            update_cols = [c for c in insert_cols
+                           if c not in ('symbol', 'date', 'source', 'created_at')]
+            set_clause = ', '.join(f"{c} = EXCLUDED.{c}" for c in update_cols)
+            await conn.execute(f"""
+                INSERT INTO us_stock_basic ({', '.join(insert_cols)})
+                SELECT {', '.join(insert_cols)} FROM _us_stock_basic_compute
+                ON CONFLICT (symbol, date, source) DO UPDATE SET {set_clause}
+            """)
+    del records
+    gc.collect()
+    return inserted, total_records
+
+
 async def task_us_stock_basic_compute(ctx: Ctx) -> dict:
-    """us_stock_basic 의 source='computed' row 적재 — 시점별 정밀 재계산.
+    """us_stock_basic source='computed' row 적재 — 시점별 정밀 재계산.
 
     pandas 벡터화 + as-of merge 로 look-ahead-bias 안전:
-      - us_daily 의 각 (symbol, date) 마다 fiscal_date_ending + 45 일 reporting
-        lag 시점 까지의 us_income_statement / us_balance_sheet 만 사용
-      - 분기별 trailing-4Q rolling 으로 TTM 지표 (revenue, net_income, ebitda,
-        operating_income, gross_profit) 산출
-      - YoY growth: 현재 분기 / 4분기 전 분기
+      - us_daily 각 (symbol, date) 마다 fiscal_date_ending + 45 일 reporting lag
+        시점 까지의 us_income_statement / us_balance_sheet 만 사용
+      - 분기별 trailing-4Q rolling 으로 TTM (revenue/net_income/ebitda/op/gross)
+      - YoY = 현재 분기 / 4분기 전 분기
 
-    채우는 컬럼 (17 개 시점별 + 메타):
+    채우는 컬럼 (17 시점별 + 메타):
       market_cap, per, pricetobookratio, eps, dilutedepsttm, bookvalue,
       sharesoutstanding, revenuettm, grossprofitttm, profitmargin,
       operatingmarginttm, returnonequityttm, returnonassetsttm,
@@ -2052,9 +2368,99 @@ async def task_us_stock_basic_compute(ctx: Ctx) -> dict:
       week52high, week52low, day50movingaverage, day200movingaverage,
       + 메타 (stock_name, exchange, currency, sector, industry, beta, is_active)
 
+    Memory-safe 청크 처리:
+      [ctx.start_date - LOOKBACK_BUFFER ~ ctx.end_date] 를 1년씩 분할.
+      각 청크: load = [chunk_out_start - 400d, chunk_out_end], INSERT 는 [chunk_out_start,
+      chunk_out_end] 만. lookback 400 days 면 252-day rolling 안전, financials
+      는 load_start - 5 years 까지 가져와 TTM/YoY 안전. 청크 사이 gc.collect().
+      → 7.5 년 단일 처리 시 9M 行 pandas → OOM 이었던 게 청크당 ~1M 行으로 안전.
+
     bulk INSERT 전략: pandas → asyncpg copy_records_to_table 로 임시 테이블 적재
     → 본 테이블 INSERT … ON CONFLICT (symbol, date, source) DO UPDATE.
     """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+
+    import pandas as pd
+    from datetime import date as _date
+
+    LOOKBACK_BUFFER_DAYS = DAILY_LOOKBACK_CALENDAR_DAYS
+    chunk_days = int(ctx.params.get("stock_basic_compute_chunk_days", 365))
+    # 800 days = 단일 vs 청크 동등성 보장. 실증: lookback 420d 시 3 rows
+    # 차이 (ZWZZT-class sparse test ticker), 600d 시 14 rows (HAFN-class
+    # sparse + 최근 IPO), 800d 시 107,680 rows 전체 동일 (PASS). 200거래일
+    # rolling 의 worst-case sparse 종목 + 신규 IPO 직후 buffer 모두 cover.
+    daily_lookback = max(800, LOOKBACK_BUFFER_DAYS)
+
+    # 출력 윈도우 = [ctx.start_date - LOOKBACK_BUFFER, ctx.end_date]
+    overall_out_start = ctx.start_date - timedelta(days=LOOKBACK_BUFFER_DAYS)
+    overall_out_end = ctx.end_date
+
+    # 청크 분할
+    chunks = []
+    cs = overall_out_start
+    while cs <= overall_out_end:
+        ce = min(cs + timedelta(days=chunk_days - 1), overall_out_end)
+        chunks.append((cs, ce))
+        cs = ce + timedelta(days=1)
+
+    await ctx.log("info",
+                  f"stock_basic_compute: window {overall_out_start}~{overall_out_end} "
+                  f"→ {len(chunks)} chunks ({chunk_days}d each, daily lookback {daily_lookback}d)")
+
+    async with capture_logs(ctx), monitor_progress(
+        ctx,
+        "SELECT COUNT(*) FROM us_stock_basic WHERE source='computed'",
+        "us_stock_basic computed rows", interval=60):
+
+        pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=5)
+        try:
+            # api 메타는 한 번만 로드 → 청크 간 공유
+            async with pool.acquire() as conn:
+                api_rows = await conn.fetch(
+                    """SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
+                              currency, sector, industry, beta, is_active,
+                              sharesoutstanding AS api_shares
+                       FROM us_stock_basic WHERE source='api'
+                       ORDER BY symbol, date DESC""")
+            api_df = pd.DataFrame(api_rows,
+                columns=['symbol', 'stock_name', 'exchange', 'currency',
+                         'sector', 'industry', 'beta', 'is_active', 'api_shares'])
+            await ctx.log("info", f"api_meta loaded: {len(api_df)} symbols")
+
+            grand_inserted = 0
+            grand_total = 0
+            for i, (out_start, out_end) in enumerate(chunks, 1):
+                load_start = out_start - timedelta(days=daily_lookback)
+                await ctx.log("info",
+                              f"chunk {i}/{len(chunks)} out=[{out_start}~{out_end}] "
+                              f"load=[{load_start}~{out_end}]")
+                inserted, total = await _compute_stock_basic_window(
+                    pool, load_start, out_end, out_start, out_end, api_df=api_df)
+                grand_inserted += inserted
+                grand_total += total
+                await ctx.log("info",
+                              f"chunk {i}/{len(chunks)} done: {inserted} rows staged "
+                              f"(cumulative {grand_inserted})")
+
+            # 최종 카운트
+            async with pool.acquire() as conn:
+                computed_count = await conn.fetchval(
+                    """SELECT COUNT(*) FROM us_stock_basic
+                       WHERE source='computed' AND date BETWEEN $1 AND $2""",
+                    overall_out_start, overall_out_end)
+        finally:
+            await pool.close()
+
+    return {"computed_rows": computed_count,
+            "date_range": f"{overall_out_start.isoformat()}~{overall_out_end.isoformat()}",
+            "chunks": len(chunks),
+            "staged": grand_inserted,
+            "total_records_across_chunks": grand_total}
+
+
+async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
+    """Kept temporarily for equality testing — DELETE after chunk validation."""
     if ctx.country != "US":
         return {"skipped": "KR run"}
 

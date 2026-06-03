@@ -231,6 +231,16 @@ class CollectionLogger:
         symbol: str,
         date_list: Union[None, str, date, datetime, Iterable] = None,
     ) -> bool:
+        """Returns True if `symbol` has the given dates recorded.
+
+        호출 패턴:
+          - ``date_list`` = ``[today]`` (권장): today 의 fetch mark 있으면 True
+            (skip), 없으면 False (fetch 진행). (symbol, today) 단위 date-aware skip.
+          - ``date_list`` = ``[d1, d2, ...]``: 모든 d 가 recorded dates 의 subset
+            이면 True. us_daily 처럼 (symbol, date_range) 단위 fetch 에서 사용.
+          - ``date_list`` = None/empty: 단순 "마킹 존재" check (date-blind, legacy).
+            새 코드에서는 사용 금지 — 한 번 마킹되면 영구 skip.
+        """
         coll = self.collection_log.get("collection_log", {})
         entry = coll.get(collection_name, {}).get(symbol)
         if not entry:

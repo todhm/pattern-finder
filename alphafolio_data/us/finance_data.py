@@ -43,6 +43,103 @@ logger = logging.getLogger(__name__)
 # default response is already the maximum.
 
 
+# ============================================================================
+# Date-aware skip helper (사용자 요구: (symbol, date) 단위 missing-date 패턴)
+# ============================================================================
+
+async def get_symbols_with_missing_dates(
+    pool,
+    table: str,
+    date_col: str,
+    collection_name: str,
+    candidate_symbols: List[str],
+    window_start: 'date',
+    window_end: 'date',
+) -> set:
+    """Sparse collector 의 fetch 대상 symbol set 을 반환.
+
+    각 candidate symbol 에 대해, ``us_daily`` 의 그 symbol 거래일 중
+    ``table`` 에 record 도 없고 ``collection_state.no_data`` 마킹도 없는
+    (symbol, date) 가 하나라도 있으면 fetch 대상으로 포함.
+
+    Args:
+        pool: asyncpg pool
+        table: collector 의 DB 테이블 (예: ``us_insider_transactions``)
+        date_col: 그 테이블의 date 컬럼명 (예: ``date`` / ``reportdate`` /
+                  ``ex_dividend_date`` / ``effective_date``)
+        collection_name: ``collection_state.collection_name`` 값
+        candidate_symbols: skip-check 후보 universe
+        window_start / window_end: expected window (us_daily 거래일 범위)
+    """
+    if not candidate_symbols:
+        return set()
+    sql = f"""
+        WITH expected AS (
+          SELECT DISTINCT symbol, date FROM us_daily
+          WHERE symbol = ANY($1::text[]) AND date BETWEEN $2 AND $3
+        ),
+        existing AS (
+          SELECT DISTINCT symbol, {date_col} AS date FROM {table}
+          WHERE symbol = ANY($1::text[]) AND {date_col} BETWEEN $2 AND $3
+        ),
+        nd AS (
+          SELECT symbol, date FROM collection_state
+          WHERE collection_name = $4 AND symbol = ANY($1::text[])
+            AND date BETWEEN $2 AND $3 AND status = 'no_data'
+        )
+        SELECT DISTINCT e.symbol FROM expected e
+        LEFT JOIN existing x USING (symbol, date)
+        LEFT JOIN nd USING (symbol, date)
+        WHERE x.date IS NULL AND nd.date IS NULL
+    """
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(sql, candidate_symbols, window_start, window_end,
+                                collection_name)
+    return {r['symbol'] for r in rows}
+
+
+async def mark_no_data_for_unreceived_dates(
+    pool,
+    collection_name: str,
+    symbol_to_received_dates: dict,
+    window_start: 'date',
+    window_end: 'date',
+) -> int:
+    """fetch 후 expected - received → no_data 마킹.
+
+    Args:
+        symbol_to_received_dates: {symbol: set[date_received_from_AV]}
+    """
+    if not symbol_to_received_dates:
+        return 0
+    symbols = list(symbol_to_received_dates.keys())
+    # expected dates per symbol — us_daily 의 trading days
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT symbol, date FROM us_daily
+            WHERE symbol = ANY($1::text[]) AND date BETWEEN $2 AND $3
+        """, symbols, window_start, window_end)
+        expected_per_sym = {}
+        for r in rows:
+            expected_per_sym.setdefault(r['symbol'], set()).add(r['date'])
+
+        # diff → no_data candidates
+        to_mark = []
+        for sym, received in symbol_to_received_dates.items():
+            unreceived = expected_per_sym.get(sym, set()) - received
+            for d in unreceived:
+                to_mark.append((collection_name, sym, d, 'no_data'))
+
+        if not to_mark:
+            return 0
+        await conn.executemany("""
+            INSERT INTO collection_state (collection_name, symbol, date, status)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (collection_name, symbol, date) DO NOTHING
+        """, to_mark)
+    return len(to_mark)
+
+
 class IncomeStatementCollector:
     def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2, target_date: date = None, deadline: datetime = None, skip_symbols: set = None):
         self.api_key = api_key
@@ -3844,7 +3941,17 @@ class InsiderTransactionsCollector:
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern and all 9 optimizations"""
+        """OPTIMIZED collection — (symbol, transaction_date) missing-date skip.
+
+        Skip 결정 패턴:
+          1. universe = active symbols
+          2. ``get_symbols_with_missing_dates`` 로 fetch 대상 narrowing:
+             us_daily 거래일 중 us_insider_transactions 에 record 도 없고
+             collection_state no_data 마킹도 없는 (symbol, date) 가 하나라도
+             있는 symbol 만 fetch.
+          3. fetch 후 received - expected diff 를 collection_state 에 no_data
+             마킹 → 다음 호출 시 영구 skip.
+        """
         logger.info(f"[INSIDER_TRANS OPTIMIZED] Starting collection")
         logger.info(f"[INSIDER_TRANS OPTIMIZED] API rate: {60/self.call_interval:.0f} calls/min")
 
@@ -3856,8 +3963,15 @@ class InsiderTransactionsCollector:
             await self.close_pool()
             return
 
-        symbols = [s for s in all_symbols if not self.collection_logger.is_collected('us_insider_transactions', s, [])]
-        logger.info(f"[INSIDER_TRANS] Total: {len(all_symbols)}, To process: {len(symbols)}")
+        # (symbol, date) 단위 missing-date 기반 skip
+        window_end = self.target_date or date.today()
+        window_start = window_end - timedelta(days=365)
+        fetch_set = await get_symbols_with_missing_dates(
+            self.pool, 'us_insider_transactions', 'date',
+            'us_insider_transactions', all_symbols, window_start, window_end)
+        symbols = sorted(fetch_set)
+        logger.info(f"[INSIDER_TRANS] Total: {len(all_symbols)}, To process: {len(symbols)} "
+                    f"(missing-date check [{window_start}~{window_end}])")
 
         if not symbols:
             await self.close_pool()
@@ -3869,6 +3983,22 @@ class InsiderTransactionsCollector:
         db_task = asyncio.create_task(self.db_worker(data_queue, batch_size=50))
         await api_task
         total_saved = await db_task
+
+        # fetch 후 expected - received → collection_state no_data 마킹
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT symbol, date FROM us_insider_transactions
+                WHERE symbol = ANY($1::text[]) AND date BETWEEN $2 AND $3
+            """, symbols, window_start, window_end)
+        received = {}
+        for r in rows:
+            received.setdefault(r['symbol'], set()).add(r['date'])
+        n_marked = await mark_no_data_for_unreceived_dates(
+            self.pool, 'us_insider_transactions',
+            {sym: received.get(sym, set()) for sym in symbols},
+            window_start, window_end)
+        logger.info(f"[INSIDER_TRANS] no_data marked: {n_marked} (expected - received)")
+
         await self.close_pool()
 
         duration = datetime.now() - start_time
@@ -4253,7 +4383,8 @@ class DividendsCollector:
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern and all 9 optimizations"""
+        """OPTIMIZED collection — (symbol, ex_dividend_date) missing-date skip.
+        InsiderTransactionsCollector 와 동일 패턴 (analogue 참조)."""
         logger.info(f"[DIVIDENDS OPTIMIZED] Starting collection")
         logger.info(f"[DIVIDENDS OPTIMIZED] API rate: {60/self.call_interval:.0f} calls/min")
 
@@ -4265,8 +4396,14 @@ class DividendsCollector:
             await self.close_pool()
             return
 
-        symbols = [s for s in all_symbols if not self.collection_logger.is_collected('us_dividends', s, [])]
-        logger.info(f"[DIVIDENDS] Total: {len(all_symbols)}, To process: {len(symbols)}")
+        window_end = date.today()
+        window_start = window_end - timedelta(days=365)
+        fetch_set = await get_symbols_with_missing_dates(
+            self.pool, 'us_dividends', 'ex_dividend_date',
+            'us_dividends', all_symbols, window_start, window_end)
+        symbols = sorted(fetch_set)
+        logger.info(f"[DIVIDENDS] Total: {len(all_symbols)}, To process: {len(symbols)} "
+                    f"(missing-date check [{window_start}~{window_end}])")
 
         if not symbols:
             await self.close_pool()
@@ -4278,6 +4415,21 @@ class DividendsCollector:
         db_task = asyncio.create_task(self.db_worker(data_queue, batch_size=50))
         await api_task
         total_saved = await db_task
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT symbol, ex_dividend_date AS date FROM us_dividends
+                WHERE symbol = ANY($1::text[]) AND ex_dividend_date BETWEEN $2 AND $3
+            """, symbols, window_start, window_end)
+        received = {}
+        for r in rows:
+            received.setdefault(r['symbol'], set()).add(r['date'])
+        n_marked = await mark_no_data_for_unreceived_dates(
+            self.pool, 'us_dividends',
+            {sym: received.get(sym, set()) for sym in symbols},
+            window_start, window_end)
+        logger.info(f"[DIVIDENDS] no_data marked: {n_marked} (expected - received)")
+
         await self.close_pool()
 
         duration = datetime.now() - start_time
@@ -4695,7 +4847,8 @@ class SplitsCollector:
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern and all 9 optimizations"""
+        """OPTIMIZED collection — (symbol, effective_date) missing-date skip.
+        InsiderTransactionsCollector 와 동일 패턴 (analogue 참조)."""
         logger.info(f"[SPLITS OPTIMIZED] Starting collection")
         logger.info(f"[SPLITS OPTIMIZED] API rate: {60/self.call_interval:.0f} calls/min")
 
@@ -4707,8 +4860,14 @@ class SplitsCollector:
             await self.close_pool()
             return
 
-        symbols = [s for s in all_symbols if not self.collection_logger.is_collected('us_splits', s, [])]
-        logger.info(f"[SPLITS] Total: {len(all_symbols)}, To process: {len(symbols)}")
+        window_end = date.today()
+        window_start = window_end - timedelta(days=365)
+        fetch_set = await get_symbols_with_missing_dates(
+            self.pool, 'us_splits', 'effective_date',
+            'us_splits', all_symbols, window_start, window_end)
+        symbols = sorted(fetch_set)
+        logger.info(f"[SPLITS] Total: {len(all_symbols)}, To process: {len(symbols)} "
+                    f"(missing-date check [{window_start}~{window_end}])")
 
         if not symbols:
             await self.close_pool()
@@ -4720,6 +4879,21 @@ class SplitsCollector:
         db_task = asyncio.create_task(self.db_worker(data_queue, batch_size=50))
         await api_task
         total_saved = await db_task
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT symbol, effective_date AS date FROM us_splits
+                WHERE symbol = ANY($1::text[]) AND effective_date BETWEEN $2 AND $3
+            """, symbols, window_start, window_end)
+        received = {}
+        for r in rows:
+            received.setdefault(r['symbol'], set()).add(r['date'])
+        n_marked = await mark_no_data_for_unreceived_dates(
+            self.pool, 'us_splits',
+            {sym: received.get(sym, set()) for sym in symbols},
+            window_start, window_end)
+        logger.info(f"[SPLITS] no_data marked: {n_marked} (expected - received)")
+
         await self.close_pool()
 
         duration = datetime.now() - start_time
@@ -4799,7 +4973,8 @@ class SplitsCollector:
 class EconomicIndicatorCollector:
     """Base class for economic indicators with Pipeline pattern"""
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2):
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 start_date: Optional[date] = None):
         self.api_key = api_key
         if database_url.startswith('postgresql+asyncpg://'):
             database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
@@ -4808,7 +4983,12 @@ class EconomicIndicatorCollector:
         self.base_url = "https://www.alphavantage.co/query"
         self.pool = None
         self.session = None
-        self.start_date = date(2025, 1, 1)
+        # AV FRED-style endpoints (FEDERAL_FUNDS_RATE, CPI 등) 은 한 콜에 풀
+        # 히스토리 (50+ 년) 를 응답. start_date 는 단순 저장 cutoff —
+        # date(2025) 하드코드면 그 이전 macro 가 전부 drop 되어 백테스트
+        # 윈도우가 2019 등이면 macro 변수 결손. default 2010 으로 늘리고
+        # 외부 주입도 허용.
+        self.start_date = start_date or date(2010, 1, 1)
 
     async def init_pool(self):
         self.pool = await asyncpg.create_pool(
@@ -4851,8 +5031,9 @@ class EconomicIndicatorCollector:
 class FederalFundsRateCollector(EconomicIndicatorCollector):
     """Collects Federal Funds Rate data"""
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2):
-        super().__init__(api_key, database_url, call_interval)
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 start_date: Optional[date] = None):
+        super().__init__(api_key, database_url, call_interval, start_date=start_date)
         # Railway Volume path support
         if os.getenv('RAILWAY_PROJECT_ID'):
             log_file_path = '/app/log/us_fed_funds_rate_collected.json'
@@ -4936,13 +5117,14 @@ class FederalFundsRateCollector(EconomicIndicatorCollector):
             return 0
 
     async def api_worker(self, data_queue: Queue):
-        """API worker for pipeline pattern"""
-        try:
-            if self.collection_logger.is_collected('us_fed_funds_rate', 'fed_funds', []):
-                logger.info("[FED_FUNDS API] Already collected, skipping")
-                await data_queue.put(None)
-                return
+        """API worker for pipeline pattern.
 
+        date-blind boolean skip 제거 — 한 호출에 풀 history (~85 records) 가
+        오는 cheap call 이라 매 run 마다 fetch. 신규 record 는 ON CONFLICT
+        DO UPDATE 가 dedup 처리. start_date cutoff (transform_data) 가 자동
+        date-aware 필터 역할.
+        """
+        try:
             api_data = await self.fetch_data()
             if api_data:
                 transformed = self.transform_data(api_data)
@@ -4978,14 +5160,10 @@ class FederalFundsRateCollector(EconomicIndicatorCollector):
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern"""
+        """OPTIMIZED collection with pipeline pattern.
+        date-blind skip 제거 (위 api_worker 주석 참조)."""
         logger.info(f"[FED_FUNDS OPTIMIZED] Starting collection")
         await self.init_pool()
-
-        if self.collection_logger.is_collected('us_fed_funds_rate', 'fed_funds', []):
-            logger.info("[FED_FUNDS] Already collected")
-            await self.close_pool()
-            return
 
         start_time = datetime.now()
         data_queue = Queue(maxsize=10)
@@ -5004,8 +5182,9 @@ class TreasuryYieldCollector(EconomicIndicatorCollector):
 
     MATURITIES = ['3month', '2year', '5year', '7year', '10year', '30year']
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2):
-        super().__init__(api_key, database_url, call_interval)
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 start_date: Optional[date] = None):
+        super().__init__(api_key, database_url, call_interval, start_date=start_date)
         # Railway Volume path support
         if os.getenv('RAILWAY_PROJECT_ID'):
             log_file_path = '/app/log/us_treasury_yield_collected.json'
@@ -5090,13 +5269,11 @@ class TreasuryYieldCollector(EconomicIndicatorCollector):
             return 0
 
     async def api_worker(self, data_queue: Queue):
-        """API worker for pipeline pattern - loops through maturities"""
+        """API worker — date-blind skip 제거 (FED_FUNDS analogue 참조).
+        6 maturity × 1 call = 6 calls/run, cheap. transform 의 start_date
+        cutoff + UPSERT 가 incremental 처리."""
         for i, maturity in enumerate(self.MATURITIES, 1):
             try:
-                if self.collection_logger.is_collected('us_treasury_yield', maturity, []):
-                    logger.info(f"[TREASURY API] [{i}/{len(self.MATURITIES)}] {maturity} already collected, skipping")
-                    continue
-
                 api_data = await self.fetch_data(maturity)
                 if api_data:
                     transformed = self.transform_data(api_data)
@@ -5139,18 +5316,10 @@ class TreasuryYieldCollector(EconomicIndicatorCollector):
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern"""
+        """OPTIMIZED collection — date-blind skip 제거."""
         logger.info(f"[TREASURY OPTIMIZED] Starting collection")
         logger.info(f"[TREASURY OPTIMIZED] API rate: {60/self.call_interval:.0f} calls/min")
         await self.init_pool()
-
-        uncollected_maturities = [m for m in self.MATURITIES if not self.collection_logger.is_collected('us_treasury_yield', m, [])]
-        logger.info(f"[TREASURY] Total maturities: {len(self.MATURITIES)}, To process: {len(uncollected_maturities)}")
-
-        if not uncollected_maturities:
-            logger.info("[TREASURY] All maturities already collected")
-            await self.close_pool()
-            return
 
         start_time = datetime.now()
         data_queue = Queue(maxsize=10)
@@ -5168,8 +5337,9 @@ class CPICollector(EconomicIndicatorCollector):
     """Collects CPI data"""
 
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2):
-        super().__init__(api_key, database_url, call_interval)
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 start_date: Optional[date] = None):
+        super().__init__(api_key, database_url, call_interval, start_date=start_date)
         # Railway Volume path support
         if os.getenv('RAILWAY_PROJECT_ID'):
             log_file_path = '/app/log/us_cpi_collected.json'
@@ -5252,13 +5422,8 @@ class CPICollector(EconomicIndicatorCollector):
             return 0
 
     async def api_worker(self, data_queue: Queue):
-        """API worker for pipeline pattern"""
+        """API worker — date-blind skip 제거 (FED_FUNDS analogue 참조)."""
         try:
-            if self.collection_logger.is_collected('us_cpi', 'cpi', []):
-                logger.info("[CPI API] Already collected, skipping")
-                await data_queue.put(None)
-                return
-
             api_data = await self.fetch_data()
             if api_data:
                 transformed = self.transform_data(api_data)
@@ -5294,14 +5459,9 @@ class CPICollector(EconomicIndicatorCollector):
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern"""
+        """OPTIMIZED collection — date-blind skip 제거."""
         logger.info(f"[CPI OPTIMIZED] Starting collection")
         await self.init_pool()
-
-        if self.collection_logger.is_collected('us_cpi', 'cpi', []):
-            logger.info("[CPI] Already collected")
-            await self.close_pool()
-            return
 
         start_time = datetime.now()
         data_queue = Queue(maxsize=10)
@@ -5320,8 +5480,9 @@ class UnemploymentRateCollector(EconomicIndicatorCollector):
     """Collects Unemployment Rate data"""
 
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2):
-        super().__init__(api_key, database_url, call_interval)
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 start_date: Optional[date] = None):
+        super().__init__(api_key, database_url, call_interval, start_date=start_date)
         # Railway Volume path support
         if os.getenv('RAILWAY_PROJECT_ID'):
             log_file_path = '/app/log/us_unemployment_rate_collected.json'
@@ -5404,13 +5565,8 @@ class UnemploymentRateCollector(EconomicIndicatorCollector):
             return 0
 
     async def api_worker(self, data_queue: Queue):
-        """API worker for pipeline pattern"""
+        """API worker — date-blind skip 제거 (FED_FUNDS analogue 참조)."""
         try:
-            if self.collection_logger.is_collected('us_unemployment_rate', 'unemployment', []):
-                logger.info("[UNEMPLOYMENT API] Already collected, skipping")
-                await data_queue.put(None)
-                return
-
             api_data = await self.fetch_data()
             if api_data:
                 transformed = self.transform_data(api_data)
@@ -5446,14 +5602,9 @@ class UnemploymentRateCollector(EconomicIndicatorCollector):
         return total_saved
 
     async def run_collection_optimized(self):
-        """OPTIMIZED collection with pipeline pattern"""
+        """OPTIMIZED collection — date-blind skip 제거."""
         logger.info(f"[UNEMPLOYMENT OPTIMIZED] Starting collection")
         await self.init_pool()
-
-        if self.collection_logger.is_collected('us_unemployment_rate', 'unemployment', []):
-            logger.info("[UNEMPLOYMENT] Already collected")
-            await self.close_pool()
-            return
 
         start_time = datetime.now()
         data_queue = Queue(maxsize=10)

@@ -2312,16 +2312,18 @@ class VWAPCollector:
 class WeeklyCollector:
     """Collector for US Weekly OHLCV data from Alpha Vantage TIME_SERIES_WEEKLY API"""
 
-    def __init__(self, api_key: str, database_url: str, max_concurrent: int = 20):
+    def __init__(self, api_key: str, database_url: str, max_concurrent: int = 20,
+                 start_date: Optional[date] = None):
         self.api_key = api_key
         if database_url.startswith('postgresql+asyncpg://'):
             database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
         self.database_url = database_url
 
-        # Date range for data collection
-        # 백테스트 정확도 위해 EM8 (240 trading days lookback) + 추가 여유로
-        # 약 6년 (≈312 weeks) — us_calculator 의 첫 fail 구간 제거.
-        self.start_date = date(2020, 1, 1)
+        # Date range for data collection.
+        # 백테스트 윈도우에 따라 start_date 를 외부에서 주입 (default 2015 — 약세장 / COVID / 2022 bear 포함).
+        # AV TIME_SERIES_WEEKLY 가 한 콜에 풀 히스토리를 주므로 더 일찍 잡아도 비용 동일.
+        # 이전엔 date(2020, 1, 1) 하드코드 → ctx.start_date<2020 백테스트 시 weekly 데이터 누락.
+        self.start_date = start_date or date(2015, 1, 1)
         self.end_date = date.today()
 
         # API call rate limiting: 300 calls per minute = 0.2 seconds between calls
