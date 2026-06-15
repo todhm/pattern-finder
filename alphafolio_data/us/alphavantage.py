@@ -26,11 +26,8 @@ USER_AGENT_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) A
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('log/alphavantage_data_collector.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("log/alphavantage_data_collector.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -39,7 +36,9 @@ class RateLimitError(Exception):
     """AlphaVantage 분당 호출 한도 초과 시 발생."""
 
 
-def retry_on_exception(exceptions, *, max_retries: int = 10, base_delay: float = 15.0, max_delay: float = 300.0):
+def retry_on_exception(
+    exceptions, *, max_retries: int = 10, base_delay: float = 15.0, max_delay: float = 300.0
+):
     """지정한 예외에만 throttle 후 재시도.
 
     rate-limit 처럼 분당 reset 되는 한도 위반에 사용.
@@ -62,7 +61,7 @@ def retry_on_exception(exceptions, *, max_retries: int = 10, base_delay: float =
                     if attempt == max_retries - 1:
                         logger.error(f"{func.__name__} gave up after {max_retries} retries: {e}")
                         raise
-                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    delay = min(base_delay * (2**attempt), max_delay)
                     logger.warning(
                         f"{func.__name__} hit {type(e).__name__}: {e} — sleep {delay}s "
                         f"(retry {attempt + 1}/{max_retries})"
@@ -85,10 +84,10 @@ class AlphaVantageCollector:
         self.session = None  # Will be initialized when needed
 
         # Railway Volume path support
-        if os.getenv('RAILWAY_PROJECT_ID'):
-            log_file_path = '/app/log/us_stock_basic_collected.json'
+        if os.getenv("RAILWAY_PROJECT_ID"):
+            log_file_path = "/app/log/us_stock_basic_collected.json"
         else:
-            log_file_path = 'log/us_stock_basic_collected.json'
+            log_file_path = "log/us_stock_basic_collected.json"
 
         self.collection_logger = CollectionLogger(log_file_path)
 
@@ -111,15 +110,13 @@ class AlphaVantageCollector:
         """Fetch overview data from Alpha Vantage API with retry logic"""
         await self.init_session()
 
-        params = {
-            'function': 'OVERVIEW',
-            'symbol': symbol,
-            'apikey': self.api_key
-        }
+        params = {"function": "OVERVIEW", "symbol": symbol, "apikey": self.api_key}
 
         for attempt in range(self.retry_count):
             try:
-                async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                async with self.session.get(
+                    self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
                     if response.status == 200:
                         data = await response.json()
 
@@ -141,7 +138,9 @@ class AlphaVantageCollector:
 
                         return data
                     else:
-                        logger.error(f"Request failed for {symbol} (attempt {attempt + 1}): Status {response.status}")
+                        logger.error(
+                            f"Request failed for {symbol} (attempt {attempt + 1}): Status {response.status}"
+                        )
                         if attempt < self.retry_count - 1:
                             await asyncio.sleep(self.retry_delay * (attempt + 1))  # Exponential backoff
                         else:
@@ -184,72 +183,72 @@ class AlphaVantageCollector:
 
         # Direct mappings
         field_mappings = {
-            'symbol': ('Symbol', str),
-            'assettype': ('AssetType', str),
-            'stock_name': ('Name', str),
-            'description': ('Description', str),
-            'cik': ('CIK', str),
-            'exchange': ('Exchange', str),
-            'currency': ('Currency', str),
-            'country': ('Country', str),
-            'sector': ('Sector', str),
-            'industry': ('Industry', str),
-            'address': ('Address', str),
-            'officialSite': ('OfficialSite', str),
-            'fiscalyearend': ('FiscalYearEnd', str),
-            'latestquarter': ('LatestQuarter', 'date'),
-            'market_cap': ('MarketCapitalization', 'int'),
-            'ebitda': ('EBITDA', 'int'),
-            'per': ('PERatio', 'float'),
-            'peg': ('PEGRatio', 'float'),
-            'bookvalue': ('BookValue', 'float'),
-            'dividendpershare': ('DividendPerShare', 'float'),
-            'dividendyield': ('DividendYield', 'float'),
-            'eps': ('EPS', 'float'),
-            'revenuepersharettm': ('RevenuePerShareTTM', 'float'),
-            'profitmargin': ('ProfitMargin', 'float'),
-            'operatingmarginttm': ('OperatingMarginTTM', 'float'),
-            'returnonassetsttm': ('ReturnOnAssetsTTM', 'float'),
-            'returnonequityttm': ('ReturnOnEquityTTM', 'float'),
-            'revenuettm': ('RevenueTTM', 'int'),
-            'grossprofitttm': ('GrossProfitTTM', 'int'),
-            'dilutedepsttm': ('DilutedEPSTTM', 'float'),
-            'quarterlyearningsgrowthyoy': ('QuarterlyEarningsGrowthYOY', 'float'),
-            'quarterlyrevenuegrowthyoy': ('QuarterlyRevenueGrowthYOY', 'float'),
-            'analysttargetprice': ('AnalystTargetPrice', 'float'),
-            'analystratingstrongbuy': ('AnalystRatingStrongBuy', 'int'),
-            'analystratingbuy': ('AnalystRatingBuy', 'int'),
-            'analystratinghold': ('AnalystRatingHold', 'int'),
-            'analystratingsell': ('AnalystRatingSell', 'int'),
-            'analystratingstrongsell': ('AnalystRatingStrongSell', 'int'),
-            'trailingpe': ('TrailingPE', 'float'),
-            'forwardpe': ('ForwardPE', 'float'),
-            'pricetosalesratiottm': ('PriceToSalesRatioTTM', 'float'),
-            'pricetobookratio': ('PriceToBookRatio', 'float'),
-            'evtorevenue': ('EVToRevenue', 'float'),
-            'evtoebitda': ('EVToEBITDA', 'float'),
-            'beta': ('Beta', 'float'),
-            'week52high': ('52WeekHigh', 'float'),
-            'week52low': ('52WeekLow', 'float'),
-            'day50movingaverage': ('50DayMovingAverage', 'float'),
-            'day200movingaverage': ('200DayMovingAverage', 'float'),
-            'sharesoutstanding': ('SharesOutstanding', 'int'),
-            'sharesfloat': ('SharesFloat', 'int'),
-            'percentinsiders': ('PercentInsiders', 'float'),
-            'percentinstitutions': ('PercentInstitutions', 'float'),
-            'dividenddate': ('DividendDate', 'date'),
-            'exdividenddate': ('ExDividendDate', 'date')
+            "symbol": ("Symbol", str),
+            "assettype": ("AssetType", str),
+            "stock_name": ("Name", str),
+            "description": ("Description", str),
+            "cik": ("CIK", str),
+            "exchange": ("Exchange", str),
+            "currency": ("Currency", str),
+            "country": ("Country", str),
+            "sector": ("Sector", str),
+            "industry": ("Industry", str),
+            "address": ("Address", str),
+            "officialSite": ("OfficialSite", str),
+            "fiscalyearend": ("FiscalYearEnd", str),
+            "latestquarter": ("LatestQuarter", "date"),
+            "market_cap": ("MarketCapitalization", "int"),
+            "ebitda": ("EBITDA", "int"),
+            "per": ("PERatio", "float"),
+            "peg": ("PEGRatio", "float"),
+            "bookvalue": ("BookValue", "float"),
+            "dividendpershare": ("DividendPerShare", "float"),
+            "dividendyield": ("DividendYield", "float"),
+            "eps": ("EPS", "float"),
+            "revenuepersharettm": ("RevenuePerShareTTM", "float"),
+            "profitmargin": ("ProfitMargin", "float"),
+            "operatingmarginttm": ("OperatingMarginTTM", "float"),
+            "returnonassetsttm": ("ReturnOnAssetsTTM", "float"),
+            "returnonequityttm": ("ReturnOnEquityTTM", "float"),
+            "revenuettm": ("RevenueTTM", "int"),
+            "grossprofitttm": ("GrossProfitTTM", "int"),
+            "dilutedepsttm": ("DilutedEPSTTM", "float"),
+            "quarterlyearningsgrowthyoy": ("QuarterlyEarningsGrowthYOY", "float"),
+            "quarterlyrevenuegrowthyoy": ("QuarterlyRevenueGrowthYOY", "float"),
+            "analysttargetprice": ("AnalystTargetPrice", "float"),
+            "analystratingstrongbuy": ("AnalystRatingStrongBuy", "int"),
+            "analystratingbuy": ("AnalystRatingBuy", "int"),
+            "analystratinghold": ("AnalystRatingHold", "int"),
+            "analystratingsell": ("AnalystRatingSell", "int"),
+            "analystratingstrongsell": ("AnalystRatingStrongSell", "int"),
+            "trailingpe": ("TrailingPE", "float"),
+            "forwardpe": ("ForwardPE", "float"),
+            "pricetosalesratiottm": ("PriceToSalesRatioTTM", "float"),
+            "pricetobookratio": ("PriceToBookRatio", "float"),
+            "evtorevenue": ("EVToRevenue", "float"),
+            "evtoebitda": ("EVToEBITDA", "float"),
+            "beta": ("Beta", "float"),
+            "week52high": ("52WeekHigh", "float"),
+            "week52low": ("52WeekLow", "float"),
+            "day50movingaverage": ("50DayMovingAverage", "float"),
+            "day200movingaverage": ("200DayMovingAverage", "float"),
+            "sharesoutstanding": ("SharesOutstanding", "int"),
+            "sharesfloat": ("SharesFloat", "int"),
+            "percentinsiders": ("PercentInsiders", "float"),
+            "percentinstitutions": ("PercentInstitutions", "float"),
+            "dividenddate": ("DividendDate", "date"),
+            "exdividenddate": ("ExDividendDate", "date"),
         }
 
         for db_field, (api_field, data_type) in field_mappings.items():
-            api_value = api_data.get(api_field, '')
+            api_value = api_data.get(api_field, "")
             transformed[db_field] = self.safe_convert(api_value, data_type)
 
         # 시점/출처 표시 (Alembic 0011 부터 PK = (symbol, date))
         # AV OVERVIEW 응답은 호출 시점의 snapshot이므로 date=today, source='api'.
-        transformed['date'] = date.today()
-        transformed['source'] = 'api'
-        transformed['updated_at'] = datetime.now()
+        transformed["date"] = date.today()
+        transformed["source"] = "api"
+        transformed["updated_at"] = datetime.now()
 
         return transformed
 
@@ -260,13 +259,14 @@ class AlphaVantageCollector:
 
             # Prepare INSERT ON CONFLICT UPDATE query (PK = symbol + date)
             fields = list(data.keys())
-            placeholders = ', '.join([f'${i+1}' for i in range(len(fields))])
-            field_names = ', '.join(fields)
+            placeholders = ", ".join([f"${i+1}" for i in range(len(fields))])
+            field_names = ", ".join(fields)
 
             # UPDATE clause excludes PK columns (symbol, date, source)
-            update_clauses = ', '.join(
-                f'{field} = EXCLUDED.{field}'
-                for field in fields if field not in ('symbol', 'date', 'source')
+            update_clauses = ", ".join(
+                f"{field} = EXCLUDED.{field}"
+                for field in fields
+                if field not in ("symbol", "date", "source")
             )
 
             query = f"""
@@ -289,8 +289,8 @@ class AlphaVantageCollector:
     def update_progress(self, symbol: str, status: str, error_message: str = None):
         """Update collection progress using CollectionLogger"""
         today = date.today().isoformat()
-        if status == 'completed':
-            self.collection_logger.mark_collected('us_stock_basic', symbol, [today], records_count=1)
+        if status == "completed":
+            self.collection_logger.mark_collected("us_stock_basic", symbol, [today], records_count=1)
             self.collection_logger.save_log()
 
     def load_symbols_from_csv(self, csv_file_path: str) -> List[str]:
@@ -299,7 +299,7 @@ class AlphaVantageCollector:
             import glob as glob_module
 
             # Check if path contains wildcard
-            if '*' in csv_file_path:
+            if "*" in csv_file_path:
                 # Handle glob pattern
                 matching_files = glob_module.glob(csv_file_path)
                 if matching_files:
@@ -330,9 +330,8 @@ class AlphaVantageCollector:
                 logger.error(f"CSV file not found: {csv_file_path}")
                 return []
 
-
             # Try common column names for stock symbols
-            symbol_columns = ['Symbol', 'symbol', 'SYMBOL', 'ACT Symbol', 'ticker', 'Ticker', 'TICKER']
+            symbol_columns = ["Symbol", "symbol", "SYMBOL", "ACT Symbol", "ticker", "Ticker", "TICKER"]
             symbol_column = None
 
             for col in symbol_columns:
@@ -344,9 +343,15 @@ class AlphaVantageCollector:
                 logger.error(f"No symbol column found in CSV. Available columns: {list(df.columns)}")
                 return []
 
-
             # Find company name column for filtering Common Stock
-            name_columns = ['Security Name', 'Company Name', 'security_name', 'company_name', 'Name', 'name']
+            name_columns = [
+                "Security Name",
+                "Company Name",
+                "security_name",
+                "company_name",
+                "Name",
+                "name",
+            ]
             name_column = None
 
             for col in name_columns:
@@ -357,7 +362,7 @@ class AlphaVantageCollector:
             if name_column:
                 # Filter for entries containing "Common Stock"
                 original_count = len(df)
-                df = df[df[name_column].str.contains('Common Stock', case=False, na=False)]
+                df = df[df[name_column].str.contains("Common Stock", case=False, na=False)]
             else:
                 logger.warning("No company name column found for filtering Common Stock")
 
@@ -378,9 +383,9 @@ class AlphaVantageCollector:
             # DISTINCT 필수 — us_stock_basic 의 'computed' source 가 종목별
             # 수백 행이라 DISTINCT 없으면 같은 종목이 list 에 수십~수백 번
             # 들어가 API 가 중복 호출돼 정상보다 수십 배 느려짐.
-            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
+            rows = await conn.fetch("SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true")
             await conn.close()
-            return {row['symbol'] for row in rows}
+            return {row["symbol"] for row in rows}
         except Exception as e:
             logger.error(f"Failed to get existing symbols: {str(e)}")
             return set()
@@ -394,8 +399,9 @@ class AlphaVantageCollector:
             conn = await self.get_connection()
             for symbol in delisted_symbols:
                 await conn.execute(
-                    'UPDATE us_stock_basic SET is_active = false, updated_at = $1 WHERE symbol = $2',
-                    datetime.now(), symbol
+                    "UPDATE us_stock_basic SET is_active = false, updated_at = $1 WHERE symbol = $2",
+                    datetime.now(),
+                    symbol,
                 )
             await conn.close()
         except Exception as e:
@@ -405,10 +411,9 @@ class AlphaVantageCollector:
         """Analyze symbol changes between CSV and database"""
         db_symbols = await self.get_existing_symbols()
 
-        new_symbols = csv_symbols - db_symbols      #  
-        delisted = db_symbols - csv_symbols         # 
-        existing = csv_symbols & db_symbols         #  
-
+        new_symbols = csv_symbols - db_symbols  #
+        delisted = db_symbols - csv_symbols  #
+        existing = csv_symbols & db_symbols  #
 
         if new_symbols:
             pass
@@ -423,15 +428,19 @@ class AlphaVantageCollector:
             conn = await self.get_connection()
             threshold_date = datetime.now() - pd.Timedelta(days=days_threshold)
 
-            rows = await conn.fetch('''
+            rows = await conn.fetch(
+                """
                 SELECT symbol FROM us_stock_basic
                 WHERE symbol = ANY($1::text[])
                 AND is_active = true
                 AND (updated_at IS NULL OR updated_at < $2)
-            ''', list(existing_symbols), threshold_date)
+            """,
+                list(existing_symbols),
+                threshold_date,
+            )
 
             await conn.close()
-            outdated = {row['symbol'] for row in rows}
+            outdated = {row["symbol"] for row in rows}
 
             if outdated:
                 pass
@@ -455,7 +464,7 @@ class AlphaVantageCollector:
             """
 
             rows = await conn.fetch(query)
-            symbols = [row['symbol'] for row in rows]
+            symbols = [row["symbol"] for row in rows]
 
             await conn.close()
 
@@ -480,8 +489,8 @@ class AlphaVantageCollector:
             today = date.today().isoformat()
             completed_set = set()
             collection_data = self.collection_logger.collection_log.get("collection_log", {})
-            if 'us_stock_basic' in collection_data:
-                for symbol, info in collection_data['us_stock_basic'].items():
+            if "us_stock_basic" in collection_data:
+                for symbol, info in collection_data["us_stock_basic"].items():
                     if today in info.get("dates", []):
                         completed_set.add(symbol)
 
@@ -493,20 +502,18 @@ class AlphaVantageCollector:
             try:
                 conn2 = await self.get_connection()
                 try:
-                    rows_today = await conn2.fetch(
-                        """SELECT symbol FROM us_stock_basic
+                    rows_today = await conn2.fetch("""SELECT symbol FROM us_stock_basic
                            WHERE date = CURRENT_DATE AND source = 'api'""")
-                    db_today_set = {r['symbol'] for r in rows_today}
+                    db_today_set = {r["symbol"] for r in rows_today}
 
                     # 당일 데이터는 시간에 따라 바뀔 수 있으니 today mark 는
                     # skip 하지 않음 → exclude_today (date < CURRENT_DATE).
-                    rows2 = await conn2.fetch(
-                        """SELECT DISTINCT symbol FROM collection_state
+                    rows2 = await conn2.fetch("""SELECT DISTINCT symbol FROM collection_state
                            WHERE collection_name = 'us_stock_basic'
                              AND status = 'no_data'
                              AND date >= CURRENT_DATE - 7
                              AND date < CURRENT_DATE""")
-                    no_data_set = {r['symbol'] for r in rows2}
+                    no_data_set = {r["symbol"] for r in rows2}
                 finally:
                     await conn2.close()
             except Exception as e:
@@ -519,7 +526,8 @@ class AlphaVantageCollector:
                 f"Found {len(pending_symbols)} pending out of {len(all_symbols)} "
                 f"— skipped: {len(completed_set)} in JSON log + "
                 f"{len(db_today_set)} in DB today + "
-                f"{len(no_data_set)} no_data")
+                f"{len(no_data_set)} no_data"
+            )
 
             return pending_symbols
 
@@ -535,7 +543,6 @@ class AlphaVantageCollector:
         if not symbols:
             return
 
-
         success_count = 0
         failed_count = 0
 
@@ -550,14 +557,14 @@ class AlphaVantageCollector:
 
                 # Save to database
                 if await self.save_to_database(transformed_data):
-                    self.update_progress(symbol, 'completed')
+                    self.update_progress(symbol, "completed")
                     success_count += 1
                 else:
-                    self.update_progress(symbol, 'failed', 'Database save failed')
+                    self.update_progress(symbol, "failed", "Database save failed")
                     failed_count += 1
             else:
                 # AV returned None — mark as no_data so we don't retry next time
-                self.update_progress(symbol, 'failed', 'API data retrieval failed')
+                self.update_progress(symbol, "failed", "API data retrieval failed")
                 try:
                     conn3 = await self.get_connection()
                     try:
@@ -567,7 +574,8 @@ class AlphaVantageCollector:
                                VALUES ('us_stock_basic', $1, CURRENT_DATE, 'no_data')
                                ON CONFLICT (collection_name, symbol, date) DO UPDATE
                                SET status = 'no_data', collected_at = NOW()""",
-                            symbol)
+                            symbol,
+                        )
                     finally:
                         await conn3.close()
                 except Exception as e_nd:
@@ -577,18 +585,17 @@ class AlphaVantageCollector:
             # Rate limiting - 300 calls per minute (consistent with other collectors)
             await asyncio.sleep(0.2)  # 300 requests per minute = 0.2 seconds between requests
 
-
     async def get_collection_status(self):
         """Get current collection status"""
         try:
             # Get completed count from CollectionLogger
             collection_data = self.collection_logger.collection_log.get("collection_log", {})
-            completed_count = len(collection_data.get('us_stock_basic', {}))
-            status_counts = {'completed': completed_count}
+            completed_count = len(collection_data.get("us_stock_basic", {}))
+            status_counts = {"completed": completed_count}
 
             # Get total records from DB
             conn = await self.get_connection()
-            total_records_row = await conn.fetchrow('SELECT COUNT(*) FROM us_stock_basic')
+            total_records_row = await conn.fetchrow("SELECT COUNT(*) FROM us_stock_basic")
             total_records = total_records_row[0]
             await conn.close()
 
@@ -601,8 +608,8 @@ class AlphaVantageCollector:
 
 async def main():
     # Initialize collector with API key and database URL from environment
-    API_KEY = os.getenv('ALPHAVANTAGE_API_KEY', 'demo')
-    DATABASE_URL = os.getenv('DATABASE_URL')
+    API_KEY = os.getenv("ALPHAVANTAGE_API_KEY", "demo")
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
     if not DATABASE_URL:
         logger.error("DATABASE_URL environment variable is required")
@@ -622,11 +629,17 @@ async def main():
 
 
 class DailyCollector:
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.6,
-                 target_date: date = None,
-                 start_date: date = None, end_date: date = None,
-                 outputsize: str = "compact",
-                 outputsize_per_symbol: Optional[Dict[str, str]] = None):
+    def __init__(
+        self,
+        api_key: str,
+        database_url: str,
+        call_interval: float = 0.6,
+        target_date: date = None,
+        start_date: date = None,
+        end_date: date = None,
+        outputsize: str = "compact",
+        outputsize_per_symbol: Optional[Dict[str, str]] = None,
+    ):
         """DailyCollector.
 
         Modes:
@@ -640,8 +653,8 @@ class DailyCollector:
         """
         self.api_key = api_key
         # asyncpg postgresql://
-        if database_url.startswith('postgresql+asyncpg://'):
-            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
         self.database_url = database_url
         self.base_url = "https://www.alphavantage.co/query"
         self.retry_count = 3
@@ -668,10 +681,10 @@ class DailyCollector:
         self.target_symbols = None
 
         # Railway Volume path support
-        if os.getenv('RAILWAY_PROJECT_ID'):
-            log_file_path = '/app/log/us_daily_collected.json'
+        if os.getenv("RAILWAY_PROJECT_ID"):
+            log_file_path = "/app/log/us_daily_collected.json"
         else:
-            log_file_path = 'log/us_daily_collected.json'
+            log_file_path = "log/us_daily_collected.json"
 
         self.collection_logger = CollectionLogger(log_file_path)
         self.pool = None
@@ -687,7 +700,7 @@ class DailyCollector:
             command_timeout=120,  # 60 → 120 (optimized)
             max_queries=50000,
             max_cached_statement_lifetime=0,
-            max_cacheable_statement_size=0
+            max_cacheable_statement_size=0,
         )
         self.session = aiohttp.ClientSession(headers=USER_AGENT_HEADERS)
         logger.info("[US_DAILY] Database connection pool initialized (OPTIMIZED: min=10, max=50)")
@@ -707,7 +720,6 @@ class DailyCollector:
         else:
             return await asyncpg.connect(self.database_url)
 
-
     async def get_existing_symbols(self) -> List[str]:
         """Get all symbols from us_stock_basic table, optionally filtered by
         self.target_symbols (whitelist) so task_us_daily can pass only the
@@ -721,17 +733,16 @@ class DailyCollector:
             # DISTINCT 필수 — us_stock_basic 의 'computed' source 가 종목별
             # 수백 행이라 DISTINCT 없으면 같은 종목이 list 에 수십~수백 번
             # 들어가 API 가 중복 호출돼 정상보다 수십 배 느려짐.
-            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
-            no_data_rows = await conn.fetch(
-                """SELECT DISTINCT symbol FROM collection_state
+            rows = await conn.fetch("SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true")
+            no_data_rows = await conn.fetch("""SELECT DISTINCT symbol FROM collection_state
                    WHERE collection_name='us_daily' AND status='no_data'
                      AND date >= CURRENT_DATE - 7 AND date < CURRENT_DATE""")
-            no_data_set = {r['symbol'] for r in no_data_rows}
+            no_data_set = {r["symbol"] for r in no_data_rows}
             if self.pool:
                 await self.pool.release(conn)
             else:
                 await conn.close()
-            symbols = [row['symbol'] for row in rows if row['symbol'] not in no_data_set]
+            symbols = [row["symbol"] for row in rows if row["symbol"] not in no_data_set]
             if self.target_symbols is not None:
                 target_set = set(self.target_symbols)
                 before = len(symbols)
@@ -739,11 +750,12 @@ class DailyCollector:
                 logger.info(
                     f"[US_DAILY] Filtered to target_symbols: "
                     f"{len(symbols)}/{before} (skipped {before - len(symbols)} "
-                    f"already-covered, no_data excluded {len(no_data_set)})")
+                    f"already-covered, no_data excluded {len(no_data_set)})"
+                )
             else:
                 logger.info(
-                    f"[US_DAILY] Found {len(symbols)} symbols "
-                    f"(no_data excluded {len(no_data_set)})")
+                    f"[US_DAILY] Found {len(symbols)} symbols " f"(no_data excluded {len(no_data_set)})"
+                )
             return symbols
         except Exception as e:
             logger.error(f"Failed to get existing symbols: {str(e)}")
@@ -757,16 +769,16 @@ class DailyCollector:
         """Load all fundamental data into cache - OPTIMIZED"""
         try:
             conn = await self.get_connection()
-            rows = await conn.fetch('SELECT symbol, eps, bookvalue FROM us_stock_basic')
+            rows = await conn.fetch("SELECT symbol, eps, bookvalue FROM us_stock_basic")
             if self.pool:
                 await self.pool.release(conn)
             else:
                 await conn.close()
 
             for row in rows:
-                self.fundamental_cache[row['symbol']] = {
-                    'eps': float(row['eps']) if row['eps'] is not None else None,
-                    'bookvalue': float(row['bookvalue']) if row['bookvalue'] is not None else None
+                self.fundamental_cache[row["symbol"]] = {
+                    "eps": float(row["eps"]) if row["eps"] is not None else None,
+                    "bookvalue": float(row["bookvalue"]) if row["bookvalue"] is not None else None,
                 }
             logger.info(f"[US_DAILY] Loaded fundamental data for {len(self.fundamental_cache)} symbols")
         except Exception as e:
@@ -784,7 +796,7 @@ class DailyCollector:
 
     async def get_stock_fundamental_data(self, symbol: str) -> Dict[str, Optional[float]]:
         """Get fundamental data from cache - OPTIMIZED"""
-        return self.fundamental_cache.get(symbol, {'eps': None, 'bookvalue': None})
+        return self.fundamental_cache.get(symbol, {"eps": None, "bookvalue": None})
 
     async def get_daily_data(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Fetch Daily data from Alpha Vantage API with async aiohttp - OPTIMIZED"""
@@ -792,22 +804,24 @@ class DailyCollector:
             # Pick outputsize: per-symbol override > default
             outputsize_for_symbol = self.outputsize_per_symbol.get(symbol, self.outputsize)
             params = {
-                'function': 'TIME_SERIES_DAILY',
-                'symbol': symbol,
-                'apikey': self.api_key,
-                'outputsize': outputsize_for_symbol,
-                'datatype': 'json'
+                "function": "TIME_SERIES_DAILY",
+                "symbol": symbol,
+                "apikey": self.api_key,
+                "outputsize": outputsize_for_symbol,
+                "datatype": "json",
             }
-            async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=60)) as response:
+            async with self.session.get(
+                self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=60)
+            ) as response:
                 if response.status == 200:
                     data = await response.json()
-                    if 'Error Message' in data:
+                    if "Error Message" in data:
                         logger.error(f"[US_DAILY] API error for {symbol}: {data['Error Message']}")
                         return None
-                    elif 'Note' in data:
+                    elif "Note" in data:
                         logger.warning(f"[US_DAILY] API limit reached: {data['Note']}")
                         return None
-                    elif 'Time Series (Daily)' in data:
+                    elif "Time Series (Daily)" in data:
                         return data
                     else:
                         logger.warning(f"[US_DAILY] Unexpected response format for {symbol}")
@@ -840,11 +854,17 @@ class DailyCollector:
         dates = []
         current = self.start_date
         while current <= self.end_date:
-            dates.append(current.strftime('%Y-%m-%d'))
+            dates.append(current.strftime("%Y-%m-%d"))
             current += timedelta(days=1)
         return dates
 
-    def transform_daily_data(self, api_data: Dict[str, Any], symbol: str, eps: Optional[float] = None, bookvalue: Optional[float] = None) -> List[Dict[str, Any]]:
+    def transform_daily_data(
+        self,
+        api_data: Dict[str, Any],
+        symbol: str,
+        eps: Optional[float] = None,
+        bookvalue: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
         """Transform Daily data to match database schema - OPTIMIZED"""
         try:
             transformed_records = []
@@ -883,7 +903,9 @@ class DailyCollector:
                         # Limit PER to database precision (DECIMAL(6,2) = max 9999.99)
                         if per > 9999.99:
                             per = 9999.99
-                            logger.warning(f"PER capped at 9999.99 for {symbol}: calculated {close_price}/{eps}")
+                            logger.warning(
+                                f"PER capped at 9999.99 for {symbol}: calculated {close_price}/{eps}"
+                            )
                     else:
                         pass
 
@@ -894,23 +916,25 @@ class DailyCollector:
                         # Limit PBR to reasonable range
                         if pbr > 999999.99:
                             pbr = 999999.99
-                            logger.warning(f"PBR capped at 999999.99 for {symbol}: calculated {close_price}/{bookvalue}")
+                            logger.warning(
+                                f"PBR capped at 999999.99 for {symbol}: calculated {close_price}/{bookvalue}"
+                            )
                     else:
                         pass
 
                     transformed = {
-                        'date': parsed_date,
-                        'symbol': symbol,
-                        'open': open_price,
-                        'high': high_price,
-                        'low': low_price,
-                        'close': close_price,
-                        'volume': volume,
-                        'change_amount': change_amount,
-                        'change_rate': change_rate,
-                        'per': per,
-                        'pbr': pbr,
-                        'updated_at': datetime.now()
+                        "date": parsed_date,
+                        "symbol": symbol,
+                        "open": open_price,
+                        "high": high_price,
+                        "low": low_price,
+                        "close": close_price,
+                        "volume": volume,
+                        "change_amount": change_amount,
+                        "change_rate": change_rate,
+                        "per": per,
+                        "pbr": pbr,
+                        "updated_at": datetime.now(),
                     }
 
                     transformed_records.append(transformed)
@@ -930,7 +954,7 @@ class DailyCollector:
 
     def safe_decimal(self, value: str) -> Optional[float]:
         """Safely convert string to decimal"""
-        if not value or value.strip() in ['', 'N/A', '-', 'null']:
+        if not value or value.strip() in ["", "N/A", "-", "null"]:
             return None
 
         try:
@@ -941,7 +965,7 @@ class DailyCollector:
 
     def safe_int(self, value: str) -> Optional[int]:
         """Safely convert string to integer"""
-        if not value or value.strip() in ['', 'N/A', '-', 'null']:
+        if not value or value.strip() in ["", "N/A", "-", "null"]:
             return None
 
         try:
@@ -963,7 +987,8 @@ class DailyCollector:
             for record in daily_data:
                 try:
                     # Insert or update Daily record
-                    result = await conn.execute('''
+                    result = await conn.execute(
+                        """
                         INSERT INTO us_daily
                         (date, symbol, open, high, low, close, volume, change_amount,
                          change_rate, per, pbr, updated_at)
@@ -980,19 +1005,19 @@ class DailyCollector:
                         pbr = EXCLUDED.pbr,
                         updated_at = EXCLUDED.updated_at
                         RETURNING (xmax = 0) AS inserted
-                    ''',
-                    record['date'],
-                    record['symbol'],
-                    record['open'],
-                    record['high'],
-                    record['low'],
-                    record['close'],
-                    record['volume'],
-                    record['change_amount'],
-                    record['change_rate'],
-                    record['per'],
-                    record['pbr'],
-                    record['updated_at']
+                    """,
+                        record["date"],
+                        record["symbol"],
+                        record["open"],
+                        record["high"],
+                        record["low"],
+                        record["close"],
+                        record["volume"],
+                        record["change_amount"],
+                        record["change_rate"],
+                        record["per"],
+                        record["pbr"],
+                        record["updated_at"],
                     )
 
                     # Check if it was an insert or update
@@ -1001,9 +1026,10 @@ class DailyCollector:
                     else:
                         updated_count += 1
 
-
                 except Exception as e:
-                    logger.error(f"Failed to save Daily record for {record.get('symbol', 'unknown')}: {str(e)}")
+                    logger.error(
+                        f"Failed to save Daily record for {record.get('symbol', 'unknown')}: {str(e)}"
+                    )
 
             if self.pool:
                 await self.pool.release(conn)
@@ -1034,11 +1060,11 @@ class DailyCollector:
         try:
             async with conn.transaction():
                 # Transaction optimization - OPTIMIZATION #8
-                await conn.execute('SET LOCAL synchronous_commit = OFF')
+                await conn.execute("SET LOCAL synchronous_commit = OFF")
                 await conn.execute('SET LOCAL work_mem = "256MB"')
 
                 # Create temp table for COPY - OPTIMIZATION #4
-                await conn.execute('''
+                await conn.execute("""
                     CREATE TEMP TABLE temp_us_daily (
                         date DATE,
                         symbol VARCHAR(20),
@@ -1053,25 +1079,49 @@ class DailyCollector:
                         pbr DECIMAL(8,2),
                         updated_at TIMESTAMP
                     ) ON COMMIT DROP
-                ''')
+                """)
 
                 # Prepare data for COPY
-                rows = [[
-                    record['date'], record['symbol'], record['open'],
-                    record['high'], record['low'], record['close'],
-                    record['volume'], record['change_amount'], record['change_rate'],
-                    record['per'], record['pbr'], record['updated_at']
-                ] for record in daily_data]
+                rows = [
+                    [
+                        record["date"],
+                        record["symbol"],
+                        record["open"],
+                        record["high"],
+                        record["low"],
+                        record["close"],
+                        record["volume"],
+                        record["change_amount"],
+                        record["change_rate"],
+                        record["per"],
+                        record["pbr"],
+                        record["updated_at"],
+                    ]
+                    for record in daily_data
+                ]
 
                 # COPY to temp table
                 await conn.copy_records_to_table(
-                    'temp_us_daily', records=rows,
-                    columns=['date', 'symbol', 'open', 'high', 'low', 'close',
-                            'volume', 'change_amount', 'change_rate', 'per', 'pbr', 'updated_at']
+                    "temp_us_daily",
+                    records=rows,
+                    columns=[
+                        "date",
+                        "symbol",
+                        "open",
+                        "high",
+                        "low",
+                        "close",
+                        "volume",
+                        "change_amount",
+                        "change_rate",
+                        "per",
+                        "pbr",
+                        "updated_at",
+                    ],
                 )
 
                 # Upsert from temp to main table
-                await conn.execute('''
+                await conn.execute("""
                     INSERT INTO us_daily (date, symbol, open, high, low, close, volume, change_amount, change_rate, per, pbr, updated_at)
                     SELECT * FROM temp_us_daily
                     ON CONFLICT (symbol, date) DO UPDATE SET
@@ -1079,7 +1129,7 @@ class DailyCollector:
                         close = EXCLUDED.close, volume = EXCLUDED.volume,
                         change_amount = EXCLUDED.change_amount, change_rate = EXCLUDED.change_rate,
                         per = EXCLUDED.per, pbr = EXCLUDED.pbr, updated_at = EXCLUDED.updated_at
-                ''')
+                """)
 
             if self.pool:
                 await self.pool.release(conn)
@@ -1112,7 +1162,7 @@ class DailyCollector:
                 symbol_list = symbols
             else:
                 rows = await conn.fetch("SELECT DISTINCT symbol FROM us_daily")
-                symbol_list = [row['symbol'] for row in rows]
+                symbol_list = [row["symbol"] for row in rows]
 
             logger.info(f"[US_DAILY MA] Calculating MA for {len(symbol_list)} symbols")
 
@@ -1139,10 +1189,10 @@ class DailyCollector:
                     trading_values = []
 
                     for h in history:
-                        if h['volume'] is not None:
-                            volumes.append(h['volume'])
-                        if h['volume'] is not None and h['close'] is not None:
-                            trading_values.append(int(h['volume'] * float(h['close'])))
+                        if h["volume"] is not None:
+                            volumes.append(h["volume"])
+                        if h["volume"] is not None and h["close"] is not None:
+                            trading_values.append(int(h["volume"] * float(h["close"])))
 
                     # Calculate MAs
                     def calc_ma(data_list, period):
@@ -1160,7 +1210,7 @@ class DailyCollector:
                     avg_tv_20d = calc_ma(trading_values, 20)
 
                     # Get the latest date for this symbol
-                    latest_date = history[0]['date']
+                    latest_date = history[0]["date"]
 
                     # Update us_daily for the latest record
                     update_query = """
@@ -1175,9 +1225,14 @@ class DailyCollector:
                     """
                     await conn.execute(
                         update_query,
-                        avg_vol_5d, avg_vol_20d, avg_vol_50d, avg_vol_200d,
-                        avg_tv_5d, avg_tv_20d,
-                        symbol, latest_date
+                        avg_vol_5d,
+                        avg_vol_20d,
+                        avg_vol_50d,
+                        avg_vol_200d,
+                        avg_tv_5d,
+                        avg_tv_20d,
+                        symbol,
+                        latest_date,
                     )
                     updated_count += 1
 
@@ -1204,11 +1259,15 @@ class DailyCollector:
             try:
                 date_range_list = self.get_date_range_list()
                 # Check CollectionLogger - OPTIMIZATION #6
-                if self.collection_logger.is_collected('us_daily', symbol, date_range_list):
+                # (cron 모드 한정. incremental 모드는 DB 실측 분류가 이미 끝났고
+                #  collection_log 의 범위-통째 마킹 오염을 신뢰할 수 없음)
+                if self.target_symbols is None and self.collection_logger.is_collected(
+                    "us_daily", symbol, date_range_list
+                ):
                     continue
 
                 fundamental_data = await self.get_stock_fundamental_data(symbol)
-                eps, bookvalue = fundamental_data.get('eps'), fundamental_data.get('bookvalue')
+                eps, bookvalue = fundamental_data.get("eps"), fundamental_data.get("bookvalue")
 
                 api_data = await self.get_daily_data(symbol)
                 if api_data:
@@ -1249,7 +1308,7 @@ class DailyCollector:
                     # Re-fetch fundamental data if not available
                     if eps is None and bookvalue is None:
                         fundamental_data = await self.get_stock_fundamental_data(symbol)
-                        eps, bookvalue = fundamental_data.get('eps'), fundamental_data.get('bookvalue')
+                        eps, bookvalue = fundamental_data.get("eps"), fundamental_data.get("bookvalue")
 
                     api_data = await self.get_daily_data(symbol)
                     if api_data:
@@ -1269,7 +1328,9 @@ class DailyCollector:
 
         if failed_symbols:
             failed_symbol_names = [s[0] for s in failed_symbols]
-            logger.warning(f"[US_DAILY] {len(failed_symbols)} symbols failed after all retries: {failed_symbol_names[:10]}...")
+            logger.warning(
+                f"[US_DAILY] {len(failed_symbols)} symbols failed after all retries: {failed_symbol_names[:10]}..."
+            )
             # 영구 fail → collection_state.us_daily 에 no_data mark (today 는 매번 retry).
             try:
                 async with self.pool.acquire() as conn_mark:
@@ -1279,7 +1340,8 @@ class DailyCollector:
                            VALUES ('us_daily', $1, CURRENT_DATE, 'no_data')
                            ON CONFLICT (collection_name, symbol, date) DO UPDATE
                              SET status='no_data', collected_at=NOW()""",
-                        [(s,) for s in failed_symbol_names])
+                        [(s,) for s in failed_symbol_names],
+                    )
                 logger.info(f"[US_DAILY] no_data mark for {len(failed_symbol_names)} symbols")
             except Exception as e_mark:
                 logger.warning(f"[US_DAILY] no_data bulk mark failed: {e_mark}")
@@ -1302,8 +1364,14 @@ class DailyCollector:
                 saved = await self.save_daily_data_optimized(batch)
                 if saved > 0:
                     total_saved += saved
+                    # 실제 저장된 (symbol, date)만 마킹. 종전에는 요청범위
+                    # (date_range_list) 전체를 통째로 마킹해, AV 에 아직 없는
+                    # 최신일까지 "수집됨"으로 오기록 → 다음 run 의 is_collected
+                    # 가 전 종목을 skip 해 최신일이 영영 안 들어오는 버그.
                     for record in batch:
-                        self.collection_logger.mark_collected('us_daily', record['symbol'], date_range_list, 1)
+                        self.collection_logger.mark_collected(
+                            "us_daily", record["symbol"], [record["date"]], 1
+                        )
                     self.collection_logger.save_log()
                 batch = []
         logger.info(f"[US_DAILY DB] Total saved: {total_saved}")
@@ -1324,7 +1392,17 @@ class DailyCollector:
             return
 
         date_range_list = self.get_date_range_list()
-        symbols = [s for s in all_symbols if not self.collection_logger.is_collected('us_daily', s, date_range_list)]
+        if self.target_symbols is not None:
+            # incremental 모드(task_us_daily): us_daily DB 실측으로 이미 "수집
+            # 필요 종목"만 추려 받음. collection_log 는 과거 run 이 요청범위
+            # 전체를 마킹해둔 오염 데이터가 있을 수 있어 신뢰하지 않는다.
+            symbols = all_symbols
+        else:
+            symbols = [
+                s
+                for s in all_symbols
+                if not self.collection_logger.is_collected("us_daily", s, date_range_list)
+            ]
         logger.info(f"[US_DAILY] Total: {len(all_symbols)}, To process: {len(symbols)}")
 
         if not symbols:
@@ -1349,7 +1427,6 @@ class DailyCollector:
 
     async def collect_daily(self):
         """Main method to collect Daily data for all symbols"""
-
 
         # Get all symbols from us_stock_basic table
         symbols = await self.get_existing_symbols()
@@ -1390,30 +1467,29 @@ class DailyCollector:
                 logger.error(f"Error processing symbol {symbol}: {str(e)}")
                 continue
 
-
     async def get_collection_status(self):
         """Get current Daily collection status"""
         try:
             conn = await self.get_connection()
 
-            total_records_row = await conn.fetchrow('SELECT COUNT(*) FROM us_daily')
+            total_records_row = await conn.fetchrow("SELECT COUNT(*) FROM us_daily")
             total_records = total_records_row[0]
 
             # Get unique symbols count
-            symbols_row = await conn.fetchrow('SELECT COUNT(DISTINCT symbol) FROM us_daily')
+            symbols_row = await conn.fetchrow("SELECT COUNT(DISTINCT symbol) FROM us_daily")
             symbols_count = symbols_row[0]
 
             # Get latest date
-            latest_row = await conn.fetchrow('''
+            latest_row = await conn.fetchrow("""
                 SELECT date, symbol FROM us_daily
                 ORDER BY date DESC LIMIT 1
-            ''')
+            """)
 
             # Get earliest date
-            earliest_row = await conn.fetchrow('''
+            earliest_row = await conn.fetchrow("""
                 SELECT date, symbol FROM us_daily
                 ORDER BY date ASC LIMIT 1
-            ''')
+            """)
 
             await conn.close()
 
@@ -1432,9 +1508,9 @@ class DailyCollector:
 class MonthlyCollector:
     def __init__(self, api_key: str, database_url: str):
         self.api_key = api_key
-        # asyncpg postgresql://  
-        if database_url.startswith('postgresql+asyncpg://'):
-            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        # asyncpg postgresql://
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
         self.database_url = database_url
         self.base_url = "https://www.alphavantage.co/query"
         self.retry_count = 3
@@ -1456,7 +1532,6 @@ class MonthlyCollector:
         """Get PostgreSQL database connection"""
         return await asyncpg.connect(self.database_url)
 
-
     async def get_existing_symbols(self) -> set:
         """Get all symbols from us_stock_basic table"""
         try:
@@ -1464,9 +1539,9 @@ class MonthlyCollector:
             # DISTINCT 필수 — us_stock_basic 의 'computed' source 가 종목별
             # 수백 행이라 DISTINCT 없으면 같은 종목이 list 에 수십~수백 번
             # 들어가 API 가 중복 호출돼 정상보다 수십 배 느려짐.
-            rows = await conn.fetch('SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true')
+            rows = await conn.fetch("SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true")
             await conn.close()
-            return {row['symbol'] for row in rows}
+            return {row["symbol"] for row in rows}
         except Exception as e:
             logger.error(f"Failed to get existing symbols: {str(e)}")
             return set()
@@ -1476,15 +1551,17 @@ class MonthlyCollector:
         await self.init_session()
 
         params = {
-            'function': 'TIME_SERIES_MONTHLY',
-            'symbol': symbol,
-            'datatype': 'json',
-            'apikey': self.api_key
+            "function": "TIME_SERIES_MONTHLY",
+            "symbol": symbol,
+            "datatype": "json",
+            "apikey": self.api_key,
         }
 
         for attempt in range(self.retry_count):
             try:
-                async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with self.session.get(
+                    self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
                     if response.status == 200:
                         data = await response.json()
 
@@ -1508,7 +1585,9 @@ class MonthlyCollector:
 
                         return data
                     else:
-                        logger.error(f"Request failed for {symbol} (attempt {attempt + 1}): Status {response.status}")
+                        logger.error(
+                            f"Request failed for {symbol} (attempt {attempt + 1}): Status {response.status}"
+                        )
                         if attempt < self.retry_count - 1:
                             await asyncio.sleep(self.retry_delay * (attempt + 1))  # Exponential backoff
                         else:
@@ -1559,14 +1638,14 @@ class MonthlyCollector:
                     volume = self.safe_int(ohlcv_data.get("5. volume"))
 
                     transformed = {
-                        'date': parsed_date,
-                        'symbol': symbol,
-                        'open': open_price,
-                        'high': high_price,
-                        'low': low_price,
-                        'close': close_price,
-                        'volume': volume,
-                        'updated_at': datetime.now()
+                        "date": parsed_date,
+                        "symbol": symbol,
+                        "open": open_price,
+                        "high": high_price,
+                        "low": low_price,
+                        "close": close_price,
+                        "volume": volume,
+                        "updated_at": datetime.now(),
                     }
 
                     transformed_records.append(transformed)
@@ -1577,7 +1656,7 @@ class MonthlyCollector:
 
             if transformed_records:
                 # Show earliest and latest dates
-                dates = [record['date'] for record in transformed_records]
+                dates = [record["date"] for record in transformed_records]
                 earliest = min(dates)
                 latest = max(dates)
 
@@ -1589,7 +1668,7 @@ class MonthlyCollector:
 
     def safe_decimal(self, value: str) -> Optional[float]:
         """Safely convert string to decimal"""
-        if not value or value.strip() in ['', 'N/A', '-', 'null']:
+        if not value or value.strip() in ["", "N/A", "-", "null"]:
             return None
 
         try:
@@ -1600,7 +1679,7 @@ class MonthlyCollector:
 
     def safe_int(self, value: str) -> Optional[int]:
         """Safely convert string to integer"""
-        if not value or value.strip() in ['', 'N/A', '-', 'null']:
+        if not value or value.strip() in ["", "N/A", "-", "null"]:
             return None
 
         try:
@@ -1621,7 +1700,8 @@ class MonthlyCollector:
             for record in monthly_data:
                 try:
                     # Insert or update Monthly record
-                    result = await conn.execute('''
+                    result = await conn.execute(
+                        """
                         INSERT INTO us_monthly
                         (date, symbol, open, high, low, close, volume, updated_at)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -1633,23 +1713,24 @@ class MonthlyCollector:
                         volume = EXCLUDED.volume,
                         updated_at = EXCLUDED.updated_at
                         RETURNING (xmax = 0) AS inserted
-                    ''',
-                    record['date'],
-                    record['symbol'],
-                    record['open'],
-                    record['high'],
-                    record['low'],
-                    record['close'],
-                    record['volume'],
-                    record['updated_at']
+                    """,
+                        record["date"],
+                        record["symbol"],
+                        record["open"],
+                        record["high"],
+                        record["low"],
+                        record["close"],
+                        record["volume"],
+                        record["updated_at"],
                     )
 
                     # Count as saved (we can't distinguish insert vs update easily with partitioned tables)
                     saved_count += 1
 
-
                 except Exception as e:
-                    logger.error(f"Failed to save Monthly record for {record.get('symbol', 'unknown')}: {str(e)}")
+                    logger.error(
+                        f"Failed to save Monthly record for {record.get('symbol', 'unknown')}: {str(e)}"
+                    )
 
             await conn.close()
             return saved_count
@@ -1660,7 +1741,6 @@ class MonthlyCollector:
 
     async def collect_monthly(self):
         """Main method to collect Monthly data for all symbols"""
-
 
         # Get all symbols from us_stock_basic table
         symbols = await self.get_existing_symbols()
@@ -1701,30 +1781,29 @@ class MonthlyCollector:
                 logger.error(f"Error processing symbol {symbol}: {str(e)}")
                 continue
 
-
     async def get_collection_status(self):
         """Get current Monthly collection status"""
         try:
             conn = await self.get_connection()
 
-            total_records_row = await conn.fetchrow('SELECT COUNT(*) FROM us_monthly')
+            total_records_row = await conn.fetchrow("SELECT COUNT(*) FROM us_monthly")
             total_records = total_records_row[0]
 
             # Get unique symbols count
-            symbols_row = await conn.fetchrow('SELECT COUNT(DISTINCT symbol) FROM us_monthly')
+            symbols_row = await conn.fetchrow("SELECT COUNT(DISTINCT symbol) FROM us_monthly")
             symbols_count = symbols_row[0]
 
             # Get latest date
-            latest_row = await conn.fetchrow('''
+            latest_row = await conn.fetchrow("""
                 SELECT date, symbol FROM us_monthly
                 ORDER BY date DESC LIMIT 1
-            ''')
+            """)
 
             # Get earliest date
-            earliest_row = await conn.fetchrow('''
+            earliest_row = await conn.fetchrow("""
                 SELECT date, symbol FROM us_monthly
                 ORDER BY date ASC LIMIT 1
-            ''')
+            """)
 
             await conn.close()
 
@@ -1741,20 +1820,22 @@ class MonthlyCollector:
 
 
 class VWAPCollector:
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2, target_date: date = None):
+    def __init__(
+        self, api_key: str, database_url: str, call_interval: float = 0.2, target_date: date = None
+    ):
         self.api_key = api_key
-        if database_url.startswith('postgresql+asyncpg://'):
-            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
         self.database_url = database_url
         self.start_date = target_date if target_date else self.get_latest_business_day()
         self.end_date = self.start_date
         self.call_interval = call_interval
 
         # Railway Volume path support
-        if os.getenv('RAILWAY_PROJECT_ID'):
-            log_file_path = '/app/log/us_vwap_collected.json'
+        if os.getenv("RAILWAY_PROJECT_ID"):
+            log_file_path = "/app/log/us_vwap_collected.json"
         else:
-            log_file_path = 'log/us_vwap_collected.json'
+            log_file_path = "log/us_vwap_collected.json"
 
         self.collection_logger = CollectionLogger(log_file_path)
         self.base_url = "https://www.alphavantage.co/query"
@@ -1779,7 +1860,7 @@ class VWAPCollector:
         dates = []
         current = self.start_date
         while current <= self.end_date:
-            dates.append(current.strftime('%Y-%m-%d'))
+            dates.append(current.strftime("%Y-%m-%d"))
             current += timedelta(days=1)
         return dates
 
@@ -1792,7 +1873,7 @@ class VWAPCollector:
             command_timeout=120,
             max_queries=50000,
             max_cached_statement_lifetime=0,
-            max_cacheable_statement_size=0
+            max_cacheable_statement_size=0,
         )
         self.session = aiohttp.ClientSession(headers=USER_AGENT_HEADERS)
         logger.info("[US_VWAP] Database connection pool initialized (OPTIMIZED: min=10, max=50)")
@@ -1815,41 +1896,49 @@ class VWAPCollector:
     async def get_vwap_data(self, symbol: str) -> Optional[Dict]:
         """Fetch VWAP data from Alpha Vantage API with retry logic"""
         params = {
-            'function': 'VWAP',
-            'symbol': symbol,
-            'interval': '60min',  # VWAP needs intraday interval
-            'apikey': self.api_key,
-            'datatype': 'json'
+            "function": "VWAP",
+            "symbol": symbol,
+            "interval": "60min",  # VWAP needs intraday interval
+            "apikey": self.api_key,
+            "datatype": "json",
         }
 
         for attempt in range(self.retry_count):
             try:
-                async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with self.session.get(
+                    self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
                     if response.status == 200:
                         data = await response.json()
-                        if 'Error Message' in data:
+                        if "Error Message" in data:
                             logger.error(f"[US_VWAP] API error for {symbol}: {data['Error Message']}")
                             return None
-                        elif 'Note' in data:
+                        elif "Note" in data:
                             logger.warning(f"[US_VWAP] API limit reached, waiting 60s...")
                             await asyncio.sleep(60)
                             continue
-                        elif 'Information' in data and 'rate limit' in data['Information'].lower():
+                        elif "Information" in data and "rate limit" in data["Information"].lower():
                             logger.warning(f"[US_VWAP] Rate limit hit, waiting 60s...")
                             await asyncio.sleep(60)
                             continue
-                        elif 'Technical Analysis: VWAP' in data:
+                        elif "Technical Analysis: VWAP" in data:
                             return data
                         else:
-                            logger.warning(f"[US_VWAP] Unexpected response format for {symbol}: {list(data.keys())[:5]} - {str(data)[:300]}")
+                            logger.warning(
+                                f"[US_VWAP] Unexpected response format for {symbol}: {list(data.keys())[:5]} - {str(data)[:300]}"
+                            )
                             return None
                     else:
-                        logger.error(f"[US_VWAP] API request failed for {symbol}: Status {response.status} (attempt {attempt + 1}/{self.retry_count})")
+                        logger.error(
+                            f"[US_VWAP] API request failed for {symbol}: Status {response.status} (attempt {attempt + 1}/{self.retry_count})"
+                        )
                         if attempt < self.retry_count - 1:
                             await asyncio.sleep(self.retry_delay * (attempt + 1))
                         continue
             except aiohttp.ClientError as e:
-                logger.error(f"[US_VWAP] Request failed for {symbol} (attempt {attempt + 1}/{self.retry_count}): {e}")
+                logger.error(
+                    f"[US_VWAP] Request failed for {symbol} (attempt {attempt + 1}/{self.retry_count}): {e}"
+                )
                 if attempt < self.retry_count - 1:
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
                 else:
@@ -1866,7 +1955,7 @@ class VWAPCollector:
 
     def safe_decimal(self, value: str) -> Optional[float]:
         """Safely convert string to decimal"""
-        if not value or value.strip() in ['', 'N/A', '-', 'null']:
+        if not value or value.strip() in ["", "N/A", "-", "null"]:
             return None
         try:
             return float(value.strip())
@@ -1891,7 +1980,9 @@ class VWAPCollector:
             if last_refreshed:
                 try:
                     if " " in last_refreshed:
-                        parsed_last_refreshed = datetime.strptime(last_refreshed, "%Y-%m-%d %H:%M:%S").date()
+                        parsed_last_refreshed = datetime.strptime(
+                            last_refreshed, "%Y-%m-%d %H:%M:%S"
+                        ).date()
                     else:
                         parsed_last_refreshed = datetime.strptime(last_refreshed, "%Y-%m-%d").date()
                 except ValueError:
@@ -1917,20 +2008,24 @@ class VWAPCollector:
                     # Parse VWAP value
                     vwap_value = self.safe_decimal(vwap_info.get("VWAP"))
 
-                    transformed.append({
-                        'symbol': symbol,
-                        'indicator': indicator,
-                        'last_refreshed': parsed_last_refreshed,
-                        'interval': interval,
-                        'time_zone': time_zone,
-                        'date': parsed_date,
-                        'datetime': parsed_datetime,
-                        'vwap': vwap_value,
-                        'created_at': datetime.now()
-                    })
+                    transformed.append(
+                        {
+                            "symbol": symbol,
+                            "indicator": indicator,
+                            "last_refreshed": parsed_last_refreshed,
+                            "interval": interval,
+                            "time_zone": time_zone,
+                            "date": parsed_date,
+                            "datetime": parsed_datetime,
+                            "vwap": vwap_value,
+                            "created_at": datetime.now(),
+                        }
+                    )
 
                 except Exception as e:
-                    logger.error(f"[US_VWAP] Error transforming record for {symbol}: {e}, DateTime: {datetime_str}")
+                    logger.error(
+                        f"[US_VWAP] Error transforming record for {symbol}: {e}, DateTime: {datetime_str}"
+                    )
                     continue
 
             return transformed
@@ -1949,17 +2044,19 @@ class VWAPCollector:
             # Use executemany for better performance
             records_to_insert = []
             for record in data:
-                records_to_insert.append((
-                    record['symbol'],
-                    record['indicator'],
-                    record['last_refreshed'],
-                    record['interval'],
-                    record['time_zone'],
-                    record['date'],
-                    record['datetime'],
-                    record['vwap'],
-                    record['created_at']
-                ))
+                records_to_insert.append(
+                    (
+                        record["symbol"],
+                        record["indicator"],
+                        record["last_refreshed"],
+                        record["interval"],
+                        record["time_zone"],
+                        record["date"],
+                        record["datetime"],
+                        record["vwap"],
+                        record["created_at"],
+                    )
+                )
 
             # Use a single transaction for all inserts
             async with conn.transaction():
@@ -2005,7 +2102,8 @@ class VWAPCollector:
             try:
                 conn = await self.get_connection()
 
-                await conn.execute('''
+                await conn.execute(
+                    """
                     INSERT INTO us_vwap_base
                     (symbol, indicator, last_refreshed, interval, time_zone, date, datetime, vwap, created_at)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -2017,16 +2115,16 @@ class VWAPCollector:
                         date = EXCLUDED.date,
                         vwap = EXCLUDED.vwap,
                         created_at = EXCLUDED.created_at
-                ''',
-                record['symbol'],
-                record['indicator'],
-                record['last_refreshed'],
-                record['interval'],
-                record['time_zone'],
-                record['date'],
-                record['datetime'],
-                record['vwap'],
-                record['created_at']
+                """,
+                    record["symbol"],
+                    record["indicator"],
+                    record["last_refreshed"],
+                    record["interval"],
+                    record["time_zone"],
+                    record["date"],
+                    record["datetime"],
+                    record["vwap"],
+                    record["created_at"],
                 )
 
                 if self.pool:
@@ -2056,11 +2154,11 @@ class VWAPCollector:
         try:
             async with conn.transaction():
                 # Transaction optimization
-                await conn.execute('SET LOCAL synchronous_commit = OFF')
+                await conn.execute("SET LOCAL synchronous_commit = OFF")
                 await conn.execute('SET LOCAL work_mem = "256MB"')
 
                 # Create temp table
-                await conn.execute('''
+                await conn.execute("""
                     CREATE TEMP TABLE temp_us_vwap (
                         symbol VARCHAR(20),
                         indicator VARCHAR(100),
@@ -2072,31 +2170,50 @@ class VWAPCollector:
                         vwap DECIMAL(12,4),
                         created_at TIMESTAMP
                     ) ON COMMIT DROP
-                ''')
+                """)
 
                 # Prepare data for COPY
-                rows = [[
-                    record['symbol'], record['indicator'], record['last_refreshed'],
-                    record['interval'], record['time_zone'], record['date'],
-                    record['datetime'], record['vwap'], record['created_at']
-                ] for record in data]
+                rows = [
+                    [
+                        record["symbol"],
+                        record["indicator"],
+                        record["last_refreshed"],
+                        record["interval"],
+                        record["time_zone"],
+                        record["date"],
+                        record["datetime"],
+                        record["vwap"],
+                        record["created_at"],
+                    ]
+                    for record in data
+                ]
 
                 # COPY to temp table
                 await conn.copy_records_to_table(
-                    'temp_us_vwap', records=rows,
-                    columns=['symbol', 'indicator', 'last_refreshed', 'interval',
-                            'time_zone', 'date', 'datetime', 'vwap', 'created_at']
+                    "temp_us_vwap",
+                    records=rows,
+                    columns=[
+                        "symbol",
+                        "indicator",
+                        "last_refreshed",
+                        "interval",
+                        "time_zone",
+                        "date",
+                        "datetime",
+                        "vwap",
+                        "created_at",
+                    ],
                 )
 
                 # Upsert from temp to main
-                await conn.execute('''
+                await conn.execute("""
                     INSERT INTO us_vwap_base (symbol, indicator, last_refreshed, interval, time_zone, date, datetime, vwap, created_at)
                     SELECT * FROM temp_us_vwap
                     ON CONFLICT (symbol, datetime) DO UPDATE SET
                         indicator = EXCLUDED.indicator, last_refreshed = EXCLUDED.last_refreshed,
                         interval = EXCLUDED.interval, time_zone = EXCLUDED.time_zone,
                         date = EXCLUDED.date, vwap = EXCLUDED.vwap, created_at = EXCLUDED.created_at
-                ''')
+                """)
 
             if self.pool:
                 await self.pool.release(conn)
@@ -2127,7 +2244,7 @@ class VWAPCollector:
                 await self.pool.release(conn)
             else:
                 await conn.close()
-            symbols = [row['symbol'] for row in rows]
+            symbols = [row["symbol"] for row in rows]
             logger.info(f"[US_VWAP] Found {len(symbols)} symbols")
             return symbols
         except Exception as e:
@@ -2142,7 +2259,7 @@ class VWAPCollector:
         """Collect data for a single symbol"""
         try:
             date_range_list = self.get_date_range_list()
-            if self.collection_logger.is_collected('us_vwap_base', symbol, date_range_list):
+            if self.collection_logger.is_collected("us_vwap_base", symbol, date_range_list):
                 logger.debug(f"[US_VWAP] Skip {symbol} - already in log")
                 return 0
             api_data = await self.get_vwap_data(symbol)
@@ -2151,7 +2268,9 @@ class VWAPCollector:
                 if transformed:
                     saved = await self.save_vwap_data(transformed)
                     if saved > 0:
-                        self.collection_logger.mark_collected('us_vwap_base', symbol, date_range_list, saved)
+                        self.collection_logger.mark_collected(
+                            "us_vwap_base", symbol, date_range_list, saved
+                        )
                         self.collection_logger.save_log()
                         logger.info(f"[US_VWAP] Saved {saved} records for {symbol}")
                     return saved
@@ -2171,7 +2290,7 @@ class VWAPCollector:
         for i, symbol in enumerate(symbols, 1):
             try:
                 date_range_list = self.get_date_range_list()
-                if self.collection_logger.is_collected('us_vwap_base', symbol, date_range_list):
+                if self.collection_logger.is_collected("us_vwap_base", symbol, date_range_list):
                     continue
                 api_data = await self.get_vwap_data(symbol)
                 if api_data:
@@ -2225,7 +2344,9 @@ class VWAPCollector:
                     logger.warning(f"[US_VWAP] Retry failed for {symbol}: {e}")
 
         if failed_symbols:
-            logger.warning(f"[US_VWAP] {len(failed_symbols)} symbols failed after all retries: {failed_symbols[:10]}...")
+            logger.warning(
+                f"[US_VWAP] {len(failed_symbols)} symbols failed after all retries: {failed_symbols[:10]}..."
+            )
 
         await data_queue.put(None)
 
@@ -2246,7 +2367,9 @@ class VWAPCollector:
                 if saved > 0:
                     total_saved += saved
                     for record in batch:
-                        self.collection_logger.mark_collected('us_vwap_base', record['symbol'], date_range_list, 1)
+                        self.collection_logger.mark_collected(
+                            "us_vwap_base", record["symbol"], date_range_list, 1
+                        )
                     self.collection_logger.save_log()
                 batch = []
         logger.info(f"[US_VWAP DB] Total saved: {total_saved}")
@@ -2263,7 +2386,11 @@ class VWAPCollector:
             await self.close_pool()
             return
         date_range_list = self.get_date_range_list()
-        symbols = [s for s in all_symbols if not self.collection_logger.is_collected('us_vwap_base', s, date_range_list)]
+        symbols = [
+            s
+            for s in all_symbols
+            if not self.collection_logger.is_collected("us_vwap_base", s, date_range_list)
+        ]
         logger.info(f"[US_VWAP] Total: {len(all_symbols)}, To process: {len(symbols)}")
         if not symbols:
             await self.close_pool()
@@ -2289,7 +2416,11 @@ class VWAPCollector:
             await self.close_pool()
             return
         date_range_list = self.get_date_range_list()
-        symbols = [s for s in all_symbols if not self.collection_logger.is_collected('us_vwap_base', s, date_range_list)]
+        symbols = [
+            s
+            for s in all_symbols
+            if not self.collection_logger.is_collected("us_vwap_base", s, date_range_list)
+        ]
         total_symbols = len(symbols)
         total_saved = 0
         start_time = datetime.now()
@@ -2312,11 +2443,12 @@ class VWAPCollector:
 class WeeklyCollector:
     """Collector for US Weekly OHLCV data from Alpha Vantage TIME_SERIES_WEEKLY API"""
 
-    def __init__(self, api_key: str, database_url: str, max_concurrent: int = 20,
-                 start_date: Optional[date] = None):
+    def __init__(
+        self, api_key: str, database_url: str, max_concurrent: int = 20, start_date: Optional[date] = None
+    ):
         self.api_key = api_key
-        if database_url.startswith('postgresql+asyncpg://'):
-            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
         self.database_url = database_url
 
         # Date range for data collection.
@@ -2330,10 +2462,10 @@ class WeeklyCollector:
         self.call_interval = 0.2
 
         # Log file for tracking collected data - Railway Volume path support
-        if os.getenv('RAILWAY_PROJECT_ID'):
-            self.log_file_path = '/app/log/us_weekly_collected.json'
+        if os.getenv("RAILWAY_PROJECT_ID"):
+            self.log_file_path = "/app/log/us_weekly_collected.json"
         else:
-            self.log_file_path = 'log/us_weekly_collected.json'
+            self.log_file_path = "log/us_weekly_collected.json"
 
         self.collected_data = self.load_collected_log()
 
@@ -2352,7 +2484,7 @@ class WeeklyCollector:
         """Load previously collected symbol-date pairs from log file"""
         if os.path.exists(self.log_file_path):
             try:
-                with open(self.log_file_path, 'r', encoding='utf-8') as f:
+                with open(self.log_file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     # Convert list of dates back to set
                     return {symbol: set(dates) for symbol, dates in data.items()}
@@ -2367,7 +2499,7 @@ class WeeklyCollector:
             data_to_save = {symbol: list(dates) for symbol, dates in self.collected_data.items()}
 
             os.makedirs(os.path.dirname(self.log_file_path), exist_ok=True)
-            with open(self.log_file_path, 'w', encoding='utf-8') as f:
+            with open(self.log_file_path, "w", encoding="utf-8") as f:
                 json.dump(data_to_save, f, indent=2, default=str)
             logger.info(f"Saved weekly collection log with {len(self.collected_data)} symbols")
         except Exception as e:
@@ -2397,13 +2529,12 @@ class WeeklyCollector:
     async def init_pool(self):
         """Initialize connection pool"""
         self.pool = await asyncpg.create_pool(
-            self.database_url,
-            min_size=10,
-            max_size=20,
-            command_timeout=60
+            self.database_url, min_size=10, max_size=20, command_timeout=60
         )
         self.semaphore = asyncio.Semaphore(self.max_concurrent)
-        logger.info(f"Weekly collector: Database connection pool initialized (max connections: 20, semaphore: {self.max_concurrent})")
+        logger.info(
+            f"Weekly collector: Database connection pool initialized (max connections: 20, semaphore: {self.max_concurrent})"
+        )
 
     async def close_pool(self):
         """Close connection pool"""
@@ -2431,35 +2562,41 @@ class WeeklyCollector:
         for attempt in range(max_retries):
             try:
                 params = {
-                    'function': 'TIME_SERIES_WEEKLY',
-                    'symbol': symbol,
-                    'apikey': self.api_key,
-                    'datatype': 'json'
+                    "function": "TIME_SERIES_WEEKLY",
+                    "symbol": symbol,
+                    "apikey": self.api_key,
+                    "datatype": "json",
                 }
 
-                async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with self.session.get(
+                    self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
                     if response.status == 200:
                         data = await response.json()
 
-                        if 'Error Message' in data:
+                        if "Error Message" in data:
                             logger.error(f"API error for {symbol}: {data['Error Message']}")
                             return None
-                        elif 'Note' in data or 'Information' in data:
-                            limit_msg = data.get('Note') or data.get('Information')
+                        elif "Note" in data or "Information" in data:
+                            limit_msg = data.get("Note") or data.get("Information")
                             raise RateLimitError(f"{symbol}: {limit_msg}")
-                        elif 'Weekly Time Series' in data:
+                        elif "Weekly Time Series" in data:
                             if attempt > 0:
                                 logger.info(f"Successfully fetched {symbol} on attempt {attempt + 1}")
                             return data
                         else:
                             body_preview = str(data)[:300]
-                            logger.warning(f"Unexpected response format for {symbol}: keys={list(data.keys())} body={body_preview}")
+                            logger.warning(
+                                f"Unexpected response format for {symbol}: keys={list(data.keys())} body={body_preview}"
+                            )
                             return None
                     else:
                         logger.error(f"API request failed for {symbol}: Status {response.status}")
                         if attempt < max_retries - 1:
-                            wait_time = 2 ** attempt
-                            logger.info(f"Retrying {symbol} after {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                            wait_time = 2**attempt
+                            logger.info(
+                                f"Retrying {symbol} after {wait_time}s (attempt {attempt + 1}/{max_retries})"
+                            )
                             await asyncio.sleep(wait_time)
                             continue
                         return None
@@ -2470,15 +2607,17 @@ class WeeklyCollector:
             except asyncio.TimeoutError:
                 logger.error(f"Timeout for {symbol} (attempt {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     logger.info(f"Retrying {symbol} after {wait_time}s")
                     await asyncio.sleep(wait_time)
                     continue
                 return None
             except Exception as e:
-                logger.error(f"Error fetching weekly data for {symbol} (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.error(
+                    f"Error fetching weekly data for {symbol} (attempt {attempt + 1}/{max_retries}): {e}"
+                )
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     logger.info(f"Retrying {symbol} after {wait_time}s")
                     await asyncio.sleep(wait_time)
                     continue
@@ -2490,15 +2629,15 @@ class WeeklyCollector:
         """Transform API response to database format"""
         transformed = []
 
-        if 'Weekly Time Series' not in data:
+        if "Weekly Time Series" not in data:
             return transformed
 
-        time_series = data['Weekly Time Series']
+        time_series = data["Weekly Time Series"]
 
         for date_str, values in time_series.items():
             try:
                 # Parse date
-                data_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                data_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
                 # Check if date is within our collection range
                 if self.start_date <= data_date <= self.end_date:
@@ -2508,22 +2647,24 @@ class WeeklyCollector:
                         continue
 
                     # Parse price data
-                    open_price = float(values['1. open'])
-                    high_price = float(values['2. high'])
-                    low_price = float(values['3. low'])
-                    close_price = float(values['4. close'])
-                    volume = int(values['5. volume'])
+                    open_price = float(values["1. open"])
+                    high_price = float(values["2. high"])
+                    low_price = float(values["3. low"])
+                    close_price = float(values["4. close"])
+                    volume = int(values["5. volume"])
 
-                    transformed.append({
-                        'date': data_date,
-                        'symbol': symbol,
-                        'open': open_price,
-                        'high': high_price,
-                        'low': low_price,
-                        'close': close_price,
-                        'volume': volume,
-                        'updated_at': datetime.now()
-                    })
+                    transformed.append(
+                        {
+                            "date": data_date,
+                            "symbol": symbol,
+                            "open": open_price,
+                            "high": high_price,
+                            "low": low_price,
+                            "close": close_price,
+                            "volume": volume,
+                            "updated_at": datetime.now(),
+                        }
+                    )
 
             except Exception as e:
                 logger.error(f"Error transforming weekly data for {symbol} on {date_str}: {e}")
@@ -2560,23 +2701,25 @@ class WeeklyCollector:
                     try:
                         await conn.execute(
                             query,
-                            record['date'],
-                            record['symbol'],
-                            record['open'],
-                            record['high'],
-                            record['low'],
-                            record['close'],
-                            record['volume'],
-                            record['updated_at']
+                            record["date"],
+                            record["symbol"],
+                            record["open"],
+                            record["high"],
+                            record["low"],
+                            record["close"],
+                            record["volume"],
+                            record["updated_at"],
                         )
 
                         # Mark as collected in log
-                        date_str = record['date'].strftime('%Y-%m-%d')
-                        self.mark_collected(record['symbol'], date_str)
+                        date_str = record["date"].strftime("%Y-%m-%d")
+                        self.mark_collected(record["symbol"], date_str)
                         saved_count += 1
 
                     except Exception as e:
-                        logger.error(f"Error saving weekly record for {record['symbol']} on {record['date']}: {e}")
+                        logger.error(
+                            f"Error saving weekly record for {record['symbol']} on {record['date']}: {e}"
+                        )
                         raise  # Re-raise to rollback transaction
 
             if self.pool:
@@ -2617,7 +2760,7 @@ class WeeklyCollector:
             else:
                 await conn.close()
 
-            return {row['date'].strftime('%Y-%m-%d') for row in rows}
+            return {row["date"].strftime("%Y-%m-%d") for row in rows}
 
         except Exception as e:
             logger.error(f"Error checking existing weekly data for {symbol}: {e}")
@@ -2653,22 +2796,22 @@ class WeeklyCollector:
                 rows = await conn.fetch(query)
 
             # collection_state 에 no_data mark 된 종목 제외 (today 제외)
-            no_data_rows = await conn.fetch(
-                """SELECT DISTINCT symbol FROM collection_state
+            no_data_rows = await conn.fetch("""SELECT DISTINCT symbol FROM collection_state
                    WHERE collection_name='us_weekly' AND status='no_data'
                      AND date >= CURRENT_DATE - 7 AND date < CURRENT_DATE""")
-            no_data_set = {r['symbol'] for r in no_data_rows}
+            no_data_set = {r["symbol"] for r in no_data_rows}
 
             if self.pool:
                 await self.pool.release(conn)
             else:
                 await conn.close()
 
-            all_symbols = [row['symbol'] for row in rows]
+            all_symbols = [row["symbol"] for row in rows]
             symbols = [s for s in all_symbols if s not in no_data_set]
             logger.info(
                 f"Weekly collector: Found {len(all_symbols)} symbols, "
-                f"skipping {len(no_data_set)} no_data → {len(symbols)} to process")
+                f"skipping {len(no_data_set)} no_data → {len(symbols)} to process"
+            )
             return symbols
 
         except Exception as e:
@@ -2689,7 +2832,9 @@ class WeeklyCollector:
                        (collection_name, symbol, date, status)
                        VALUES ('us_weekly', $1, CURRENT_DATE, 'no_data')
                        ON CONFLICT (collection_name, symbol, date) DO UPDATE
-                         SET status='no_data', collected_at=NOW()""", symbol)
+                         SET status='no_data', collected_at=NOW()""",
+                    symbol,
+                )
             finally:
                 if self.pool:
                     await self.pool.release(conn)
@@ -2712,10 +2857,11 @@ class WeeklyCollector:
 
             # Calculate required dates (weekly data from start_date to end_date)
             from datetime import timedelta
+
             required_dates = set()
             current = self.start_date
             while current <= self.end_date:
-                required_dates.add(current.strftime('%Y-%m-%d'))
+                required_dates.add(current.strftime("%Y-%m-%d"))
                 current += timedelta(days=7)  # Weekly
 
             # Check if we need to fetch data
@@ -2744,7 +2890,9 @@ class WeeklyCollector:
                     for date_str in missing_dates:
                         self.mark_collected(symbol, date_str)
                     self.save_collected_log()
-                    logger.info(f"No new weekly data for {symbol}, marked {len(missing_dates)} dates as attempted")
+                    logger.info(
+                        f"No new weekly data for {symbol}, marked {len(missing_dates)} dates as attempted"
+                    )
                     return 0
             else:
                 # api_data is None — 영구 fail (Invalid symbol / delisted) 가능성
@@ -2783,7 +2931,9 @@ class WeeklyCollector:
                         failed_count += 1
                         continue
 
-                logger.info(f"Weekly Batch {batch_id}: Completed - Processed: {processed_count}, Failed: {failed_count}")
+                logger.info(
+                    f"Weekly Batch {batch_id}: Completed - Processed: {processed_count}, Failed: {failed_count}"
+                )
                 return processed_count
 
             except Exception as e:
@@ -2819,7 +2969,7 @@ class WeeklyCollector:
         batch_size = 100
         symbol_batches = []
         for i in range(0, len(symbols), batch_size):
-            batch = symbols[i:i + batch_size]
+            batch = symbols[i : i + batch_size]
             symbol_batches.append(batch)
 
         logger.info(f"Split {total_symbols} symbols into {len(symbol_batches)} batches of max {batch_size}")
@@ -2829,7 +2979,7 @@ class WeeklyCollector:
         tasks = []
         for i, batch in enumerate(symbol_batches):
             if batch:
-                task = asyncio.create_task(self.process_symbol_batch(batch, i+1))
+                task = asyncio.create_task(self.process_symbol_batch(batch, i + 1))
                 tasks.append(task)
 
         # Wait for all batches to complete
@@ -2863,35 +3013,38 @@ async def get_latest_available_date(api_key: str) -> Optional[date]:
     """Get the latest available date from Alpha Vantage API - OPTIMIZATION #5"""
     try:
         params = {
-            'function': 'TIME_SERIES_DAILY',
-            'symbol': 'AAPL',  # Use AAPL as reference symbol
-            'apikey': api_key,
-            'outputsize': 'compact',
-            'datatype': 'json'
+            "function": "TIME_SERIES_DAILY",
+            "symbol": "AAPL",  # Use AAPL as reference symbol
+            "apikey": api_key,
+            "outputsize": "compact",
+            "datatype": "json",
         }
         async with aiohttp.ClientSession(headers=USER_AGENT_HEADERS) as session:
-            async with session.get('https://www.alphavantage.co/query', params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+            async with session.get(
+                "https://www.alphavantage.co/query", params=params, timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
                 if response.status == 200:
                     data = await response.json()
-                    if 'Time Series (Daily)' in data:
+                    if "Time Series (Daily)" in data:
                         # Get the most recent date
-                        dates = list(data['Time Series (Daily)'].keys())
+                        dates = list(data["Time Series (Daily)"].keys())
                         if dates:
                             latest_date_str = dates[0]  # API returns sorted descending
-                            latest_date = datetime.strptime(latest_date_str, '%Y-%m-%d').date()
+                            latest_date = datetime.strptime(latest_date_str, "%Y-%m-%d").date()
                             logger.info(f"Latest available date from API: {latest_date}")
                             return latest_date
         logger.warning("Could not get latest date from API, using latest business day")
-        return DailyCollector('', '').get_latest_business_day()
+        return DailyCollector("", "").get_latest_business_day()
     except Exception as e:
         logger.error(f"Error getting latest date from API: {e}, using latest business day")
-        return DailyCollector('', '').get_latest_business_day()
+        return DailyCollector("", "").get_latest_business_day()
+
 
 class IPOCalendarCollector:
     def __init__(self, api_key: str, database_url: str):
         self.api_key = api_key
-        if database_url.startswith('postgresql+asyncpg://'):
-            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
         self.database_url = database_url
         self.base_url = "https://www.alphavantage.co/query"
         self.session = None
@@ -2915,35 +3068,36 @@ class IPOCalendarCollector:
         """Fetch IPO calendar data from Alpha Vantage API (CSV response)"""
         await self.init_session()
 
-        params = {
-            'function': 'IPO_CALENDAR',
-            'apikey': self.api_key
-        }
+        params = {"function": "IPO_CALENDAR", "apikey": self.api_key}
 
         try:
-            async with self.session.get(self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+            async with self.session.get(
+                self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
                 if response.status != 200:
                     logger.error(f"[US_IPO] API request failed with status {response.status}")
                     return []
 
                 text = await response.text()
 
-                if not text or 'Information' in text or 'Error' in text:
+                if not text or "Information" in text or "Error" in text:
                     logger.error(f"[US_IPO] API returned error or empty response: {text[:200]}")
                     return []
 
                 reader = csv.DictReader(text.splitlines())
                 records = []
                 for row in reader:
-                    records.append({
-                        'symbol': row.get('symbol', '').strip(),
-                        'name': row.get('name', '').strip(),
-                        'ipodate': row.get('ipoDate', '').strip(),
-                        'pricerangelow': row.get('priceRangeLow', '').strip(),
-                        'pricerangehigh': row.get('priceRangeHigh', '').strip(),
-                        'currency': row.get('currency', '').strip(),
-                        'exchange': row.get('exchange', '').strip(),
-                    })
+                    records.append(
+                        {
+                            "symbol": row.get("symbol", "").strip(),
+                            "name": row.get("name", "").strip(),
+                            "ipodate": row.get("ipoDate", "").strip(),
+                            "pricerangelow": row.get("priceRangeLow", "").strip(),
+                            "pricerangehigh": row.get("priceRangeHigh", "").strip(),
+                            "currency": row.get("currency", "").strip(),
+                            "exchange": row.get("exchange", "").strip(),
+                        }
+                    )
 
                 logger.info(f"[US_IPO] Fetched {len(records)} IPO records from API")
                 return records
@@ -2963,26 +3117,27 @@ class IPOCalendarCollector:
 
         try:
             for record in data:
-                if not record['symbol'] or not record['ipodate']:
+                if not record["symbol"] or not record["ipodate"]:
                     continue
 
-                ipo_date = datetime.strptime(record['ipodate'], '%Y-%m-%d').date()
+                ipo_date = datetime.strptime(record["ipodate"], "%Y-%m-%d").date()
 
                 price_low = None
-                if record['pricerangelow']:
+                if record["pricerangelow"]:
                     try:
-                        price_low = Decimal(record['pricerangelow'])
+                        price_low = Decimal(record["pricerangelow"])
                     except InvalidOperation:
                         pass
 
                 price_high = None
-                if record['pricerangehigh']:
+                if record["pricerangehigh"]:
                     try:
-                        price_high = Decimal(record['pricerangehigh'])
+                        price_high = Decimal(record["pricerangehigh"])
                     except InvalidOperation:
                         pass
 
-                result = await conn.execute("""
+                result = await conn.execute(
+                    """
                     INSERT INTO us_ipo_calendar (symbol, name, ipodate, pricerangelow, pricerangehigh, currency, exchange)
                     VALUES ($1, $2, $3, $4, $5, $6, $7)
                     ON CONFLICT (symbol, ipodate) DO UPDATE SET
@@ -2992,18 +3147,18 @@ class IPOCalendarCollector:
                         currency = EXCLUDED.currency,
                         exchange = EXCLUDED.exchange
                 """,
-                    record['symbol'],
-                    record['name'],
+                    record["symbol"],
+                    record["name"],
                     ipo_date,
                     price_low,
                     price_high,
-                    record['currency'] or None,
-                    record['exchange'] or None,
+                    record["currency"] or None,
+                    record["exchange"] or None,
                 )
 
-                if 'INSERT' in result:
+                if "INSERT" in result:
                     inserted += 1
-                elif 'UPDATE' in result:
+                elif "UPDATE" in result:
                     updated += 1
 
             logger.info(f"[US_IPO] DB save completed - inserted: {inserted}, updated: {updated}")
@@ -3049,11 +3204,16 @@ class EarningsHistoryCollector:
     이걸로 financials 의 available_at 을 정밀하게 채울 수 있음.
     """
 
-    def __init__(self, api_key: str, database_url: str, max_concurrent: int = 3,
-                 target_symbols: Optional[List[str]] = None):
+    def __init__(
+        self,
+        api_key: str,
+        database_url: str,
+        max_concurrent: int = 3,
+        target_symbols: Optional[List[str]] = None,
+    ):
         self.api_key = api_key
-        if database_url.startswith('postgresql+asyncpg://'):
-            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
         self.database_url = database_url
         self.call_interval = 0.2
         self.base_url = "https://www.alphavantage.co/query"
@@ -3079,20 +3239,21 @@ class EarningsHistoryCollector:
     async def get_active_symbols(self) -> List[str]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT DISTINCT symbol FROM us_stock_basic WHERE symbol IS NOT NULL ORDER BY symbol")
-            no_data_rows = await conn.fetch(
-                """SELECT DISTINCT symbol FROM collection_state
+                "SELECT DISTINCT symbol FROM us_stock_basic WHERE symbol IS NOT NULL ORDER BY symbol"
+            )
+            no_data_rows = await conn.fetch("""SELECT DISTINCT symbol FROM collection_state
                    WHERE collection_name='us_earnings_history' AND status='no_data'
                      AND date >= CURRENT_DATE - 7 AND date < CURRENT_DATE""")
-            no_data = {r['symbol'] for r in no_data_rows}
-        symbols = [r['symbol'] for r in rows if r['symbol'] not in no_data]
+            no_data = {r["symbol"] for r in no_data_rows}
+        symbols = [r["symbol"] for r in rows if r["symbol"] not in no_data]
         if self.target_symbols is not None:
             target_set = set(self.target_symbols)
             before = len(symbols)
             symbols = [s for s in symbols if s in target_set]
             logger.info(
                 f"[EARNINGS_HIST] target_symbols filter: {before} → {len(symbols)} symbols "
-                f"({len(no_data)} no_data skipped)")
+                f"({len(no_data)} no_data skipped)"
+            )
         else:
             logger.info(f"[EARNINGS_HIST] {len(symbols)} symbols ({len(no_data)} skipped no_data)")
         return symbols
@@ -3100,25 +3261,26 @@ class EarningsHistoryCollector:
     @retry_on_exception(RateLimitError, max_retries=15, base_delay=15.0, max_delay=300.0)
     async def fetch_earnings(self, symbol: str) -> Optional[Dict[str, Any]]:
         params = {"function": "EARNINGS", "symbol": symbol, "apikey": self.api_key}
-        async with self.session.get(self.base_url, params=params,
-                                    timeout=aiohttp.ClientTimeout(total=30)) as r:
+        async with self.session.get(
+            self.base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+        ) as r:
             if r.status != 200:
                 logger.error(f"[EARNINGS_HIST] {symbol}: status {r.status}")
                 return None
             data = await r.json()
-        if 'Note' in data or 'Information' in data:
+        if "Note" in data or "Information" in data:
             raise RateLimitError(f"{symbol}: {data.get('Note') or data.get('Information')}")
-        if 'Error Message' in data:
+        if "Error Message" in data:
             logger.error(f"[EARNINGS_HIST] {symbol}: {data['Error Message']}")
             return None
-        if 'quarterlyEarnings' not in data:
+        if "quarterlyEarnings" not in data:
             logger.warning(f"[EARNINGS_HIST] {symbol}: unexpected response keys={list(data.keys())[:5]}")
             return None
         return data
 
     @staticmethod
     def _to_float(v) -> Optional[float]:
-        if v is None or v == 'None' or v == '-' or v == '':
+        if v is None or v == "None" or v == "-" or v == "":
             return None
         try:
             return float(v)
@@ -3127,7 +3289,7 @@ class EarningsHistoryCollector:
 
     @staticmethod
     def _to_date(s) -> Optional[date]:
-        if not s or s == 'None':
+        if not s or s == "None":
             return None
         try:
             return date.fromisoformat(s[:10])
@@ -3136,19 +3298,23 @@ class EarningsHistoryCollector:
 
     async def save_earnings(self, symbol: str, data: Dict[str, Any]) -> int:
         records = []
-        for q in data.get('quarterlyEarnings', []):
-            fde = self._to_date(q.get('fiscalDateEnding'))
-            rd = self._to_date(q.get('reportedDate'))
+        for q in data.get("quarterlyEarnings", []):
+            fde = self._to_date(q.get("fiscalDateEnding"))
+            rd = self._to_date(q.get("reportedDate"))
             if fde is None:
                 continue
-            records.append((
-                symbol, fde, rd,
-                self._to_float(q.get('reportedEPS')),
-                self._to_float(q.get('estimatedEPS')),
-                self._to_float(q.get('surprise')),
-                self._to_float(q.get('surprisePercentage')),
-                q.get('reportTime'),
-            ))
+            records.append(
+                (
+                    symbol,
+                    fde,
+                    rd,
+                    self._to_float(q.get("reportedEPS")),
+                    self._to_float(q.get("estimatedEPS")),
+                    self._to_float(q.get("surprise")),
+                    self._to_float(q.get("surprisePercentage")),
+                    q.get("reportTime"),
+                )
+            )
         if not records:
             return 0
         async with self.pool.acquire() as conn:
@@ -3166,7 +3332,8 @@ class EarningsHistoryCollector:
                      surprise_percentage = EXCLUDED.surprise_percentage,
                      report_time         = EXCLUDED.report_time,
                      updated_at          = NOW()""",
-                records)
+                records,
+            )
         return len(records)
 
     async def _mark_no_data(self, symbol: str):
@@ -3176,7 +3343,9 @@ class EarningsHistoryCollector:
                     """INSERT INTO collection_state (collection_name, symbol, date, status)
                        VALUES ('us_earnings_history', $1, CURRENT_DATE, 'no_data')
                        ON CONFLICT (collection_name, symbol, date) DO UPDATE
-                         SET status='no_data', collected_at=NOW()""", symbol)
+                         SET status='no_data', collected_at=NOW()""",
+                    symbol,
+                )
         except Exception as e:
             logger.warning(f"[EARNINGS_HIST] no_data mark fail {symbol}: {e}")
 
@@ -3204,12 +3373,14 @@ class EarningsHistoryCollector:
                 return {"symbols": 0, "saved_rows": 0}
             saved_total = 0
             for i in range(0, len(symbols), 100):
-                batch = symbols[i:i + 100]
+                batch = symbols[i : i + 100]
                 results = await asyncio.gather(
-                    *[self.process_symbol(s) for s in batch], return_exceptions=True)
+                    *[self.process_symbol(s) for s in batch], return_exceptions=True
+                )
                 saved_total += sum(r for r in results if isinstance(r, int))
-                logger.info(f"[EARNINGS_HIST] processed {i+len(batch)}/{len(symbols)}, "
-                            f"saved={saved_total}")
+                logger.info(
+                    f"[EARNINGS_HIST] processed {i+len(batch)}/{len(symbols)}, " f"saved={saved_total}"
+                )
             return {"symbols": len(symbols), "saved_rows": saved_total}
         finally:
             await self.close()
@@ -3217,4 +3388,5 @@ class EarningsHistoryCollector:
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

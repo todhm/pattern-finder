@@ -181,73 +181,26 @@ class USMomentumFactorV2:
                 logger.warning(f"{self.symbol}: No price data available")
                 return {'momentum_score': 50.0, 'strategies': {}}
 
-            # 2. 각 전략별 점수 계산
-            # Phase 3.1.6: 섹터별 전략 적용
-            # - EM1: Energy/Basic Materials 섹터에만 적용
-            # - EM2: 주석 처리 (전체 계산에서 제외)
-            # - EM5: Basic Materials 섹터에만 적용
-            strategies = {}
+            # 2. 모멘텀 점수 = 52주 신고가 근접도 (George-Hwang, 2004)
+            # 검증(us_daily 전체 패널 횡단면 rank-IC): near52h +0.057~+0.067
+            # (IR~0.35, 월 62~68% 양) vs 기존 EM1~EM8 가중합 IC ~-0.04(변별력
+            # std≈0, 전부 ~65). 기존 가중합을 near52h 단독으로 대체.
+            near = self._calc_near52h_score()
+            strategies = {'NEAR52H': near}
+            if near['score'] is None:
+                logger.info(f"{self.symbol}: Momentum(near52h) no data -> 50.0 "
+                            f"({near.get('reason')})")
+                return {'momentum_score': 50.0, 'momentum_original': 50.0,
+                        'strategies': strategies}
 
-            # EM1: Energy/Basic Materials 섹터에만 적용
-            if self.sector and self.sector.upper() in EM1_APPLICABLE_SECTORS:
-                strategies['EM1'] = self._calc_em1_risk_adjusted_momentum()
-            else:
-                strategies['EM1'] = {'score': None, 'raw': None, 'reason': f'Not applicable sector (only {EM1_APPLICABLE_SECTORS})'}
+            momentum_score = near['score']
 
-            # EM2: 주석 처리 - 전체 계산에서 제외
-            # strategies['EM2'] = self._calc_em2_sector_relative_strength()
-
-            strategies['EM3'] = self._calc_em3_eps_revision()
-            strategies['EM4'] = self._calc_em4_revenue_revision()
-
-            # EM5: Basic Materials (원자재) 섹터에만 적용
-            if self.sector and self.sector.upper() in EM5_APPLICABLE_SECTORS:
-                strategies['EM5'] = self._calc_em5_volume_confirmation()
-            else:
-                strategies['EM5'] = {'score': None, 'raw': None, 'reason': f'Not applicable sector (only {EM5_APPLICABLE_SECTORS})'}
-
-            strategies['EM6'] = self._calc_em6_earnings_momentum()
-            # EM7 제외: Analyst Revisions (target price) - 단기 지표
-            strategies['EM8'] = self._calc_em8_long_term_momentum()  # 252일 IBD RS Style
-
-            # 3. 역방향 전략 적용 (Phase 3.1.4)
-            for strategy_id, result in strategies.items():
-                if result['score'] is not None and strategy_id in REVERSED_STRATEGIES:
-                    original_score = result['score']
-                    reversed_score = 100 - original_score
-                    result['original_score'] = original_score
-                    result['score'] = reversed_score
-                    result['reversed'] = True
-
-            # 4. 가중 평균 계산
-            # Phase 3.2: NASDAQ이면 전용 가중치 사용
-            if self.exchange and self.exchange.upper() == 'NASDAQ':
-                weights = NASDAQ_STRATEGY_WEIGHTS
-                logger.debug(f"{self.symbol}: Using NASDAQ-specific strategy weights")
-            else:
-                weights = STRATEGY_WEIGHTS
-
-            total_weight = 0
-            weighted_sum = 0
-
-            for strategy_id, result in strategies.items():
-                if result['score'] is not None:
-                    weight = weights[strategy_id]
-                    weighted_sum += result['score'] * weight
-                    total_weight += weight
-
-            momentum_score = weighted_sum / total_weight if total_weight > 0 else 50.0
-
-            # 5. Phase 3.4.2: Volatility Adjustment (Shared Module)
+            # Volatility Adjustment (Shared Module — 다른 팩터와 일관 유지)
             vol_adjustment = self.volatility_engine.get_adjustment('momentum')
             original_score = momentum_score
             momentum_score = max(0, min(100, momentum_score + vol_adjustment['modifier']))
-
-            if vol_adjustment['modifier'] != 0:
-                logger.info(f"{self.symbol}: Momentum {original_score:.1f} -> {momentum_score:.1f} "
-                           f"(Vol Adj: {vol_adjustment['modifier']:+.1f}, IV%: {self.volatility_engine.iv_percentile})")
-            else:
-                logger.info(f"{self.symbol}: Momentum Score = {momentum_score:.1f}")
+            logger.info(f"{self.symbol}: Momentum(near52h) {original_score:.1f} -> "
+                        f"{momentum_score:.1f} (near={near['raw']})")
 
             return {
                 'momentum_score': round(momentum_score, 1),
@@ -261,7 +214,34 @@ class USMomentumFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Momentum calculation failed - {e}")
-            return {'momentum_score': 50.0, 'strategies': {}}
+            raise
+
+    def _calc_near52h_score(self) -> Dict:
+        """52주 신고가 근접도 모멘텀 (George-Hwang).
+
+        near52h = 종가 / 직전 252거래일 최고가 (0~1, 신고가=1.0).
+        score = clamp((near52h - 0.4) / 0.6 * 100, 0, 100). 0.4 이하=0, 1.0=100.
+        price_data(close)만 사용 → prefetched/DB 두 경로 모두 동작.
+        """
+        if not self.price_data:
+            return {'score': None, 'raw': None, 'reason': 'No price data'}
+        pts = [(p['date'], p['close']) for p in self.price_data
+               if p.get('close') is not None]
+        if len(pts) < 120:
+            return {'score': None, 'raw': None,
+                    'reason': f'Insufficient price data ({len(pts)}<120)'}
+        pts.sort(key=lambda x: x[0])
+        closes = [c for _, c in pts]
+        current = closes[-1]
+        window = closes[-252:]
+        high_252 = max(window)
+        if not high_252 or high_252 <= 0:
+            return {'score': None, 'raw': None, 'reason': 'Invalid 52w high'}
+        near = current / high_252
+        score = max(0.0, min(100.0, (near - 0.4) / 0.6 * 100.0))
+        return {'score': round(score, 2), 'raw': round(near, 4),
+                'high_252': high_252, 'current': current,
+                'window_days': len(window)}
 
     async def _load_price_data(self):
         """가격 데이터 로드 (최근 260 거래일)"""
@@ -299,27 +279,25 @@ class USMomentumFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Failed to load price data - {e}")
+            raise
 
     async def _load_stock_data(self):
         """종목 기본 데이터 로드"""
 
+        # PIT single row at analysis_date
         query = """
-        SELECT
-            symbol,
-            sector,
-            week52high,
-            week52low,
-            day50movingaverage as ma50,
-            day200movingaverage as ma200,
-            analysttargetprice,
-            quarterlyearningsgrowthyoy as earnings_growth,
-            quarterlyrevenuegrowthyoy as revenue_growth
+        SELECT symbol, sector, week52high, week52low,
+               day50movingaverage as ma50, day200movingaverage as ma200,
+               analysttargetprice,
+               quarterlyearningsgrowthyoy as earnings_growth,
+               quarterlyrevenuegrowthyoy as revenue_growth
         FROM us_stock_basic
-        WHERE symbol = $1
+        WHERE symbol = $1 AND date <= $2
+        ORDER BY date DESC LIMIT 1
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result and result[0]:
                 row = result[0]
@@ -336,6 +314,7 @@ class USMomentumFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Failed to load stock data - {e}")
+            raise
 
     async def _load_sector_returns(self):
         """섹터 평균 수익률 조회 (벤치마크에서 가져오거나 계산)"""
@@ -348,8 +327,24 @@ class USMomentumFactorV2:
         }
 
     async def _load_earnings_estimates(self):
-        """EPS/Revenue 추정치 데이터 로드 (us_earnings_estimates)"""
+        """EPS/Revenue 추정치 데이터 로드 (us_earnings_estimates).
 
+        AV `EARNINGS_ESTIMATES` 응답이 한 record 에 (current, 7d/30d/60d/90d ago)
+        5 시점의 컨센서스 EPS snapshot 을 모두 포함 — 단일 호출로 90일치 historical
+        시계열 확보. 이 함수가 모두 dict 에 저장해서 EM3 가 multi-period revision
+        합성 + acceleration 까지 산출 가능.
+
+        Look-ahead bias 방어: `WHERE created_at <= $analysis_date` 필터로 backtest
+        시점에 아직 발표되지 않은 estimate 차단. 현재 DB 의 모든 row 는 단일 호출
+        시점 (예: 2026-06-05) created_at 이라 그 이전 backtest 시점은 결손 처리
+        (= EM3 fallback to YoY growth) — 정확한 시점-aware 는 daily snapshot 누적
+        후 가능.
+        """
+
+        # estimate_date 는 미래 fiscal end-date (예: 2026-09-30). analysis_date
+        # 직후의 가장 가까운 미래 fiscal 가 추정 대상 — ASC + estimate_date >
+        # analysis_date.
+        # created_at <= analysis_date: 호출 시점 look-ahead 차단.
         query = """
         SELECT
             estimate_date,
@@ -357,34 +352,48 @@ class USMomentumFactorV2:
             eps_estimate_average,
             eps_estimate_average_7_days_ago,
             eps_estimate_average_30_days_ago,
+            eps_estimate_average_60_days_ago,
+            eps_estimate_average_90_days_ago,
             eps_estimate_revision_up_trailing_7_days,
             eps_estimate_revision_down_trailing_7_days,
-            revenue_estimate_average
+            eps_estimate_revision_up_trailing_30_days,
+            eps_estimate_revision_down_trailing_30_days,
+            eps_estimate_analyst_count,
+            revenue_estimate_average,
+            created_at
         FROM us_earnings_estimates
         WHERE symbol = $1
-            AND horizon IN ('next fiscal quarter', 'next fiscal year')
+            AND horizon = 'fiscal quarter'
             AND eps_estimate_average IS NOT NULL
-        ORDER BY estimate_date DESC
-        LIMIT 2
+            AND created_at <= $2
+            AND estimate_date > $2
+        ORDER BY estimate_date ASC
+        LIMIT 1
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result and result[0]:
                 row = result[0]
                 self.earnings_estimates = {
-                    'eps_current': self._to_float(row['eps_estimate_average']),
-                    'eps_7d_ago': self._to_float(row['eps_estimate_average_7_days_ago']),
-                    'eps_30d_ago': self._to_float(row['eps_estimate_average_30_days_ago']),
-                    'revision_up_7d': row['eps_estimate_revision_up_trailing_7_days'],
-                    'revision_down_7d': row['eps_estimate_revision_down_trailing_7_days'],
-                    'revenue_current': self._to_float(row['revenue_estimate_average']),
-                    'horizon': row['horizon']
+                    'eps_current':       self._to_float(row['eps_estimate_average']),
+                    'eps_7d_ago':        self._to_float(row['eps_estimate_average_7_days_ago']),
+                    'eps_30d_ago':       self._to_float(row['eps_estimate_average_30_days_ago']),
+                    'eps_60d_ago':       self._to_float(row['eps_estimate_average_60_days_ago']),
+                    'eps_90d_ago':       self._to_float(row['eps_estimate_average_90_days_ago']),
+                    'revision_up_7d':    row['eps_estimate_revision_up_trailing_7_days'],
+                    'revision_down_7d':  row['eps_estimate_revision_down_trailing_7_days'],
+                    'revision_up_30d':   row['eps_estimate_revision_up_trailing_30_days'],
+                    'revision_down_30d': row['eps_estimate_revision_down_trailing_30_days'],
+                    'analyst_count':     row['eps_estimate_analyst_count'],
+                    'revenue_current':   self._to_float(row['revenue_estimate_average']),
+                    'horizon':           row['horizon'],
                 }
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Failed to load earnings estimates - {e}")
+            raise
 
     def _load_from_prefetched(self):
         """
@@ -562,44 +571,89 @@ class USMomentumFactorV2:
         }
 
     def _calc_em3_eps_revision(self) -> Dict:
-        """EM3: EPS Estimate Revision (30-day EPS estimate change rate)
+        """EM3: EPS Estimate Revision — multi-period (30d/60d/90d) + acceleration
 
-        Fallback strategy:
-        1. Primary: EPS estimate 30-day change from us_earnings_estimates
-        2. Fallback: EPS YoY growth from us_stock_basic
-        3. Final: Neutral score (50)
+        AV 응답이 한 호출에 (current, 7d/30d/60d/90d ago) snapshot 제공 →
+        시점별 multi-period revision 계산:
+
+          rev_30d = (current - eps_30d_ago) / |eps_30d_ago|
+          rev_60d = (current - eps_60d_ago) / |eps_60d_ago|
+          rev_90d = (current - eps_90d_ago) / |eps_90d_ago|
+
+        Acceleration = recent revision (30d) 가 older revision (60→90d) 보다
+        강한지:
+          accel = rev_30d − ((eps_60d_ago - eps_90d_ago) / |eps_90d_ago|)
+                  (= 최근 1개월 변화 − 그 이전 1개월 변화)
+
+        Score 합성: 가중평균
+          composite_revision = 0.50·rev_30d + 0.30·rev_60d + 0.20·rev_90d
+                                + 0.20·accel
+        (sub-period 결손이면 그 가중치 제외하고 정규화)
+
+        Fallback:
+          1) primary: 위 multi-period composite
+          2) 30d 만 가용 시: 기존 single-period revision
+          3) 모두 결손: EPS YoY growth from us_stock_basic
+          4) 최종: score=None
         """
 
-        # 1. Primary: us_earnings_estimates EPS revision
         eps_current = self.earnings_estimates.get('eps_current')
         eps_30d_ago = self.earnings_estimates.get('eps_30d_ago')
+        eps_60d_ago = self.earnings_estimates.get('eps_60d_ago')
+        eps_90d_ago = self.earnings_estimates.get('eps_90d_ago')
 
-        if eps_current and eps_30d_ago and eps_30d_ago != 0:
-            eps_revision = (eps_current - eps_30d_ago) / abs(eps_30d_ago)
+        # 1. Primary: multi-period composite
+        if eps_current is not None:
+            revs = {}
+            if eps_30d_ago and eps_30d_ago != 0:
+                revs['30d'] = (eps_current - eps_30d_ago) / abs(eps_30d_ago)
+            if eps_60d_ago and eps_60d_ago != 0:
+                revs['60d'] = (eps_current - eps_60d_ago) / abs(eps_60d_ago)
+            if eps_90d_ago and eps_90d_ago != 0:
+                revs['90d'] = (eps_current - eps_90d_ago) / abs(eps_90d_ago)
 
-            # Score calculation: Higher revision = Higher score
-            if eps_revision >= 0.10:  # 10%+ upward revision
-                score = 90 + min(10, (eps_revision - 0.10) / 0.05 * 10)
-            elif eps_revision >= 0.05:
-                score = 75 + (eps_revision - 0.05) / 0.05 * 15
-            elif eps_revision >= 0.02:
-                score = 60 + (eps_revision - 0.02) / 0.03 * 15
-            elif eps_revision >= 0:
-                score = 50 + eps_revision / 0.02 * 10
-            elif eps_revision >= -0.02:
-                score = 40 + (eps_revision + 0.02) / 0.02 * 10
-            elif eps_revision >= -0.05:
-                score = 25 + (eps_revision + 0.05) / 0.03 * 15
-            else:
-                score = max(10, 25 + (eps_revision + 0.05) * 150)
+            # acceleration: recent rev(30d) vs older rev(60d→90d)
+            accel = None
+            if (eps_60d_ago and eps_90d_ago and eps_90d_ago != 0
+                    and '30d' in revs):
+                older_rev = (eps_60d_ago - eps_90d_ago) / abs(eps_90d_ago)
+                accel = revs['30d'] - older_rev
 
-            return {
-                'score': min(100, max(0, score)),
-                'raw': eps_revision,
-                'eps_current': eps_current,
-                'eps_30d_ago': eps_30d_ago,
-                'source': 'earnings_estimates'
-            }
+            if revs:
+                # 가중평균 — 결손 sub-period 는 분모/분자에서 제외
+                period_weights = {'30d': 0.50, '60d': 0.30, '90d': 0.20}
+                avail_w = sum(period_weights[k] for k in revs)
+                composite = sum(period_weights[k] * v for k, v in revs.items()) / avail_w
+                if accel is not None:
+                    # acceleration 은 추가 +0.20 가중 (composite 와 별도 가산)
+                    composite = composite + 0.20 * accel / (1.20)
+
+                # piecewise score (기존과 동일 임계)
+                if composite >= 0.10:
+                    score = 90 + min(10, (composite - 0.10) / 0.05 * 10)
+                elif composite >= 0.05:
+                    score = 75 + (composite - 0.05) / 0.05 * 15
+                elif composite >= 0.02:
+                    score = 60 + (composite - 0.02) / 0.03 * 15
+                elif composite >= 0:
+                    score = 50 + composite / 0.02 * 10
+                elif composite >= -0.02:
+                    score = 40 + (composite + 0.02) / 0.02 * 10
+                elif composite >= -0.05:
+                    score = 25 + (composite + 0.05) / 0.03 * 15
+                else:
+                    score = max(10, 25 + (composite + 0.05) * 150)
+
+                return {
+                    'score': min(100, max(0, score)),
+                    'raw': composite,
+                    'eps_current': eps_current,
+                    'rev_30d': revs.get('30d'),
+                    'rev_60d': revs.get('60d'),
+                    'rev_90d': revs.get('90d'),
+                    'accel': accel,
+                    'source': 'earnings_estimates_multi'
+                }
 
         # 2. Fallback: us_stock_basic earnings_growth (YoY)
         earnings_growth = self.stock_data.get('earnings_growth')

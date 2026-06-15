@@ -63,6 +63,7 @@ async def generate_grades_for_range(
     use_prefilter: bool = False,
     prefilter_top_n: int = 500,
     with_event_modifier: bool = True,
+    improved_factors: bool = False,
 ) -> dict:
     """Loop call run_option1(target_date) to populate stock_grade for past dates.
 
@@ -132,10 +133,12 @@ async def generate_grades_for_range(
             try:
                 if symbols_filter is not None:
                     await run_option1(target_date=d, symbols=symbols_filter,
-                                      with_event_modifier=with_event_modifier)
+                                      with_event_modifier=with_event_modifier,
+                                      improved_factors=improved_factors)
                 else:
                     await run_option1(target_date=d,
-                                      with_event_modifier=with_event_modifier)
+                                      with_event_modifier=with_event_modifier,
+                                      improved_factors=improved_factors)
             except TypeError:
                 # Older run_option1 doesn't accept 'symbols' kwarg yet —
                 # fall back to full universe (no speedup, but doesn't break)

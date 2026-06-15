@@ -162,7 +162,10 @@ class USAlternativeStockMatcher:
                             result['alt_final_grade'],
                             result['alt_final_score'],
                             result['alt_match_type'],
-                            result['alt_reasons'],
+                            # asyncpg has no JSON codec registered, so a
+                            # List[Dict] must be serialized to a JSON string for
+                            # the jsonb column (otherwise: "expected str, got list").
+                            json.dumps(result['alt_reasons']),
                             sell_stock['symbol'],
                             analysis_date
                         ))
@@ -486,7 +489,8 @@ class USAlternativeStockMatcher:
                 alt_final_grade,
                 alt_final_score,
                 alt_match_type,
-                alt_reasons,
+                # jsonb column + no asyncpg JSON codec → serialize to JSON string.
+                json.dumps(alt_reasons),
                 symbol,
                 analysis_date
             )

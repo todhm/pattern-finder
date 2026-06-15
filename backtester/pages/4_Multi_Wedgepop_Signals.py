@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta
 import streamlit as st
 
 from data.adapters.cached_market_data import CachedMarketDataAdapter
-from data.adapters.wikipedia_universe import WikipediaUniverseAdapter
+from data.adapters.wikipedia_universe import default_universe_provider
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
@@ -150,9 +150,13 @@ with st.sidebar:
     st.header("Universe")
     universe = st.selectbox(
         "Universe",
-        options=["sp500", "nasdaq100"],
+        options=["sp500", "nasdaq100", "nasdaq_full"],
         index=0,
-        format_func=lambda x: "S&P 500" if x == "sp500" else "Nasdaq-100",
+        format_func=lambda x: {
+            "sp500": "S&P 500 (~500)",
+            "nasdaq100": "Nasdaq-100 (~100)",
+            "nasdaq_full": "Nasdaq All Common Stocks (~2,200)",
+        }[x],
     )
     max_tickers = st.number_input(
         "Max tickers (0 = all)",
@@ -428,7 +432,7 @@ def build_scanner() -> UniverseBuySignalScanner:
     market_data = CachedMarketDataAdapter(
         YFinanceAdapter(), bypass_today=True,
     )
-    universe_provider = WikipediaUniverseAdapter()
+    universe_provider = default_universe_provider()
 
     market_regime_df = None
     if enable_market_regime_filter:

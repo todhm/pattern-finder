@@ -511,19 +511,30 @@ class USDataPrefetcher:
             'next_year': {...}      # next fiscal year estimate
         }
         """
+        # DB 실제 horizon 값: 'fiscal quarter' / 'fiscal year'.
+        # estimate_date 는 미래 fiscal end-date. analysis_date 직후의 가장
+        # 가까운 미래 quarter / year 각각 1개씩 반환 — DISTINCT ON (horizon).
+        # created_at <= analysis_date: 호출 시점 look-ahead 차단.
         query = """
-        SELECT estimate_date, horizon,
+        SELECT DISTINCT ON (horizon)
+               estimate_date, horizon,
                eps_estimate_average, eps_estimate_high, eps_estimate_low,
                eps_estimate_average_7_days_ago, eps_estimate_average_30_days_ago,
+               eps_estimate_average_60_days_ago, eps_estimate_average_90_days_ago,
                eps_estimate_revision_up_trailing_7_days,
                eps_estimate_revision_down_trailing_7_days,
-               revenue_estimate_average
+               eps_estimate_revision_up_trailing_30_days,
+               eps_estimate_revision_down_trailing_30_days,
+               eps_estimate_analyst_count,
+               revenue_estimate_average,
+               created_at
         FROM us_earnings_estimates
         WHERE symbol = $1
-          AND estimate_date <= $2
-          AND horizon IN ('next fiscal quarter', 'next fiscal year')
+          AND created_at <= $2
+          AND estimate_date > $2
+          AND horizon IN ('fiscal quarter', 'fiscal year')
           AND eps_estimate_average IS NOT NULL
-        ORDER BY estimate_date DESC
+        ORDER BY horizon, estimate_date ASC
         """
 
         try:

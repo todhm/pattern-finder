@@ -181,7 +181,7 @@ class USValueFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Value calculation failed - {e}")
-            return {'value_score': 50.0, 'strategies': {}}
+            raise
 
     async def _load_stock_data(self):
         """종목 기본 데이터 로드"""
@@ -247,22 +247,21 @@ class USValueFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Failed to load stock data - {e}")
+            raise
 
     async def _load_fcf_data(self):
         """FCF 데이터 조회"""
 
+        # PIT TTM (4 quarters) — available_at <= analysis_date
         query = """
-        SELECT
-            operating_cashflow,
-            capital_expenditures
+        SELECT operating_cashflow, capital_expenditures
         FROM us_cash_flow
-        WHERE symbol = $1
-        ORDER BY fiscal_date_ending DESC
-        LIMIT 4
+        WHERE symbol = $1 AND available_at <= $2
+        ORDER BY fiscal_date_ending DESC LIMIT 4
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result:
                 total_ocf = sum(self._to_float(r['operating_cashflow']) or 0 for r in result)
@@ -271,7 +270,7 @@ class USValueFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: FCF data not available - {e}")
-            self.stock_data['fcf_ttm'] = None
+            raise
 
     async def _load_price_data(self):
         """Phase 3.4.2: Load price data for HV calculation"""
@@ -291,6 +290,7 @@ class USValueFactorV2:
                                    for r in result]
         except Exception as e:
             logger.warning(f"{self.symbol}: Price data load failed - {e}")
+            raise
 
     def _load_from_prefetched(self):
         """

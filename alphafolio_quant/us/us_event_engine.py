@@ -495,8 +495,8 @@ class USEventEngine:
             overall_sentiment_score
         FROM us_news
         WHERE ticker = $1
-          AND time_published >= $2
-          AND time_published < ($3 + INTERVAL '1 day')
+          AND time_published >= $2::date
+          AND time_published < ($3::date + INTERVAL '1 day')
         ORDER BY time_published DESC
         """
 

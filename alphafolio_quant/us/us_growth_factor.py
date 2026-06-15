@@ -188,32 +188,30 @@ class USGrowthFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Growth calculation failed - {e}")
-            return {'growth_score': 50.0, 'strategies': {}}
+            raise
 
     async def _load_stock_data(self):
         """종목 기본 데이터 로드"""
 
+        # PIT: us_stock_basic 은 (symbol, date, source) PK. computed source 가
+        # 시점별 한 row → analysis_date 시점에 가용한 가장 최근 행 1개.
         query = """
         SELECT
-            symbol,
-            sector,
+            symbol, sector,
             quarterlyrevenuegrowthyoy as revenue_growth,
             quarterlyearningsgrowthyoy as earnings_growth,
-            peg,
-            forwardpe,
-            per,
-            revenuettm as revenue,
-            grossprofitttm as gross_profit,
+            peg, forwardpe, per,
+            revenuettm as revenue, grossprofitttm as gross_profit,
             operatingmarginttm as operating_margin,
             profitmargin as net_margin,
-            dilutedepsttm as eps,
-            ebitda
+            dilutedepsttm as eps, ebitda
         FROM us_stock_basic
-        WHERE symbol = $1
+        WHERE symbol = $1 AND date <= $2
+        ORDER BY date DESC LIMIT 1
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result and result[0]:
                 row = result[0]
@@ -234,25 +232,23 @@ class USGrowthFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Failed to load stock data - {e}")
+            raise
 
     async def _load_quarterly_data(self):
         """분기별 재무 데이터 로드"""
 
+        # PIT: available_at <= analysis_date 로 그 시점에 공시된 분기만
         query = """
-        SELECT
-            fiscal_date_ending,
-            total_revenue,
-            gross_profit,
-            operating_income,
-            net_income
+        SELECT fiscal_date_ending, total_revenue, gross_profit,
+               operating_income, net_income
         FROM us_income_statement
-        WHERE symbol = $1
+        WHERE symbol = $1 AND available_at <= $2
         ORDER BY fiscal_date_ending DESC
         LIMIT 12
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result:
                 # EPS는 us_stock_basic 테이블의 dilutedepsttm 사용
@@ -271,6 +267,7 @@ class USGrowthFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Failed to load quarterly data - {e}")
+            raise
 
     async def _load_price_data(self):
         """Phase 3.4.2: Load price data for HV calculation"""
@@ -290,6 +287,7 @@ class USGrowthFactorV2:
                                    for r in result]
         except Exception as e:
             logger.warning(f"{self.symbol}: Price data load failed - {e}")
+            raise
 
     def _load_from_prefetched(self):
         """
@@ -711,39 +709,44 @@ class USGrowthFactorV2:
     async def _load_nasdaq_data(self):
         """NASDAQ 특화 데이터 로드 (Institutional, Analyst, Options)"""
 
-        # 1. Institutional & Insider 데이터 (us_stock_basic)
+        # 1. Institutional & Insider 데이터 (us_stock_basic) — single row at analysis_date
         inst_query = """
         SELECT
-            percentinstitutions,
-            percentinsiders,
-            analysttargetprice,
-            analystratingstrongbuy,
-            analystratingbuy,
-            analystratinghold,
-            analystratingsell,
-            analystratingstrongsell
+            percentinstitutions, percentinsiders, analysttargetprice,
+            analystratingstrongbuy, analystratingbuy, analystratinghold,
+            analystratingsell, analystratingstrongsell
         FROM us_stock_basic
-        WHERE symbol = $1
+        WHERE symbol = $1 AND date <= $2
+        ORDER BY date DESC LIMIT 1
         """
 
         # 2. EPS Estimates 데이터 (us_earnings_estimates)
+        # DB 실제 horizon 값: 'fiscal quarter' / 'fiscal year' (not 'next ...').
+        # Look-ahead 차단: created_at <= analysis_date. 60d/90d snapshot 추가.
         eps_query = """
         SELECT
             eps_estimate_average,
             eps_estimate_average_7_days_ago,
             eps_estimate_average_30_days_ago,
+            eps_estimate_average_60_days_ago,
+            eps_estimate_average_90_days_ago,
             eps_estimate_revision_up_trailing_7_days,
             eps_estimate_revision_down_trailing_7_days,
+            eps_estimate_revision_up_trailing_30_days,
+            eps_estimate_revision_down_trailing_30_days,
+            eps_estimate_analyst_count,
             revenue_estimate_average
         FROM us_earnings_estimates
-        WHERE symbol = $1 AND horizon = 'next fiscal quarter'
-        ORDER BY estimate_date DESC
+        WHERE symbol = $1 AND horizon = 'fiscal quarter'
+          AND created_at <= $2
+          AND estimate_date > $2
+        ORDER BY estimate_date ASC
         LIMIT 1
         """
 
         try:
             # Institutional 데이터
-            inst_result = await self.db.execute_query(inst_query, self.symbol)
+            inst_result = await self.db.execute_query(inst_query, self.symbol, self.analysis_date)
             if inst_result and inst_result[0]:
                 row = inst_result[0]
                 # percentinstitutions는 이미 백분율 형태로 저장되어 있음 (0.xx 형태)
@@ -770,7 +773,7 @@ class USGrowthFactorV2:
                 }
 
             # EPS Estimates 데이터
-            eps_result = await self.db.execute_query(eps_query, self.symbol)
+            eps_result = await self.db.execute_query(eps_query, self.symbol, self.analysis_date)
             if eps_result and eps_result[0]:
                 row = eps_result[0]
                 if 'nasdaq' not in self.stock_data:
@@ -787,6 +790,7 @@ class USGrowthFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: NASDAQ data load failed - {e}")
+            raise
 
     def _calc_nq1_institutional_quality(self) -> Dict:
         """NQ1: Institutional Quality Score
@@ -1105,7 +1109,7 @@ class USGrowthFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Options data query failed - {e}")
-            return {'score': None, 'raw': None, 'reason': f'Query failed: {e}'}
+            raise
 
 
 # ========================================================================

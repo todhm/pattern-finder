@@ -45,10 +45,7 @@ from weight_adjustments import (
     get_position_multiplier,
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -122,11 +119,17 @@ class USOutlierRisk:
             COALESCE(b.market_cap, 0) as market_cap,
             b.exchange,
             b.sector
-        FROM us_stock_basic b
+        FROM (
+            -- PIT: analysis_date 시점에 가용한 가장 최근 stock_basic row (symbol 당 1개)
+            -- DISTINCT ON 없으면 9M+ rows × LEFT JOIN — 매우 비효율적 + latest 비결정
+            SELECT DISTINCT ON (symbol) symbol, market_cap, exchange, sector
+            FROM us_stock_basic
+            WHERE $1::DATE IS NULL OR date <= $1::DATE
+            ORDER BY symbol, date DESC
+        ) b
         LEFT JOIN latest_prices lp ON b.symbol = lp.symbol AND lp.rn = 1
         LEFT JOIN avg_volumes av ON b.symbol = av.symbol
         LEFT JOIN volatility_calc vc ON b.symbol = vc.symbol
-        WHERE b.symbol IS NOT NULL
         """
 
         try:
@@ -138,15 +141,15 @@ class USOutlierRisk:
 
             results = {}
             for row in rows:
-                symbol = row['symbol']
+                symbol = row["symbol"]
                 ors_data = self._calculate_ors_from_data(
-                    price=self._to_float(row['price']),
-                    avg_volume=self._to_float(row['avg_volume']),
-                    volatility=self._to_float(row['volatility_252d']),
-                    market_cap=self._to_float(row['market_cap'])
+                    price=self._to_float(row["price"]),
+                    avg_volume=self._to_float(row["avg_volume"]),
+                    volatility=self._to_float(row["volatility_252d"]),
+                    market_cap=self._to_float(row["market_cap"]),
                 )
-                ors_data['exchange'] = row['exchange']
-                ors_data['sector'] = row['sector']
+                ors_data["exchange"] = row["exchange"]
+                ors_data["sector"] = row["sector"]
                 results[symbol] = ors_data
 
             # 캐시 저장
@@ -208,12 +211,15 @@ class USOutlierRisk:
             COALESCE(lp.price, 0) as price,
             COALESCE(av.avg_volume, 0) as avg_volume,
             COALESCE(vc.volatility_252d, 0) as volatility_252d,
-            COALESCE(b.marketcap, 0) as market_cap
-        FROM us_stock_basic b
+            COALESCE(b.market_cap, 0) as market_cap
+        FROM (
+            SELECT market_cap FROM us_stock_basic
+            WHERE symbol = $1 AND ($2::DATE IS NULL OR date <= $2::DATE)
+            ORDER BY date DESC LIMIT 1
+        ) b
         CROSS JOIN latest_price lp
         CROSS JOIN avg_vol av
         CROSS JOIN vol_calc vc
-        WHERE b.symbol = $1
         """
 
         try:
@@ -225,10 +231,10 @@ class USOutlierRisk:
 
             row = rows[0]
             ors_data = self._calculate_ors_from_data(
-                price=self._to_float(row['price']),
-                avg_volume=self._to_float(row['avg_volume']),
-                volatility=self._to_float(row['volatility_252d']),
-                market_cap=self._to_float(row['market_cap'])
+                price=self._to_float(row["price"]),
+                avg_volume=self._to_float(row["avg_volume"]),
+                volatility=self._to_float(row["volatility_252d"]),
+                market_cap=self._to_float(row["market_cap"]),
             )
 
             # 캐시 저장
@@ -238,14 +244,10 @@ class USOutlierRisk:
 
         except Exception as e:
             logger.error(f"Failed to calculate ORS for {symbol}: {e}")
-            return self._get_default_ors()
+            raise e
 
     def calculate_ors_single(
-        self,
-        price: float,
-        avg_volume: float,
-        volatility: float,
-        market_cap: float
+        self, price: float, avg_volume: float, volatility: float, market_cap: float
     ) -> Dict:
         """
         데이터로부터 ORS 계산 (DB 연결 없이 사용 가능)
@@ -262,11 +264,7 @@ class USOutlierRisk:
         return self._calculate_ors_from_data(price, avg_volume, volatility, market_cap)
 
     def _calculate_ors_from_data(
-        self,
-        price: float,
-        avg_volume: float,
-        volatility: float,
-        market_cap: float
+        self, price: float, avg_volume: float, volatility: float, market_cap: float
     ) -> Dict:
         """
         데이터로부터 ORS 계산 (내부 메서드)
@@ -296,21 +294,21 @@ class USOutlierRisk:
         position_multiplier = get_position_multiplier(ors)
 
         return {
-            'ors': round(ors, 2),
-            'risk_flag': risk_flag,
-            'position_multiplier': position_multiplier,
-            'components': {
-                'price_score': price_score,
-                'volume_score': volume_score,
-                'volatility_score': volatility_score,
-                'mktcap_score': mktcap_score,
+            "ors": round(ors, 2),
+            "risk_flag": risk_flag,
+            "position_multiplier": position_multiplier,
+            "components": {
+                "price_score": price_score,
+                "volume_score": volume_score,
+                "volatility_score": volatility_score,
+                "mktcap_score": mktcap_score,
             },
-            'raw_data': {
-                'price': price,
-                'avg_volume': avg_volume,
-                'volatility': volatility,
-                'market_cap': market_cap,
-            }
+            "raw_data": {
+                "price": price,
+                "avg_volume": avg_volume,
+                "volatility": volatility,
+                "market_cap": market_cap,
+            },
         }
 
     def _calc_price_score(self, price: float) -> int:
@@ -386,17 +384,11 @@ class USOutlierRisk:
 
         try:
             tickers = list(self._cache.keys())
-            ors_values = [self._cache[t]['ors'] for t in tickers]
-            risk_flags = [self._cache[t]['risk_flag'] for t in tickers]
+            ors_values = [self._cache[t]["ors"] for t in tickers]
+            risk_flags = [self._cache[t]["risk_flag"] for t in tickers]
             target_date = self.analysis_date or date.today()
 
-            result = await self.db.execute(
-                update_query,
-                tickers,
-                ors_values,
-                risk_flags,
-                target_date
-            )
+            result = await self.db.execute(update_query, tickers, ors_values, risk_flags, target_date)
 
             # 업데이트된 행 수 추출
             updated_count = len(tickers)  # 실제로는 result에서 추출
@@ -422,13 +414,11 @@ class USOutlierRisk:
             await self.calculate_ors_batch()
 
         high_risk = [
-            {'symbol': symbol, **data}
-            for symbol, data in self._cache.items()
-            if data['ors'] >= min_ors
+            {"symbol": symbol, **data} for symbol, data in self._cache.items() if data["ors"] >= min_ors
         ]
 
         # ORS 내림차순 정렬
-        high_risk.sort(key=lambda x: x['ors'], reverse=True)
+        high_risk.sort(key=lambda x: x["ors"], reverse=True)
 
         return high_risk
 
@@ -445,37 +435,34 @@ class USOutlierRisk:
         if not self._cache:
             return {}
 
-        ors_values = [d['ors'] for d in self._cache.values()]
+        ors_values = [d["ors"] for d in self._cache.values()]
 
         # 위험 등급별 분포
-        risk_distribution = {
-            'EXTREME_RISK': 0,
-            'HIGH_RISK': 0,
-            'MODERATE_RISK': 0,
-            'NORMAL': 0
-        }
+        risk_distribution = {"EXTREME_RISK": 0, "HIGH_RISK": 0, "MODERATE_RISK": 0, "NORMAL": 0}
 
         for data in self._cache.values():
-            risk_distribution[data['risk_flag']] += 1
+            risk_distribution[data["risk_flag"]] += 1
 
         return {
-            'total_stocks': len(ors_values),
-            'mean_ors': round(sum(ors_values) / len(ors_values), 2),
-            'max_ors': max(ors_values),
-            'min_ors': min(ors_values),
-            'risk_distribution': risk_distribution,
-            'high_risk_count': risk_distribution['HIGH_RISK'] + risk_distribution['EXTREME_RISK'],
-            'high_risk_pct': round(
-                (risk_distribution['HIGH_RISK'] + risk_distribution['EXTREME_RISK'])
-                / len(ors_values) * 100, 2
-            )
+            "total_stocks": len(ors_values),
+            "mean_ors": round(sum(ors_values) / len(ors_values), 2),
+            "max_ors": max(ors_values),
+            "min_ors": min(ors_values),
+            "risk_distribution": risk_distribution,
+            "high_risk_count": risk_distribution["HIGH_RISK"] + risk_distribution["EXTREME_RISK"],
+            "high_risk_pct": round(
+                (risk_distribution["HIGH_RISK"] + risk_distribution["EXTREME_RISK"])
+                / len(ors_values)
+                * 100,
+                2,
+            ),
         }
 
     def _log_distribution(self, results: Dict[str, Dict]):
         """ORS 분포 로깅"""
-        distribution = {'EXTREME_RISK': 0, 'HIGH_RISK': 0, 'MODERATE_RISK': 0, 'NORMAL': 0}
+        distribution = {"EXTREME_RISK": 0, "HIGH_RISK": 0, "MODERATE_RISK": 0, "NORMAL": 0}
         for data in results.values():
-            distribution[data['risk_flag']] += 1
+            distribution[data["risk_flag"]] += 1
 
         total = len(results)
         logger.info(f"ORS Distribution:")
@@ -486,21 +473,21 @@ class USOutlierRisk:
     def _get_default_ors(self) -> Dict:
         """기본 ORS (데이터 없을 때)"""
         return {
-            'ors': 0,
-            'risk_flag': 'NORMAL',
-            'position_multiplier': 1.0,
-            'components': {
-                'price_score': 0,
-                'volume_score': 0,
-                'volatility_score': 0,
-                'mktcap_score': 0,
+            "ors": 0,
+            "risk_flag": "NORMAL",
+            "position_multiplier": 1.0,
+            "components": {
+                "price_score": 0,
+                "volume_score": 0,
+                "volatility_score": 0,
+                "mktcap_score": 0,
             },
-            'raw_data': {
-                'price': 0,
-                'avg_volume': 0,
-                'volatility': 0,
-                'market_cap': 0,
-            }
+            "raw_data": {
+                "price": 0,
+                "avg_volume": 0,
+                "volatility": 0,
+                "market_cap": 0,
+            },
         }
 
     def _to_float(self, value) -> float:
@@ -514,11 +501,7 @@ class USOutlierRisk:
         except:
             return 0.0
 
-    def apply_ors_to_position(
-        self,
-        symbol: str,
-        original_position_pct: float
-    ) -> Tuple[float, str]:
+    def apply_ors_to_position(self, symbol: str, original_position_pct: float) -> Tuple[float, str]:
         """
         ORS 기반 포지션 조정
 
@@ -530,17 +513,18 @@ class USOutlierRisk:
             Tuple of (adjusted_position_pct, risk_flag)
         """
         if symbol not in self._cache:
-            return original_position_pct, 'NORMAL'
+            return original_position_pct, "NORMAL"
 
         data = self._cache[symbol]
-        adjusted = original_position_pct * data['position_multiplier']
+        adjusted = original_position_pct * data["position_multiplier"]
 
-        return round(adjusted, 2), data['risk_flag']
+        return round(adjusted, 2), data["risk_flag"]
 
 
 # ============================================================================
 # Standalone Functions (for SQL integration)
 # ============================================================================
+
 
 def calculate_ors_sql_case() -> str:
     """
@@ -607,7 +591,7 @@ def calculate_risk_flag_sql_case() -> str:
 # Test
 # ============================================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import asyncio
 
     async def test():
@@ -620,25 +604,32 @@ if __name__ == '__main__':
 
         # Create instance without DB for testing
         class MockDB:
-            async def execute_query(self, *args): return []
-            async def execute(self, *args): return None
+            async def execute_query(self, *args):
+                return []
+
+            async def execute(self, *args):
+                return None
 
         calc = USOutlierRisk(MockDB())
 
         # Test score calculations
         test_cases = [
-            {'price': 0.5, 'avg_volume': 10000, 'volatility': 200, 'market_cap': 50e6},
-            {'price': 2.0, 'avg_volume': 80000, 'volatility': 120, 'market_cap': 200e6},
-            {'price': 15.0, 'avg_volume': 500000, 'volatility': 50, 'market_cap': 2e9},
-            {'price': 150.0, 'avg_volume': 5000000, 'volatility': 25, 'market_cap': 100e9},
+            {"price": 0.5, "avg_volume": 10000, "volatility": 200, "market_cap": 50e6},
+            {"price": 2.0, "avg_volume": 80000, "volatility": 120, "market_cap": 200e6},
+            {"price": 15.0, "avg_volume": 500000, "volatility": 50, "market_cap": 2e9},
+            {"price": 150.0, "avg_volume": 5000000, "volatility": 25, "market_cap": 100e9},
         ]
 
         for tc in test_cases:
             result = calc._calculate_ors_from_data(**tc)
-            print(f"\n  Price: ${tc['price']:.2f}, Volume: {tc['avg_volume']:,}, "
-                  f"Vol: {tc['volatility']:.0f}%, MktCap: ${tc['market_cap']/1e6:.0f}M")
-            print(f"  ORS: {result['ors']}, Risk: {result['risk_flag']}, "
-                  f"Position Mult: {result['position_multiplier']}")
+            print(
+                f"\n  Price: ${tc['price']:.2f}, Volume: {tc['avg_volume']:,}, "
+                f"Vol: {tc['volatility']:.0f}%, MktCap: ${tc['market_cap']/1e6:.0f}M"
+            )
+            print(
+                f"  ORS: {result['ors']}, Risk: {result['risk_flag']}, "
+                f"Position Mult: {result['position_multiplier']}"
+            )
             print(f"  Components: {result['components']}")
 
         print("\n" + "=" * 60)

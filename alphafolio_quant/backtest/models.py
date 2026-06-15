@@ -35,6 +35,9 @@ class GradeGenerationRequest(BaseModel):
     # for option selection). Pass-B sets it True to fold in the freshly
     # collected option signals (options_modifier + gex_modifier).
     with_event_modifier: bool = True
+    # reco-only 팩터 개선(value 게이팅 등). 기본 False → backtest baseline 불변.
+    # reco DAG 의 grade 태스크만 True 로 전달(OOS 재검증 전까지 reco 한정).
+    improved_factors: bool = False
 
 
 class BacktestSummary(BaseModel):

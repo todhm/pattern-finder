@@ -194,33 +194,32 @@ class USQualityFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Quality calculation failed - {e}")
-            return {'quality_score': 50.0, 'strategies': {}}
+            raise
 
     async def _load_stock_data(self):
         """종목 기본 데이터 로드"""
 
+        # PIT: us_stock_basic 의 analysis_date 시점에 가용한 가장 최근 row
         query = """
         SELECT
-            b.symbol,
-            b.sector,
+            b.symbol, b.sector,
             b.grossprofitttm as gross_profit,
             b.revenuettm as revenue,
             b.operatingmarginttm as operating_margin,
             b.profitmargin as net_margin,
             b.returnonequityttm as roe,
             b.returnonassetsttm as roa,
-            b.ebitda,
-            b.market_cap,
-            b.beta,
+            b.ebitda, b.market_cap, b.beta,
             b.sharesoutstanding as shares_outstanding,
             b.bookvalue as book_value,
             b.dilutedepsttm as eps
         FROM us_stock_basic b
-        WHERE b.symbol = $1
+        WHERE b.symbol = $1 AND b.date <= $2
+        ORDER BY b.date DESC LIMIT 1
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result and result[0]:
                 row = result[0]
@@ -252,29 +251,27 @@ class USQualityFactorV2:
 
         except Exception as e:
             logger.error(f"{self.symbol}: Failed to load stock data - {e}")
+            raise
 
     async def _load_balance_sheet_data(self):
         """Balance Sheet 데이터 조회"""
 
+        # PIT: available_at <= analysis_date — 그 시점에 공시된 가장 최근 분기
         query = """
         SELECT
-            total_assets,
-            total_liabilities,
-            total_shareholder_equity,
-            total_current_assets,
-            total_current_liabilities,
-            long_term_debt,
-            short_term_debt,
+            total_assets, total_liabilities, total_shareholder_equity,
+            total_current_assets, total_current_liabilities,
+            long_term_debt, short_term_debt,
             cash_and_cash_equivalents_at_carrying_value,
             short_long_term_debt_total
         FROM us_balance_sheet
-        WHERE symbol = $1
+        WHERE symbol = $1 AND available_at <= $2
         ORDER BY fiscal_date_ending DESC
         LIMIT 1
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result and result[0]:
                 row = result[0]
@@ -292,24 +289,23 @@ class USQualityFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Balance sheet data not available - {e}")
+            raise
 
     async def _load_cash_flow_data(self):
         """Cash Flow 데이터 조회"""
 
+        # PIT TTM: available_at <= analysis_date 의 최신 4분기 → TTM 합계
         query = """
         SELECT
-            operating_cashflow,
-            net_income,
-            depreciation_depletion_and_amortization,
-            capital_expenditures
+            operating_cashflow, net_income,
+            depreciation_depletion_and_amortization, capital_expenditures
         FROM us_cash_flow
-        WHERE symbol = $1
-        ORDER BY fiscal_date_ending DESC
-        LIMIT 4
+        WHERE symbol = $1 AND available_at <= $2
+        ORDER BY fiscal_date_ending DESC LIMIT 4
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result:
                 # TTM 합계
@@ -328,24 +324,21 @@ class USQualityFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Cash flow data not available - {e}")
+            raise
 
     async def _load_historical_data(self):
         """과거 분기 데이터 로드 (Margin Trend용)"""
 
+        # PIT 8 quarters trend: available_at <= analysis_date
         query = """
-        SELECT
-            fiscal_date_ending,
-            gross_profit,
-            total_revenue,
-            operating_income
+        SELECT fiscal_date_ending, gross_profit, total_revenue, operating_income
         FROM us_income_statement
-        WHERE symbol = $1
-        ORDER BY fiscal_date_ending DESC
-        LIMIT 8
+        WHERE symbol = $1 AND available_at <= $2
+        ORDER BY fiscal_date_ending DESC LIMIT 8
         """
 
         try:
-            result = await self.db.execute_query(query, self.symbol)
+            result = await self.db.execute_query(query, self.symbol, self.analysis_date)
 
             if result:
                 self.historical_data = []
@@ -366,6 +359,7 @@ class USQualityFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Historical data not available - {e}")
+            raise
 
     async def _load_price_data(self):
         """Phase 3.4.2: Load price data for HV calculation"""
@@ -385,6 +379,7 @@ class USQualityFactorV2:
                                    for r in result]
         except Exception as e:
             logger.warning(f"{self.symbol}: Price data load failed - {e}")
+            raise
 
     def _load_from_prefetched(self):
         """
@@ -872,42 +867,47 @@ class USQualityFactorV2:
     async def _load_healthcare_data(self):
         """Healthcare 특화 데이터 로드 (Analyst, EPS Estimates, R&D, Cash)"""
 
-        # 1. Analyst Rating 데이터 (us_stock_basic)
+        # 1. Analyst Rating 데이터 (us_stock_basic) — PIT single row
         analyst_query = """
         SELECT
-            analysttargetprice,
-            analystratingstrongbuy,
-            analystratingbuy,
-            analystratinghold,
-            analystratingsell,
-            analystratingstrongsell
+            analysttargetprice, analystratingstrongbuy, analystratingbuy,
+            analystratinghold, analystratingsell, analystratingstrongsell
         FROM us_stock_basic
-        WHERE symbol = $1
+        WHERE symbol = $1 AND date <= $2
+        ORDER BY date DESC LIMIT 1
         """
 
         # 2. EPS Estimates 데이터 (us_earnings_estimates)
+        # Look-ahead bias 방어: created_at <= analysis_date 필터로 backtest 시점
+        # 이후에 호출된 estimate 차단. 60d/90d ago snapshot 추가로 multi-period
+        # signal 활용 가능.
         eps_query = """
         SELECT
             eps_estimate_average,
             eps_estimate_average_7_days_ago,
             eps_estimate_average_30_days_ago,
+            eps_estimate_average_60_days_ago,
+            eps_estimate_average_90_days_ago,
             eps_estimate_revision_up_trailing_7_days,
-            eps_estimate_revision_down_trailing_7_days
+            eps_estimate_revision_down_trailing_7_days,
+            eps_estimate_revision_up_trailing_30_days,
+            eps_estimate_revision_down_trailing_30_days,
+            eps_estimate_analyst_count
         FROM us_earnings_estimates
-        WHERE symbol = $1 AND horizon = 'next fiscal quarter'
-        ORDER BY estimate_date DESC
+        WHERE symbol = $1 AND horizon = 'fiscal quarter'
+          AND created_at <= $2
+          AND estimate_date > $2
+        ORDER BY estimate_date ASC
         LIMIT 1
         """
 
-        # 3. R&D 데이터 (us_income_statement)
+        # 3. R&D 데이터 (us_income_statement) — PIT 4 quarters
         rd_query = """
-        SELECT
-            research_and_development,
-            total_revenue
+        SELECT research_and_development, total_revenue
         FROM us_income_statement
         WHERE symbol = $1 AND research_and_development IS NOT NULL
-        ORDER BY fiscal_date_ending DESC
-        LIMIT 4
+          AND available_at <= $2
+        ORDER BY fiscal_date_ending DESC LIMIT 4
         """
 
         # 4. Cash Runway 데이터 (us_balance_sheet + us_cash_flow)
@@ -916,7 +916,7 @@ class USQualityFactorV2:
 
         try:
             # Analyst 데이터
-            analyst_result = await self.db.execute_query(analyst_query, self.symbol)
+            analyst_result = await self.db.execute_query(analyst_query, self.symbol, self.analysis_date)
             if analyst_result and analyst_result[0]:
                 row = analyst_result[0]
                 self.stock_data['analyst'] = {
@@ -928,8 +928,8 @@ class USQualityFactorV2:
                     'strong_sell': row['analystratingstrongsell'] or 0
                 }
 
-            # EPS Estimates 데이터
-            eps_result = await self.db.execute_query(eps_query, self.symbol)
+            # EPS Estimates 데이터 — analysis_date 기준 look-ahead 차단
+            eps_result = await self.db.execute_query(eps_query, self.symbol, self.analysis_date)
             if eps_result and eps_result[0]:
                 row = eps_result[0]
                 self.stock_data['eps_estimates'] = {
@@ -941,7 +941,7 @@ class USQualityFactorV2:
                 }
 
             # R&D 데이터 (TTM 합계)
-            rd_result = await self.db.execute_query(rd_query, self.symbol)
+            rd_result = await self.db.execute_query(rd_query, self.symbol, self.analysis_date)
             if rd_result:
                 rd_total = sum(self._to_float(r['research_and_development']) or 0 for r in rd_result)
                 rev_total = sum(self._to_float(r['total_revenue']) or 0 for r in rd_result)
@@ -953,6 +953,7 @@ class USQualityFactorV2:
 
         except Exception as e:
             logger.warning(f"{self.symbol}: Healthcare data load failed - {e}")
+            raise
 
     def _calc_hc1_analyst_consensus(self) -> Dict:
         """HC1: Analyst Consensus Score

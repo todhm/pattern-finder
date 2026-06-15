@@ -2377,7 +2377,8 @@ class CashFlowCollector:
             return 0
 
 class EarningsEstimatesCollector:
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2, target_date: date = None):
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 target_date: date = None, start_date: Optional[date] = None):
         self.api_key = api_key
         if database_url.startswith('postgresql+asyncpg://'):
             database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
@@ -2386,7 +2387,9 @@ class EarningsEstimatesCollector:
         self.retry_count = 3
         self.retry_delay = 1
         self.call_interval = call_interval
-        self.start_date = date(2021, 1, 1)
+        # 백테스트 윈도우에 맞춰 외부 주입 가능. default 2015 = 약세장/COVID/2022bear 포함.
+        # 이전엔 date(2021, 1, 1) 하드코드라 ctx.start_date<2021 시 cutoff 됨.
+        self.start_date = start_date or date(2015, 1, 1)
 
         # Railway Volume path support
         if os.getenv('RAILWAY_PROJECT_ID'):
@@ -5621,7 +5624,8 @@ class UnemploymentRateCollector(EconomicIndicatorCollector):
 class EarningsEstimatesCollectorOptimized:
     """Optimized Earnings Estimates collector with Pipeline pattern"""
 
-    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2):
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.2,
+                 start_date: Optional[date] = None):
         self.api_key = api_key
         if database_url.startswith('postgresql+asyncpg://'):
             database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
@@ -5630,7 +5634,9 @@ class EarningsEstimatesCollectorOptimized:
         self.base_url = "https://www.alphavantage.co/query"
         self.pool = None
         self.session = None
-        self.start_date = date(2021, 1, 1)
+        # 백테스트 윈도우에 맞춰 외부 주입 가능. default 2015 — WeeklyCollector /
+        # EconomicIndicatorCollector / EarningsEstimatesCollector 와 동일 패턴.
+        self.start_date = start_date or date(2015, 1, 1)
 
         # Railway Volume path support
         if os.getenv('RAILWAY_PROJECT_ID'):
@@ -5669,7 +5675,13 @@ class EarningsEstimatesCollectorOptimized:
     async def get_active_symbols(self) -> List[str]:
         conn = await self.get_connection()
         try:
-            rows = await conn.fetch('SELECT symbol FROM us_stock_basic WHERE is_active = true ORDER BY symbol')
+            # DISTINCT 필수 — us_stock_basic 은 (symbol, date, source) PK 라
+            # 한 symbol 당 ~1,500 행 (api + computed 시계열). DISTINCT 없으면
+            # 9M+ row fetch + ORDER BY 가 120s timeout 내에 안 끝나 silent
+            # fail (universe 0 → task 가 0건 처리 후 success 마킹).
+            rows = await conn.fetch(
+                'SELECT DISTINCT symbol FROM us_stock_basic '
+                'WHERE is_active = true ORDER BY symbol')
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -5678,7 +5690,7 @@ class EarningsEstimatesCollectorOptimized:
             logger.info(f"[EARNINGS_EST] Found {len(symbols)} active symbols")
             return symbols
         except Exception as e:
-            logger.error(f"[EARNINGS_EST] Error getting symbols: {e}")
+            logger.error(f"[EARNINGS_EST] Error getting symbols: {e!r}")
             if self.pool:
                 await self.pool.release(conn)
             else:
@@ -6252,6 +6264,194 @@ class ListingStatusCollector:
                 "delisted_rows": n_del,
                 "total":         n_active + n_del,
             }
+        finally:
+            await self.close_pool()
+
+
+class InstitutionalHoldingsCollector:
+    """AV INSTITUTIONAL_HOLDINGS endpoint → us_institutional_holdings.
+
+    NQ1 (Institutional Quality Score) 활성용. AV 가 trailing 1 year (4 분기)
+    만 응답 — historical 깊이 제한. 결손 (= 응답 없는 symbol 또는 응답에 없는
+    분기) 은 quant 가 NQ1 score=None 처리 (다른 sub-indicator 가중치 영향 없음).
+
+    skip 패턴: (symbol, transaction_date) missing-date 와 유사 —
+    `get_symbols_with_missing_dates` helper 활용. 단 13F 는 분기별 (quarterly)
+    이라 us_daily 거래일 기준이 아닌 quarter-end-date 기준이 더 정확하지만,
+    단순화 위해 helper 그대로 사용 (그 분기 안 거래일 다수와 매칭).
+    """
+
+    def __init__(self, api_key: str, database_url: str, call_interval: float = 0.4,
+                 max_concurrent: int = 3):
+        self.api_key = api_key
+        if database_url.startswith('postgresql+asyncpg://'):
+            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+        self.database_url = database_url
+        self.call_interval = call_interval
+        self.base_url = "https://www.alphavantage.co/query"
+        self.max_concurrent = max_concurrent
+        self.pool = None
+        self.session = None
+        self.semaphore = None
+
+    async def init_pool(self):
+        self.pool = await asyncpg.create_pool(self.database_url, min_size=2, max_size=10)
+        self.session = aiohttp.ClientSession(headers=USER_AGENT_HEADERS)
+        self.semaphore = asyncio.Semaphore(self.max_concurrent)
+
+    async def close_pool(self):
+        if self.session:
+            await self.session.close()
+        if self.pool:
+            await self.pool.close()
+
+    async def get_active_symbols(self) -> List[str]:
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT DISTINCT symbol FROM us_stock_basic "
+                "WHERE is_active = true ORDER BY symbol")
+        return [r['symbol'] for r in rows]
+
+    async def _fetch_one(self, symbol: str, max_retries: int = 4) -> Optional[Dict]:
+        params = {'function': 'INSTITUTIONAL_HOLDINGS', 'symbol': symbol,
+                  'apikey': self.api_key}
+        for attempt in range(max_retries):
+            try:
+                async with self.session.get(self.base_url, params=params,
+                                            timeout=aiohttp.ClientTimeout(total=30)) as r:
+                    if r.status != 200:
+                        return None
+                    data = await r.json()
+                if 'Error Message' in data:
+                    return None
+                if 'Note' in data or 'Information' in data:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(5 * (2 ** attempt))
+                        continue
+                    return None
+                if 'holdings' in data:
+                    return data
+                return None
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 * (2 ** attempt))
+                    continue
+                return None
+            except Exception as e:
+                logger.error(f"[INSTITUTIONAL] {symbol}: {e}")
+                return None
+        return None
+
+    @staticmethod
+    def _to_int(v):
+        try:
+            return int(float(v)) if v not in (None, '', 'None') else None
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _to_float(v):
+        try:
+            s = str(v).replace('%', '').strip() if v is not None else None
+            return float(s) if s not in (None, '', 'None') else None
+        except (TypeError, ValueError):
+            return None
+
+    def _group_by_quarter(self, holdings_list: List[Dict]) -> Dict:
+        """각 holding 의 last_reported 별로 그룹핑 → 분기별 holdings array."""
+        from collections import defaultdict
+        by_q = defaultdict(list)
+        for h in holdings_list or []:
+            d = h.get('last_reported')
+            if d:
+                by_q[d].append(h)
+        return dict(by_q)
+
+    async def _process_symbol(self, symbol: str) -> int:
+        async with self.semaphore:
+            data = await self._fetch_one(symbol)
+            await asyncio.sleep(self.call_interval)
+            if not data:
+                return 0
+            # AV 응답의 summary 필드는 latest 분기 기준
+            holdings_list = data.get('holdings') or []
+            by_q = self._group_by_quarter(holdings_list)
+            if not by_q:
+                return 0
+
+            # 분기별 aggregate 재계산 (AV summary 는 latest 만이라)
+            records = []
+            for report_date, items in by_q.items():
+                try:
+                    rd = date.fromisoformat(report_date[:10])
+                except Exception:
+                    continue
+                total_shares = sum(self._to_int(h.get('currentShares') or h.get('shares_held')) or 0 for h in items)
+                total_holders = len(items)
+                inc_holders = sum(1 for h in items if (h.get('change_type') or '').lower() == 'increased')
+                dec_holders = sum(1 for h in items if (h.get('change_type') or '').lower() == 'decreased')
+                unc_holders = total_holders - inc_holders - dec_holders
+                inc_shares = sum(self._to_int(h.get('shares_changed') or h.get('change')) or 0
+                                 for h in items if (h.get('change_type') or '').lower() == 'increased')
+                dec_shares = sum(abs(self._to_int(h.get('shares_changed') or h.get('change')) or 0)
+                                 for h in items if (h.get('change_type') or '').lower() == 'decreased')
+
+                records.append((
+                    symbol, rd,
+                    total_holders, total_shares,
+                    inc_holders, inc_shares,
+                    dec_holders, dec_shares,
+                    unc_holders, 0,
+                    None,  # ownership_pct — AV 응답 latest only, 분기별 미가용
+                    json.dumps(items),
+                ))
+
+            if not records:
+                return 0
+            async with self.pool.acquire() as conn:
+                await conn.executemany("""
+                    INSERT INTO us_institutional_holdings (
+                        symbol, report_date,
+                        total_institutional_holders, total_institutional_shares,
+                        holders_with_increased_holdings, shares_with_increased_holdings,
+                        holders_with_decreased_holdings, shares_with_decreased_holdings,
+                        holders_with_unchanged_holdings, shares_with_unchanged_holdings,
+                        total_institutional_ownership_pct, holdings_json
+                    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                    ON CONFLICT (symbol, report_date) DO UPDATE SET
+                        total_institutional_holders     = EXCLUDED.total_institutional_holders,
+                        total_institutional_shares      = EXCLUDED.total_institutional_shares,
+                        holders_with_increased_holdings = EXCLUDED.holders_with_increased_holdings,
+                        shares_with_increased_holdings  = EXCLUDED.shares_with_increased_holdings,
+                        holders_with_decreased_holdings = EXCLUDED.holders_with_decreased_holdings,
+                        shares_with_decreased_holdings  = EXCLUDED.shares_with_decreased_holdings,
+                        holders_with_unchanged_holdings = EXCLUDED.holders_with_unchanged_holdings,
+                        shares_with_unchanged_holdings  = EXCLUDED.shares_with_unchanged_holdings,
+                        holdings_json                   = EXCLUDED.holdings_json,
+                        updated_at                      = NOW()
+                """, records)
+            return len(records)
+
+    async def run_collection_optimized(self) -> Dict:
+        await self.init_pool()
+        try:
+            symbols = await self.get_active_symbols()
+            logger.info(f"[INSTITUTIONAL] {len(symbols)} active symbols to process")
+            total_saved = 0
+            failed = 0
+            for i in range(0, len(symbols), 200):
+                batch = symbols[i:i + 200]
+                results = await asyncio.gather(
+                    *[self._process_symbol(s) for s in batch],
+                    return_exceptions=True)
+                for r in results:
+                    if isinstance(r, int):
+                        total_saved += r
+                    else:
+                        failed += 1
+                logger.info(f"[INSTITUTIONAL] processed {i+len(batch)}/{len(symbols)}, "
+                            f"rows={total_saved}, failed={failed}")
+            return {"symbols": len(symbols), "rows_saved": total_saved, "failed": failed}
         finally:
             await self.close_pool()
 

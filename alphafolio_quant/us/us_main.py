@@ -78,7 +78,8 @@ class USQuantSystemV2:
     _hmm_cache_initialized = False
 
     def __init__(self, db_manager: AsyncDatabaseManager,
-                 with_event_modifier: bool = True):
+                 with_event_modifier: bool = True,
+                 improved_factors: bool = False):
         """
         Args:
             db_manager: AsyncDatabaseManager instance
@@ -86,9 +87,20 @@ class USQuantSystemV2:
                 earnings/insider/news) to the score. Pass-A sets False (ranks
                 symbols before options exist); Pass-B sets True (folds in the
                 collected option signals).
+            improved_factors: reco-only factor improvement (IC 분석 검증).
+                현재 적용: value 게이팅 — value_score 는 소형/비유동(거래가능)
+                에서만 예측력(IC +0.04)이고 대형/유동에선 역전(IC -0.03). 그래서
+                일평균 거래대금이 [floor, ceiling] 밖이면 value 가중치를 quality
+                로 옮긴다(value 중립화). backtest 경로는 False 로 두어 baseline
+                불변. OOS(전체기간) 재검증 전까지 reco 한정.
         """
         self.db = db_manager
         self.with_event_modifier = with_event_modifier
+        self.improved_factors = improved_factors
+        # value 게이팅 유동성 경계 (일평균 거래대금, USD). env 로 조정 가능.
+        # ※ 단일 레짐(COVID) 분석 기반 — OOS 재검증 후 재튜닝 필요.
+        self._imp_liq_floor = float(os.getenv("IMP_LIQ_FLOOR_USD", "5000000"))    # 거래가능 하한
+        self._imp_liq_ceil = float(os.getenv("IMP_LIQ_CEIL_USD", "500000000"))   # 대형/유동 상한
         self.sector_benchmarks = USSectorBenchmarks(db_manager)
 
         # Phase 3.1 modules
@@ -530,11 +542,21 @@ class USQuantSystemV2:
             adjusted_weights = self.sector_weights.get_combined_weights(base_weights, exchange, sector)
 
         # Base score (Phase 3.1: 조정된 가중치 사용)
+        w_quality = adjusted_weights['quality']
+        w_value = adjusted_weights['value']
+        # improved_factors(reco): value 게이팅 — 대형/유동·거래불가 종목은 value
+        # 기여를 quality 로 이전(value 중립화). IC 분석: value 는 소형/비유동에서만
+        # 예측력(+), 대형/유동에서 역전(-). backtest(improved_factors=False)는 불변.
+        if self.improved_factors and self._value_gated(price_data):
+            w_quality = w_quality + w_value
+            w_value = 0.0
+            logger.debug(f"[{symbol}] improved: value gated → quality "
+                         f"(w_quality={w_quality:.1f})")
         base_score = (
             growth_score * adjusted_weights['growth'] / 100 +
             momentum_score * adjusted_weights['momentum'] / 100 +
-            quality_score * adjusted_weights['quality'] / 100 +
-            value_score * adjusted_weights['value'] / 100
+            quality_score * w_quality / 100 +
+            value_score * w_value / 100
         )
 
         # Factor Interaction 계산 (Phase 3)
@@ -1147,6 +1169,24 @@ class USQuantSystemV2:
         scale_factor = target_days ** hurst
         var_Td = var_1d * scale_factor
         return var_Td
+
+    def _value_gated(self, price_data) -> bool:
+        """value 기여를 중립화할지 판정 (improved_factors 전용).
+
+        일평균 거래대금(최근 20일)이 floor 미만(사실상 거래 불가) 또는 ceiling
+        이상(대형/유동 — value 가 역전되는 구간)이면 True. True 면 _analyze_stock
+        이 value 가중치를 quality 로 이전해 value 기여를 중립화한다. 데이터
+        부족 시 게이팅하지 않음(False, 보수적)."""
+        pdct = price_data or {}
+        closes = pdct.get('closes') or []
+        volumes = pdct.get('volumes') or []
+        n = min(len(closes), len(volumes), 20)
+        dvs = [closes[i] * volumes[i] for i in range(n)
+               if closes[i] is not None and volumes[i] is not None]
+        if len(dvs) < 5:
+            return False
+        adv = sum(dvs) / len(dvs)
+        return adv < self._imp_liq_floor or adv >= self._imp_liq_ceil
 
     def _calculate_rs_value_from_data(self, price_data: Dict) -> Optional[float]:
         """
@@ -2311,7 +2351,8 @@ async def analyze_all_stocks_specific_dates(
     db_manager,
     date_list: List[date],
     symbols_filter: Optional[List[str]] = None,
-    with_event_modifier: bool = True
+    with_event_modifier: bool = True,
+    improved_factors: bool = False
 ) -> Dict:
     """
     전체 종목 특정 날짜 분석 - 디버깅 로그 포함 (v3.0: HMM 전용)
@@ -2355,7 +2396,8 @@ async def analyze_all_stocks_specific_dates(
     total_processed = 0
     all_failed_symbols = []  # 전체 실패 종목 추적
 
-    system = USQuantSystemV2(db_manager, with_event_modifier=with_event_modifier)
+    system = USQuantSystemV2(db_manager, with_event_modifier=with_event_modifier,
+                             improved_factors=improved_factors)
 
     # HMM 모델 초기화 (한 번만 학습)
     print("HMM 모델 초기화 중 (2년 데이터 학습, 1회만 실행)...")
@@ -2622,7 +2664,17 @@ async def analyze_all_stocks_specific_dates(
         # Phase 3.4.3 Stage 3: Industry Ranking 배치 계산
         print(f"  Industry Rank 계산 중...")
         industry_rank_query = """
-        WITH industry_rankings AS (
+        WITH basic AS (
+            -- us_stock_basic 는 종목당 수백~수천 행(시점별 'computed' source)이라
+            -- g.symbol=b.symbol 직접 조인은 grade 행을 ~1300배로 부풀려 RANK()/
+            -- PERCENT_RANK() 가 (468종목 날짜에 industry_rank 최대 17만 같은) 완전히
+            -- 왜곡된 값을 만든다. 종목당 최신 1행으로 dedupe 후 조인한다.
+            SELECT DISTINCT ON (symbol) symbol, industry
+            FROM us_stock_basic
+            WHERE industry IS NOT NULL AND industry != ''
+            ORDER BY symbol, date DESC
+        ),
+        industry_rankings AS (
             SELECT
                 g.symbol,
                 b.industry,
@@ -2632,10 +2684,8 @@ async def analyze_all_stocks_specific_dates(
                     1
                 ) as industry_percentile
             FROM us_stock_grade g
-            JOIN us_stock_basic b ON g.symbol = b.symbol
+            JOIN basic b ON g.symbol = b.symbol
             WHERE g.date = $1
-              AND b.industry IS NOT NULL
-              AND b.industry != ''
         )
         UPDATE us_stock_grade g
         SET
@@ -2675,18 +2725,25 @@ async def analyze_all_stocks_specific_dates(
         # Phase 4: corr_sector_avg 배치 계산 (섹터 내 평균 상관관계)
         print(f"  Sector Correlation Avg 계산 중...")
         corr_sector_avg_query = """
-        WITH sector_corr AS (
+        WITH basic AS (
+            -- 종목당 최신 1행으로 dedupe — industry_rank 와 동일 사유(직접 조인 시
+            -- ~1300배 중복). AVG 자체는 중복에 불변이라 값은 같았지만, 쓸데없이
+            -- 1300배 큰 조인을 피해 성능을 회복한다.
+            SELECT DISTINCT ON (symbol) symbol, sector
+            FROM us_stock_basic
+            WHERE sector IS NOT NULL AND sector != ''
+            ORDER BY symbol, date DESC
+        ),
+        sector_corr AS (
             SELECT
                 g.symbol,
                 b.sector,
                 g.corr_spy,
                 AVG(g.corr_spy) OVER (PARTITION BY b.sector) as sector_avg_corr
             FROM us_stock_grade g
-            JOIN us_stock_basic b ON g.symbol = b.symbol
+            JOIN basic b ON g.symbol = b.symbol
             WHERE g.date = $1
               AND g.corr_spy IS NOT NULL
-              AND b.sector IS NOT NULL
-              AND b.sector != ''
         )
         UPDATE us_stock_grade g
         SET corr_sector_avg = r.sector_avg_corr
@@ -2906,7 +2963,8 @@ def parse_dates(dates_input: str) -> List[date]:
 # Main Entry Point
 # ========================================================================
 
-async def run_option1(target_date=None, symbols=None, with_event_modifier=True):
+async def run_option1(target_date=None, symbols=None, with_event_modifier=True,
+                      improved_factors=False):
     """
     Option 1: Analyze stocks for given target_date.
 
@@ -2958,7 +3016,8 @@ async def run_option1(target_date=None, symbols=None, with_event_modifier=True):
         # Run full analysis (with optional symbols whitelist from EM8 pre-filter)
         await analyze_all_stocks_specific_dates(
             db_manager, [analysis_date], symbols_filter=symbols,
-            with_event_modifier=with_event_modifier)
+            with_event_modifier=with_event_modifier,
+            improved_factors=improved_factors)
 
         # US Prediction Collector
         import sys

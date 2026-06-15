@@ -8,6 +8,7 @@ Tasks call:
 Each task is an async function taking a Ctx and returning a small dict that
 gets stored in orch_tasks.output. Logs go to orch_logs via ctx.log().
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -23,9 +24,9 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-SELF_URL  = os.getenv("SELF_URL",  "http://localhost:8000")
+SELF_URL = os.getenv("SELF_URL", "http://localhost:8000")
 QUANT_URL = os.getenv("QUANT_SERVICE_URL", "http://alphafolio_quant:8000")
-API_KEY   = os.getenv("API_SECRET_KEY", "")
+API_KEY = os.getenv("API_SECRET_KEY", "")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
@@ -45,7 +46,6 @@ class Ctx:
 
 import asyncio as _asyncio
 from contextlib import asynccontextmanager
-
 
 # =============================================================================
 # Backtest lookback buffers — used by every data-collection task to extend
@@ -67,9 +67,29 @@ from contextlib import asynccontextmanager
 # We translate trading-day requirements to calendar-day buffers with a
 # generous margin (52 weekends + holidays + skew).
 # =============================================================================
-DAILY_LOOKBACK_CALENDAR_DAYS = 400   # legacy LOOKBACK_BUFFER_DAYS, kept for compat
-ETF_LOOKBACK_CALENDAR_DAYS = 800     # 504 trading days × ~365/252 + safety
-FINANCIALS_LOOKBACK_QUARTERS = 12    # latest 12 quarters of fundamentals
+DAILY_LOOKBACK_CALENDAR_DAYS = 400  # legacy LOOKBACK_BUFFER_DAYS, kept for compat
+ETF_LOOKBACK_CALENDAR_DAYS = 800  # 504 trading days × ~365/252 + safety
+FINANCIALS_LOOKBACK_QUARTERS = 12  # latest 12 quarters of fundamentals
+
+
+def _month_chunks(start: date, end: date, months: int = 3) -> List[tuple]:
+    """Split the inclusive range [start, end] into <=`months`-month calendar
+    chunks aligned to the start date. Returns a list of (chunk_start,
+    chunk_end) tuples covering the whole range with no gaps/overlap.
+
+    Used to break grade generation into short, resumable sub-requests so a
+    single HTTP call never approaches the client read-timeout (a 7.5-year
+    range is ~8 days of work in one call — it always timed out).
+    """
+    chunks: List[tuple] = []
+    cur = start
+    while cur <= end:
+        m0 = (cur.month - 1) + months
+        ny, nm = cur.year + m0 // 12, m0 % 12 + 1
+        nxt = date(ny, nm, 1)
+        chunks.append((cur, min(nxt - timedelta(days=1), end)))
+        cur = nxt
+    return chunks
 
 
 class _OrchLogHandler(logging.Handler):
@@ -134,9 +154,9 @@ class _OrchLogHandler(logging.Handler):
 
 
 @asynccontextmanager
-async def capture_logs(ctx: "Ctx",
-                       loggers: tuple = ("us", "kr", "index", "utils", "main"),
-                       level: int = logging.WARNING):
+async def capture_logs(
+    ctx: "Ctx", loggers: tuple = ("us", "kr", "index", "utils", "main"), level: int = logging.WARNING
+):
     """Capture WARN+ logs from given Python loggers into orch_logs while
     the task runs. After exit, handler is removed and no further records
     leak in.
@@ -213,10 +233,10 @@ async def _self_post(ctx: Ctx, path: str, params: Optional[dict] = None) -> dict
         return body
 
 
-async def _quant_post(ctx: Ctx, path: str, body: dict) -> dict:
+async def _quant_post(ctx: Ctx, path: str, body: dict, timeout: float = 86400) -> dict:
     url = f"{QUANT_URL}/{path.lstrip('/')}"
     await ctx.log("run", f"→ QUANT {path} {json.dumps(body, default=str)[:200]}")
-    async with httpx.AsyncClient(timeout=86400) as client:
+    async with httpx.AsyncClient(timeout=timeout) as client:
         r = await client.post(url, json=body)
         try:
             payload = r.json()
@@ -230,9 +250,10 @@ async def _quant_post(ctx: Ctx, path: str, body: dict) -> dict:
 
 # ================================================================= TASKS
 
-async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
-                                       news_per_symbol: int = 5,
-                                       insider_lookback_days: int = 90) -> dict:
+
+async def _fetch_catalysts_for_symbols(
+    api_key: str, symbols: list, news_per_symbol: int = 5, insider_lookback_days: int = 90
+) -> dict:
     """buy_now 종목별 호재 — bullish 뉴스 + 내부자 매수.
 
     각 종목당 AV NEWS_SENTIMENT + INSIDER_TRANSACTIONS 1콜씩 (총 6콜 for top-3).
@@ -243,6 +264,7 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
     import aiohttp
     import asyncio as _asyncio
     from datetime import datetime as _dt, timedelta as _td_l
+
     base = "https://www.alphavantage.co/query"
     result: dict = {}
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
@@ -253,10 +275,16 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
 
                 # ----- News (AV NEWS_SENTIMENT) -----
                 try:
-                    async with session.get(base, params={
-                        "function": "NEWS_SENTIMENT", "tickers": sym,
-                        "limit": "50", "apikey": api_key,
-                    }, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                    async with session.get(
+                        base,
+                        params={
+                            "function": "NEWS_SENTIMENT",
+                            "tickers": sym,
+                            "limit": "50",
+                            "apikey": api_key,
+                        },
+                        timeout=aiohttp.ClientTimeout(total=20),
+                    ) as r:
                         data = await r.json()
                     feed = data.get("feed", []) if isinstance(data, dict) else []
                     bullish, persist = [], []
@@ -266,33 +294,49 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
                         if not ts:
                             continue
                         label = ts.get("ticker_sentiment_label", "") or ""
-                        try:    score = float(ts.get("ticker_sentiment_score") or 0)
-                        except: score = 0.0
-                        try:    rel = float(ts.get("relevance_score") or 0)
-                        except: rel = 0.0
+                        try:
+                            score = float(ts.get("ticker_sentiment_score") or 0)
+                        except:
+                            score = 0.0
+                        try:
+                            rel = float(ts.get("relevance_score") or 0)
+                        except:
+                            rel = 0.0
                         tp_raw = art.get("time_published", "") or ""
-                        try:    tp = _dt.strptime(tp_raw[:15], "%Y%m%dT%H%M%S")
-                        except: tp = None
+                        try:
+                            tp = _dt.strptime(tp_raw[:15], "%Y%m%dT%H%M%S")
+                        except:
+                            tp = None
                         is_bull = label in ("Bullish", "Somewhat-Bullish") or score >= 0.15
                         if is_bull:
-                            bullish.append({
-                                "title": (art.get("title") or "")[:140],
-                                "url": art.get("url"),
-                                "published": tp.strftime("%Y-%m-%d") if tp else None,
-                                "source": art.get("source") or "",
-                                "sentiment": label or "—",
-                                "score": round(score, 2),
-                            })
+                            bullish.append(
+                                {
+                                    "title": (art.get("title") or "")[:140],
+                                    "url": art.get("url"),
+                                    "published": tp.strftime("%Y-%m-%d") if tp else None,
+                                    "source": art.get("source") or "",
+                                    "sentiment": label or "—",
+                                    "score": round(score, 2),
+                                }
+                            )
                         if art.get("url"):
-                            persist.append((
-                                art.get("title"), art.get("url"), tp,
-                                art.get("summary"), art.get("source"),
-                                art.get("source_domain"),
-                                json.dumps(art.get("topics") or []),
-                                float(art.get("overall_sentiment_score") or 0) or None,
-                                art.get("overall_sentiment_label"),
-                                sym, rel, score, label,
-                            ))
+                            persist.append(
+                                (
+                                    art.get("title"),
+                                    art.get("url"),
+                                    tp,
+                                    art.get("summary"),
+                                    art.get("source"),
+                                    art.get("source_domain"),
+                                    json.dumps(art.get("topics") or []),
+                                    float(art.get("overall_sentiment_score") or 0) or None,
+                                    art.get("overall_sentiment_label"),
+                                    sym,
+                                    rel,
+                                    score,
+                                    label,
+                                )
+                            )
                     bullish.sort(key=lambda x: (x["published"] or "", x["score"]), reverse=True)
                     rec["news"] = bullish[:news_per_symbol]
                     if persist:
@@ -306,7 +350,8 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
                                         ticker_sentiment_label,created_at)
                                        VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,now())
                                        ON CONFLICT (url, ticker) DO NOTHING""",
-                                    persist)
+                                    persist,
+                                )
                         except Exception:
                             pass
                 except Exception:
@@ -314,10 +359,15 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
 
                 # ----- Insider transactions (AV INSIDER_TRANSACTIONS) -----
                 try:
-                    async with session.get(base, params={
-                        "function": "INSIDER_TRANSACTIONS", "symbol": sym,
-                        "apikey": api_key,
-                    }, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                    async with session.get(
+                        base,
+                        params={
+                            "function": "INSIDER_TRANSACTIONS",
+                            "symbol": sym,
+                            "apikey": api_key,
+                        },
+                        timeout=aiohttp.ClientTimeout(total=20),
+                    ) as r:
                         data = await r.json()
                     txs = data.get("data", []) if isinstance(data, dict) else []
                     cutoff = _dt.now().date() - _td_l(days=insider_lookback_days)
@@ -325,8 +375,10 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
                     ins_persist = []
                     for t in txs:
                         ds = (t.get("transaction_date") or "").strip()
-                        try:    tdate = _dt.strptime(ds, "%Y-%m-%d").date()
-                        except: continue
+                        try:
+                            tdate = _dt.strptime(ds, "%Y-%m-%d").date()
+                        except:
+                            continue
                         # 모든 거래(매수+매도)를 적재 — event_engine 이 두 방향
                         # 모두 활용 (인사이더 매도는 -, 매수는 + signal).
                         name = (t.get("executive") or "").strip()
@@ -335,12 +387,15 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
                             continue
                         sec = (t.get("security_type") or "")[:255]
                         acq = (t.get("acquisition_or_disposal") or "")[:255]
-                        try:    shares = float(t.get("shares") or 0) or None
-                        except: shares = None
-                        try:    price = float(t.get("share_price") or 0) or None
-                        except: price = None
-                        ins_persist.append((tdate, sym, [name], [title],
-                                            sec, acq, shares, price))
+                        try:
+                            shares = float(t.get("shares") or 0) or None
+                        except:
+                            shares = None
+                        try:
+                            price = float(t.get("share_price") or 0) or None
+                        except:
+                            price = None
+                        ins_persist.append((tdate, sym, [name], [title], sec, acq, shares, price))
                         # 최근 N일 매수 집계(reco 화면용)
                         if tdate >= cutoff and acq.upper() == "A":
                             buys += 1
@@ -362,7 +417,8 @@ async def _fetch_catalysts_for_symbols(api_key: str, symbols: list,
                                          acquisition_or_disposal = EXCLUDED.acquisition_or_disposal,
                                          shares = EXCLUDED.shares,
                                          share_price = EXCLUDED.share_price""",
-                                    ins_persist)
+                                    ins_persist,
+                                )
                         except Exception:
                             pass
                     if buys > 0:
@@ -435,34 +491,95 @@ async def task_finnhub_symbol(ctx: Ctx) -> dict:
 
 
 async def task_stock_basic(ctx: Ctx) -> dict:
+    """US Stock Basic — EODHD `/fundamentals/{sym}.US` 1콜 통합 적재.
+
+    한 종목 1 콜로 4 테이블 동시 채움:
+      - us_stock_basic       (latest snapshot, source='api', date=today)
+        — 56 컬럼: market_cap/per/peg/forwardpe/pricetobook/52w/MA50/200/
+          analyst*/sharesfloat/percentinsiders/percentinstitutions/dividend* 등
+      - us_income_statement  (분기 시계열, AAPL 기준 163 quarters since 1985)
+      - us_balance_sheet     (동일)
+      - us_cash_flow         (동일)
+      filing_date 가 응답에 포함되어 available_at 정확도 향상 (AV 의 +45d
+      fallback 대비).
+
+    Publication-aware skip 미사용 — 매일 모든 active 종목 fetch (사용자 의도:
+    OVERVIEW 가격기반 컬럼 stale 방지). 1 fundamentals call = 10 unit, paid
+    100k/day budget. 6,200 active × 10 = 62k unit (62% 사용), max_concurrent=4,
+    call_interval=0.06s → 약 52분.
+
+    DAG 효과: 옛 task_financials / financials_verify 흡수.
+    시점별 17 컬럼 computed generate 는 별도 stock_basic_compute task 가
+    수행 (us_daily 의존성 cycle 회피 — us_daily 가 stock_basic 의 universe
+    필요, compute 는 us_daily 필요).
+    """
     if ctx.country != "US":
         return {"skipped": "KR run"}
-    # Publication-aware skip — 발표일(reported_date) 기준 due 종목만 재수집.
-    # 마지막 분기보고서가 75일 이상 지났거나 미보고 = 새 10-Q/10-K 가 출시됐을
-    # 가능성 → 그 종목만 fetch. 최근 분기보고를 한 종목은 다음 분기까지 새
-    # statement 가 안 나오므로 skip 안전. (collection-time blanket skip 이 아님)
-    days = int(ctx.params.get("fundamentals_due_days", 75))
-    targets = await _symbols_due_for_report(days)
-    if not targets:
-        await ctx.log("ok", f"stock_basic skip: 발표일 기준 due 종목 0개 "
-                            f"(모든 활성 종목이 최근 {days}일 내 보고)")
-        return {"status": "skipped_no_due", "due_count": 0,
-                "threshold_days": days}
-    await ctx.log("info",
-                  f"stock_basic: due {len(targets)}종목만 재수집 "
-                  f"(전체 활성 대비)")
-    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
-    if not api_key:
-        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
-    from us.alphavantage import AlphaVantageCollector
+
+    api_token = os.getenv("EODHD_API_TOKEN") or os.getenv("EODHD_API_KEY")
+    if not api_token:
+        raise RuntimeError("EODHD_API_TOKEN / EODHD_API_KEY not set")
+
+    from us.eodhd import EODHDFundamentalsCollector, RateLimitError
+
     async with capture_logs(ctx), monitor_progress(
         ctx,
-        "SELECT COUNT(*) FROM us_stock_basic",
-        "us_stock_basic rows", interval=30):
-        collector = AlphaVantageCollector(api_key, DATABASE_URL)
-        await collector.collect_stock_data(symbols=targets)
-    return {"status": "completed", "due_count": len(targets),
-            "threshold_days": days}
+        "SELECT COUNT(*) FROM us_stock_basic " "WHERE source='api' AND date=CURRENT_DATE",
+        "us_stock_basic(api) rows today",
+        interval=60,
+    ):
+        collector = EODHDFundamentalsCollector(
+            api_token,
+            DATABASE_URL,
+            call_interval=float(ctx.params.get("eodhd_call_interval", 0.06)),
+            max_concurrent=int(ctx.params.get("eodhd_max_concurrent", 4)),
+            deadline=datetime.now() + timedelta(hours=4),
+        )
+        await collector.init_pool()
+        try:
+            fetch_result = await collector.run_collection()
+            await collector.close_pool()
+        except RateLimitError as e:
+            await ctx.log("warn", f"EODHD budget exhausted: {e}")
+            fetch_result = {"status": "rate_limited", "error": str(e)}
+            await collector.close_pool()
+            raise e
+    return fetch_result
+
+
+async def task_dividends(ctx: Ctx) -> dict:
+    """EODHD /api/div/{sym}.US → us_dividends 전체 배당 이력 적재.
+
+    fundamentals 와 별개 엔드포인트(1 unit/call). #7b stock_basic_compute 가
+    이 테이블을 as-of merge 해 시점별 exdividenddate/dividenddate 를 채운다.
+    """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+    api_token = os.getenv("EODHD_API_TOKEN") or os.getenv("EODHD_API_KEY")
+    if not api_token:
+        raise RuntimeError("EODHD_API_TOKEN / EODHD_API_KEY not set")
+    from us.eodhd import EODHDDividendsCollector, RateLimitError
+
+    # 배당 lookback: compute 출력 윈도우(start-400d) 직전 분기까지 커버하도록 여유.
+    from_date = str(ctx.start_date - timedelta(days=DAILY_LOOKBACK_CALENDAR_DAYS + 200))
+    async with capture_logs(ctx), monitor_progress(
+        ctx, "SELECT COUNT(*) FROM us_dividends", "us_dividends rows", interval=60):
+        collector = EODHDDividendsCollector(
+            api_token, DATABASE_URL,
+            call_interval=float(ctx.params.get("eodhd_call_interval", 0.05)),
+            max_concurrent=int(ctx.params.get("eodhd_max_concurrent", 6)),
+            from_date=from_date,
+            deadline=datetime.now() + timedelta(hours=2))
+        await collector.init_pool()
+        try:
+            try:
+                result = await collector.run_collection()
+            except RateLimitError as e:
+                await ctx.log("warn", f"EODHD div budget exhausted: {e}")
+                result = {"status": "rate_limited", "error": str(e)}
+        finally:
+            await collector.close_pool()
+    return result
 
 
 async def task_us_daily(ctx: Ctx) -> dict:
@@ -500,16 +617,25 @@ async def task_us_daily(ctx: Ctx) -> dict:
     try:
         async with pool.acquire() as conn:
             range_rows = await conn.fetch(
-                "SELECT symbol, MIN(date) AS mind, MAX(date) AS maxd "
-                "FROM us_daily GROUP BY symbol")
+                "SELECT symbol, MIN(date) AS mind, MAX(date) AS maxd " "FROM us_daily GROUP BY symbol"
+            )
             symbol_range = {r["symbol"]: (r["mind"], r["maxd"]) for r in range_rows}
             # DISTINCT 필수 — us_stock_basic 에는 'computed' source 가 종목별로
             # 수백 행(시점별)이라 DISTINCT 없으면 ~6,200종목이 2.86M 항목으로
             # 부풀어, 종목 분류 카운트가 폭증하고 collector 가 같은 종목을 수십~
             # 수백 번 처리해 us_daily 가 정상보다 수십 배 느려진다.
             active_rows = await conn.fetch(
-                "SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true")
+                "SELECT DISTINCT symbol FROM us_stock_basic WHERE is_active = true"
+            )
             active_symbols = [r["symbol"] for r in active_rows]
+            # inception 까지 full 백필을 마친 종목 — mind > needed_start 라도
+            # AV 에 더 받을 과거가 없으므로(2018+ IPO 등) 매 run full 재fetch
+            # 하지 않도록 covered 취급한다. 마킹은 아래 수집 완료 후 갱신.
+            backfilled_rows = await conn.fetch(
+                "SELECT symbol FROM collection_state "
+                "WHERE collection_name = 'us_daily_backfilled' AND status = 'success'"
+            )
+            backfilled = {r["symbol"] for r in backfilled_rows}
     finally:
         await pool.close()
 
@@ -520,7 +646,7 @@ async def task_us_daily(ctx: Ctx) -> dict:
     # US 공휴일(예: Presidents Day)은 별도 calendar 가 없으면 못 잡지만,
     # 가장 빈번한 케이스(주말)는 이걸로 해결된다.
     needed_end_eff = ctx.end_date
-    while needed_end_eff.weekday() >= 5:    # Sat=5, Sun=6
+    while needed_end_eff.weekday() >= 5:  # Sat=5, Sun=6
         needed_end_eff -= timedelta(days=1)
     needed_start, needed_end = extended_start, needed_end_eff
     outputsize_map: Dict[str, str] = {}
@@ -534,32 +660,41 @@ async def task_us_daily(ctx: Ctx) -> dict:
             target_symbols.append(sym)
             continue
         mind, maxd = symbol_range[sym]
-        if mind <= needed_start and maxd >= needed_end:
+        # past_ok: 과거 구간이 충분(mind<=needed_start)하거나, 이미 inception
+        # 까지 full 백필을 마쳐(backfilled) 더 받을 과거가 없는 종목.
+        # 후자(2018+ IPO 등)는 mind>needed_start 가 영구적이라, 이 마킹이
+        # 없으면 매 run backward(full)로 무의미하게 전구간을 재수집한다.
+        past_ok = (mind <= needed_start) or (sym in backfilled)
+        recent_ok = maxd >= needed_end
+        if past_ok and recent_ok:
             counts["covered"] += 1
             continue
-        if mind > needed_start:
-            # 과거 데이터 부족 → full (20년치, AV가 한 번에 줌)
+        if not past_ok:
+            # 과거 데이터 부족 + inception 백필 미완 → full (20년치, AV 한 번에)
             counts["backward"] += 1
             outputsize_map[sym] = "full"
             target_symbols.append(sym)
         else:
-            # 최근 데이터만 부족 → compact (100일치 응답이면 충분)
+            # 과거는 OK, 최근만 부족 → compact (100일치 응답이면 충분)
             counts["forward"] += 1
             outputsize_map[sym] = "compact"
             target_symbols.append(sym)
 
-    await ctx.log("info",
-                  f"종목 분류 (필요범위 {needed_start}~{needed_end}): "
-                  f"covered={counts['covered']}, "
-                  f"forward={counts['forward']}, "
-                  f"backward={counts['backward']}, "
-                  f"new={counts['new']} "
-                  f"→ {len(target_symbols)}개만 fetch")
+    await ctx.log(
+        "info",
+        f"종목 분류 (필요범위 {needed_start}~{needed_end}): "
+        f"covered={counts['covered']}, "
+        f"forward={counts['forward']}, "
+        f"backward={counts['backward']}, "
+        f"new={counts['new']} "
+        f"→ {len(target_symbols)}개만 fetch",
+    )
 
     if not target_symbols:
         return {"status": "all_covered", **counts, "rows_in_range": 0}
 
     from us.alphavantage import DailyCollector
+
     collector = DailyCollector(
         api_key=api_key,
         database_url=DATABASE_URL,
@@ -570,35 +705,63 @@ async def task_us_daily(ctx: Ctx) -> dict:
         outputsize_per_symbol=outputsize_map,
     )
     collector.target_symbols = target_symbols
-    await ctx.log("run",
-                  f"DailyCollector incremental, range {extended_start}~{ctx.end_date}")
+    await ctx.log("run", f"DailyCollector incremental, range {extended_start}~{ctx.end_date}")
     await collector.init_pool()
     try:
         async with capture_logs(ctx), monitor_progress(
             ctx,
             f"SELECT COUNT(*) FROM us_daily WHERE date BETWEEN '{ctx.start_date}' AND '{ctx.end_date}'",
-            "us_daily rows (in range)", interval=30):
+            "us_daily rows (in range)",
+            interval=30,
+        ):
             await collector.run_collection_optimized()
     finally:
         await collector.close_pool()
 
-    # Quick sanity count
+    # Quick sanity count + inception 백필 마킹
+    # full 백필을 시도해 데이터가 들어온 종목을 'us_daily_backfilled' 로 마킹 →
+    # 다음 run 부터 mind>needed_start 라도 covered/forward 로 처리(full 재수집 차단).
+    # sentinel date 1900-01-01 로 종목당 1행만 유지.
+    full_fetched = [s for s, v in outputsize_map.items() if v == "full"]
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    marked = 0
     try:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """SELECT COUNT(*) AS rows, COUNT(DISTINCT symbol) AS syms,
                           MIN(date) AS earliest, MAX(date) AS latest
                    FROM us_daily WHERE date BETWEEN $1 AND $2""",
-                ctx.start_date, ctx.end_date)
+                ctx.start_date,
+                ctx.end_date,
+            )
+            if full_fetched:
+                present = await conn.fetch(
+                    "SELECT DISTINCT symbol FROM us_daily WHERE symbol = ANY($1::text[])",
+                    full_fetched,
+                )
+                present_syms = [r["symbol"] for r in present]
+                if present_syms:
+                    await conn.executemany(
+                        """INSERT INTO collection_state
+                             (collection_name, symbol, date, status, collected_at)
+                           VALUES ('us_daily_backfilled', $1, DATE '1900-01-01',
+                                   'success', NOW())
+                           ON CONFLICT (collection_name, symbol, date)
+                           DO UPDATE SET status = 'success', collected_at = NOW()""",
+                        [(s,) for s in present_syms],
+                    )
+                    marked = len(present_syms)
     finally:
         await pool.close()
+    if marked:
+        await ctx.log("info", f"us_daily inception 백필 마킹: {marked}종목")
 
     return {
         "rows": row["rows"],
         "symbols": row["syms"],
         "earliest": str(row["earliest"]),
         "latest": str(row["latest"]),
+        "backfill_marked": marked,
     }
 
 
@@ -631,7 +794,7 @@ async def task_financials(ctx: Ctx) -> dict:
     # triggered ~80 rate-limit warnings/min from AV ("Information" responses)
     # — 600/min is the docs cap but the burst limiter is tighter. 0.4s
     # leaves headroom so the useful-response ratio stays high.
-    call_interval = 0.4   # 150 calls/min × 3 parallel = 450 total
+    call_interval = 0.4  # 150 calls/min × 3 parallel = 450 total
 
     # Skip symbols already collected within 6 months (DB-based dedup, 기존 로직)
     skip_income, skip_balance, skip_cashflow = set(), set(), set()
@@ -655,33 +818,40 @@ async def task_financials(ctx: Ctx) -> dict:
                 UNION ALL SELECT 'balance', symbol FROM bal_skip
                 UNION ALL SELECT 'cashflow', symbol FROM cf_skip
             """)
-        skip_income   = {r["symbol"] for r in rows if r["t"] == "income"}
-        skip_balance  = {r["symbol"] for r in rows if r["t"] == "balance"}
+        skip_income = {r["symbol"] for r in rows if r["t"] == "income"}
+        skip_balance = {r["symbol"] for r in rows if r["t"] == "balance"}
         skip_cashflow = {r["symbol"] for r in rows if r["t"] == "cashflow"}
     finally:
         await pool.close()
-    await ctx.log("info",
-                  f"skip 분석: income={len(skip_income)}, "
-                  f"balance={len(skip_balance)}, cashflow={len(skip_cashflow)}")
+    await ctx.log(
+        "info",
+        f"skip 분석: income={len(skip_income)}, "
+        f"balance={len(skip_balance)}, cashflow={len(skip_cashflow)}",
+    )
 
     async with capture_logs(ctx), monitor_progress(
         ctx,
         "SELECT (SELECT COUNT(*) FROM us_income_statement) || ' inc, ' || "
         "       (SELECT COUNT(*) FROM us_balance_sheet) || ' bal, ' || "
         "       (SELECT COUNT(*) FROM us_cash_flow) || ' cf'",
-        "financials rows", interval=60):
+        "financials rows",
+        interval=60,
+    ):
         income_collector = IncomeStatementCollector(
-            api_key, DATABASE_URL, call_interval=call_interval,
-            deadline=deadline, skip_symbols=skip_income)
+            api_key, DATABASE_URL, call_interval=call_interval, deadline=deadline, skip_symbols=skip_income
+        )
         balance_collector = BalanceSheetCollector(
-            api_key, DATABASE_URL, call_interval=call_interval,
-            deadline=deadline, skip_symbols=skip_balance)
+            api_key, DATABASE_URL, call_interval=call_interval, deadline=deadline, skip_symbols=skip_balance
+        )
         cashflow_collector = CashFlowCollector(
-            api_key, DATABASE_URL, call_interval=call_interval,
-            deadline=deadline, skip_symbols=skip_cashflow)
+            api_key,
+            DATABASE_URL,
+            call_interval=call_interval,
+            deadline=deadline,
+            skip_symbols=skip_cashflow,
+        )
 
-        await ctx.log("run",
-                      f"3 collectors parallel, deadline={deadline.isoformat()}")
+        await ctx.log("run", f"3 collectors parallel, deadline={deadline.isoformat()}")
         results = await asyncio.gather(
             income_collector.run_collection_optimized(),
             balance_collector.run_collection_optimized(),
@@ -695,20 +865,19 @@ async def task_financials(ctx: Ctx) -> dict:
         async with pool.acquire() as conn:
             inc_cnt = await conn.fetchval("SELECT COUNT(*) FROM us_income_statement")
             bal_cnt = await conn.fetchval("SELECT COUNT(*) FROM us_balance_sheet")
-            cf_cnt  = await conn.fetchval("SELECT COUNT(*) FROM us_cash_flow")
+            cf_cnt = await conn.fetchval("SELECT COUNT(*) FROM us_cash_flow")
     finally:
         await pool.close()
 
     errs = [str(r) for r in results if isinstance(r, Exception)]
     if (inc_cnt + bal_cnt + cf_cnt) == 0:
-        raise RuntimeError(
-            f"All 3 financials tables still empty. errors={errs[:2]}")
+        raise RuntimeError(f"All 3 financials tables still empty. errors={errs[:2]}")
 
     return {
         "income_statement_rows": inc_cnt,
-        "balance_sheet_rows":    bal_cnt,
-        "cash_flow_rows":        cf_cnt,
-        "errors":                errs[:5],
+        "balance_sheet_rows": bal_cnt,
+        "cash_flow_rows": cf_cnt,
+        "errors": errs[:5],
     }
 
 
@@ -745,14 +914,14 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
     import aiohttp, json as _json
     from datetime import datetime as _dt
 
-    top_n           = int(ctx.params.get("option_top_n", 50))
-    call_interval   = float(ctx.params.get("news_call_interval", 0.5))
-    max_concurrent  = int(ctx.params.get("news_max_concurrent", 3))
+    top_n = int(ctx.params.get("option_top_n", 50))
+    call_interval = float(ctx.params.get("news_call_interval", 0.5))
+    max_concurrent = int(ctx.params.get("news_max_concurrent", 3))
 
     # AV NEWS_SENTIMENT 는 2018-01 부터 안정 → start_date 클립
     av_news_min_date = _dt(2018, 1, 1).date()
     win_start = max(ctx.start_date, av_news_min_date)
-    win_end   = ctx.end_date
+    win_end = ctx.end_date
 
     # 분기 chunks 생성
     def _quarter_chunks(s, e):
@@ -767,15 +936,14 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
         return chunks
 
     chunks = _quarter_chunks(win_start, win_end)
-    await ctx.log("info",
-                  f"news_history: window {win_start}~{win_end}, "
-                  f"{len(chunks)} quarter-chunks")
+    await ctx.log("info", f"news_history: window {win_start}~{win_end}, " f"{len(chunks)} quarter-chunks")
 
     # Universe = select_top_n union (grades_pass_a 결과 활용)
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=6)
     try:
         async with pool.acquire() as conn:
-            uni_rows = await conn.fetch("""
+            uni_rows = await conn.fetch(
+                """
                 SELECT DISTINCT symbol FROM (
                   SELECT date, symbol, final_score,
                          ROW_NUMBER() OVER (PARTITION BY date
@@ -786,7 +954,11 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
                     AND final_score IS NOT NULL
                 ) t WHERE rn <= $3
                 ORDER BY symbol
-            """, ctx.start_date, ctx.end_date, top_n)
+            """,
+                ctx.start_date,
+                ctx.end_date,
+                top_n,
+            )
             universe = [r["symbol"] for r in uni_rows]
 
             done_rows = await conn.fetch("""
@@ -797,25 +969,28 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
     finally:
         await pool.close()
 
-    await ctx.log("info",
-                  f"news_history: universe={len(universe)} (top-{top_n}/date union), "
-                  f"already-done chunks={len(done_set)}")
+    await ctx.log(
+        "info",
+        f"news_history: universe={len(universe)} (top-{top_n}/date union), "
+        f"already-done chunks={len(done_set)}",
+    )
 
     # Plan tasks: 각 (symbol, chunk) 가 한 unit
     todo = []
     for sym in universe:
-        for (cs, ce) in chunks:
+        for cs, ce in chunks:
             if (sym, cs) in done_set:
                 continue
             todo.append((sym, cs, ce))
     if not todo:
         await ctx.log("ok", "news_history: all chunks already collected")
-        return {"universe": len(universe), "chunks": len(chunks), "todo": 0,
-                "status": "clean"}
+        return {"universe": len(universe), "chunks": len(chunks), "todo": 0, "status": "clean"}
 
-    await ctx.log("info",
-                  f"news_history: {len(todo)} (symbol, quarter) units to fetch "
-                  f"(~{len(todo)*call_interval/60:.0f} minutes at {call_interval}s/call)")
+    await ctx.log(
+        "info",
+        f"news_history: {len(todo)} (symbol, quarter) units to fetch "
+        f"(~{len(todo)*call_interval/60:.0f} minutes at {call_interval}s/call)",
+    )
 
     sem = asyncio.Semaphore(max_concurrent)
     base_url = "https://www.alphavantage.co/query"
@@ -824,17 +999,19 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
 
     async def _fetch_chunk(session, symbol, cs, ce, max_retries=4):
         params = {
-            "function": "NEWS_SENTIMENT", "tickers": symbol,
+            "function": "NEWS_SENTIMENT",
+            "tickers": symbol,
             "time_from": cs.strftime("%Y%m%dT0000"),
-            "time_to":   ce.strftime("%Y%m%dT2359"),
+            "time_to": ce.strftime("%Y%m%dT2359"),
             "limit": "1000",
             "sort": "RELEVANCE",
             "apikey": api_key,
         }
         for attempt in range(max_retries):
             try:
-                async with session.get(base_url, params=params,
-                                       timeout=aiohttp.ClientTimeout(total=30)) as r:
+                async with session.get(
+                    base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+                ) as r:
                     if r.status != 200:
                         return None, f"HTTP {r.status}"
                     data = await r.json()
@@ -843,13 +1020,13 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
                 if "Note" in data or "Information" in data:
                     msg = (data.get("Note") or data.get("Information") or "")[:80]
                     if attempt < max_retries - 1:
-                        await asyncio.sleep(5 * (2 ** attempt))
+                        await asyncio.sleep(5 * (2**attempt))
                         continue
                     return None, f"rate-limited: {msg}"
                 return data.get("feed", []), None
             except asyncio.TimeoutError:
                 if attempt < max_retries - 1:
-                    await asyncio.sleep(2 * (2 ** attempt))
+                    await asyncio.sleep(2 * (2**attempt))
                     continue
                 return None, "timeout retries exhausted"
             except Exception as e:
@@ -902,28 +1079,44 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
                 ts_score, ts_label, rel = None, None, None
                 for ts in item.get("ticker_sentiment", []) or []:
                     if ts.get("ticker") == symbol:
-                        try: ts_score = float(ts.get("ticker_sentiment_score"))
-                        except Exception: pass
+                        try:
+                            ts_score = float(ts.get("ticker_sentiment_score"))
+                        except Exception:
+                            pass
                         ts_label = ts.get("ticker_sentiment_label")
-                        try: rel = float(ts.get("relevance_score"))
-                        except Exception: pass
+                        try:
+                            rel = float(ts.get("relevance_score"))
+                        except Exception:
+                            pass
                         break
                 key = (url, symbol)
                 if key in seen:
                     continue
                 seen.add(key)
-                try: o_score = float(item.get("overall_sentiment_score"))
-                except Exception: o_score = None
-                rows.append((
-                    item.get("title"), url, tp,
-                    ", ".join(item.get("authors", []) or [])[:1000],
-                    item.get("summary"), item.get("banner_image"),
-                    item.get("source"), item.get("category_within_source"),
-                    item.get("source_domain"),
-                    _json.dumps(item.get("topics", [])),
-                    o_score, item.get("overall_sentiment_label"),
-                    symbol, rel, ts_score, ts_label,
-                ))
+                try:
+                    o_score = float(item.get("overall_sentiment_score"))
+                except Exception:
+                    o_score = None
+                rows.append(
+                    (
+                        item.get("title"),
+                        url,
+                        tp,
+                        ", ".join(item.get("authors", []) or [])[:1000],
+                        item.get("summary"),
+                        item.get("banner_image"),
+                        item.get("source"),
+                        item.get("category_within_source"),
+                        item.get("source_domain"),
+                        _json.dumps(item.get("topics", [])),
+                        o_score,
+                        item.get("overall_sentiment_label"),
+                        symbol,
+                        rel,
+                        ts_score,
+                        ts_label,
+                    )
+                )
             inserted = 0
             try:
                 async with pool.acquire() as conn:
@@ -932,13 +1125,17 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
                             await conn.executemany(upsert_sql, rows)
                             inserted = len(rows)
                         # success 마킹 — 0건이라도 (그 분기에 그 종목 뉴스 없음)
-                        await conn.execute("""
+                        await conn.execute(
+                            """
                             INSERT INTO collection_state
                               (collection_name, symbol, date, status)
                             VALUES ('us_news_history', $1, $2, 'success')
                             ON CONFLICT (collection_name, symbol, date) DO UPDATE
                               SET status='success', collected_at=NOW()
-                        """, symbol, cs)
+                        """,
+                            symbol,
+                            cs,
+                        )
             except Exception as e:
                 failures += 1
                 await ctx.log("warn", f"news_history {symbol} {cs}: db err {str(e)[:80]}")
@@ -947,9 +1144,8 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
 
     try:
         async with capture_logs(ctx), monitor_progress(
-            ctx,
-            "SELECT COUNT(*) FROM us_news",
-            "us_news rows", interval=120):
+            ctx, "SELECT COUNT(*) FROM us_news", "us_news rows", interval=120
+        ):
             async with aiohttp.ClientSession(headers={"User-Agent": "Mozilla/5.0"}) as session:
                 # ctx.log 진행 상황: 1000 units 마다
                 tasks = []
@@ -958,22 +1154,93 @@ async def task_news_history_backfill(ctx: Ctx) -> dict:
                     if (i + 1) % 500 == 0:
                         # backpressure: 500 in-flight 이상 쌓이지 않도록
                         done, pending = await asyncio.wait(
-                            tasks, return_when=asyncio.ALL_COMPLETED, timeout=None)
+                            tasks, return_when=asyncio.ALL_COMPLETED, timeout=None
+                        )
                         tasks = list(pending)
-                        await ctx.log("info",
-                                      f"news_history progress: {i+1}/{len(todo)} units, "
-                                      f"saved={saved_total}, fail={failures}")
+                        await ctx.log(
+                            "info",
+                            f"news_history progress: {i+1}/{len(todo)} units, "
+                            f"saved={saved_total}, fail={failures}",
+                        )
                 if tasks:
                     await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
     finally:
         await pool.close()
 
-    await ctx.log("ok",
-                  f"news_history done: {len(todo)} units, saved={saved_total} rows, "
-                  f"failures={failures}")
-    return {"universe": len(universe), "chunks_per_symbol": len(chunks),
-            "units_attempted": len(todo), "rows_saved": saved_total,
-            "failures": failures, "status": "completed"}
+    await ctx.log(
+        "ok", f"news_history done: {len(todo)} units, saved={saved_total} rows, " f"failures={failures}"
+    )
+    return {
+        "universe": len(universe),
+        "chunks_per_symbol": len(chunks),
+        "units_attempted": len(todo),
+        "rows_saved": saved_total,
+        "failures": failures,
+        "status": "completed",
+    }
+
+
+async def task_institutional_holdings(ctx: Ctx) -> dict:
+    """AV INSTITUTIONAL_HOLDINGS → us_institutional_holdings.
+
+    NQ1 (Institutional Quality Score) 활성용. 종목당 1 call. AV 가
+    trailing 1 year (4 분기) 만 응답 — 백테스트 윈도우 (2019-) 의 대부분은
+    NULL 유지 (quant 가 score=None 처리, 다른 sub-indicator 가중치는 그대로).
+    최근 1년 grade 부터 NQ1 신호 반영.
+    """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+    from us.finance_data import InstitutionalHoldingsCollector
+
+    async with capture_logs(ctx), monitor_progress(
+        ctx, "SELECT COUNT(*) FROM us_institutional_holdings", "us_institutional_holdings rows", interval=60
+    ):
+        col = InstitutionalHoldingsCollector(api_key, DATABASE_URL, call_interval=0.4, max_concurrent=3)
+        result = await col.run_collection_optimized()
+    await ctx.log("ok", f"institutional_holdings: {result}")
+    return result
+
+
+async def task_earnings_estimates(ctx: Ctx) -> dict:
+    """AV EARNINGS_ESTIMATES → us_earnings_estimates.
+
+    종목당 1 call. 응답에 `eps_estimate_average` + 시점별 snapshot
+    (`eps_estimate_average_7/30/60/90_days_ago`) + revision count 포함.
+    이 데이터가 적재되면 momentum factor 의 EM3 (EPS revision), EM4
+    (Revenue revision) 및 growth factor 의 NQ2 (Analyst revision momentum)
+    가 자동 활성. 데이터 없는 종목은 quant 가 reason='no_data' 처리 — 다른
+    sub-indicator 가중치는 그대로 유지 (있으면 쓰는 패턴).
+
+    skip 로직: ON CONFLICT (symbol, estimate_date, horizon) DO UPDATE 로 멱등.
+    """
+    if ctx.country != "US":
+        return {"skipped": "KR run"}
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
+    from us.finance_data import EarningsEstimatesCollectorOptimized
+
+    async with capture_logs(ctx), monitor_progress(
+        ctx, "SELECT COUNT(*) FROM us_earnings_estimates", "us_earnings_estimates rows", interval=60
+    ):
+        col = EarningsEstimatesCollectorOptimized(
+            api_key, DATABASE_URL, call_interval=0.4, start_date=ctx.start_date - timedelta(days=30)
+        )
+        await col.run_collection_optimized()
+
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT COUNT(*) AS rows, COUNT(DISTINCT symbol) AS symbols, "
+                "MAX(estimate_date)::text AS latest FROM us_earnings_estimates"
+            )
+    finally:
+        await pool.close()
+    return dict(row)
 
 
 async def task_listing_status(ctx: Ctx) -> dict:
@@ -988,12 +1255,14 @@ async def task_listing_status(ctx: Ctx) -> dict:
     if not api_key:
         raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
     from us.finance_data import ListingStatusCollector
+
     async with capture_logs(ctx):
         col = ListingStatusCollector(api_key, DATABASE_URL)
         result = await col.run_collection()
-    await ctx.log("ok",
-                  f"listing_status: active={result.get('active_rows')}, "
-                  f"delisted={result.get('delisted_rows')}")
+    await ctx.log(
+        "ok",
+        f"listing_status: active={result.get('active_rows')}, " f"delisted={result.get('delisted_rows')}",
+    )
     return result
 
 
@@ -1054,27 +1323,33 @@ async def task_financials_verify(ctx: Ctx) -> dict:
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
     try:
         async with pool.acquire() as conn:
-            inc_gap = [r["symbol"] for r in await conn.fetch(
-                GAP_SQL.format(tbl="us_income_statement"), "us_income_statement")]
-            bal_gap = [r["symbol"] for r in await conn.fetch(
-                GAP_SQL.format(tbl="us_balance_sheet"), "us_balance_sheet")]
-            cf_gap  = [r["symbol"] for r in await conn.fetch(
-                GAP_SQL.format(tbl="us_cash_flow"), "us_cash_flow")]
+            inc_gap = [
+                r["symbol"]
+                for r in await conn.fetch(GAP_SQL.format(tbl="us_income_statement"), "us_income_statement")
+            ]
+            bal_gap = [
+                r["symbol"]
+                for r in await conn.fetch(GAP_SQL.format(tbl="us_balance_sheet"), "us_balance_sheet")
+            ]
+            cf_gap = [
+                r["symbol"] for r in await conn.fetch(GAP_SQL.format(tbl="us_cash_flow"), "us_cash_flow")
+            ]
     finally:
         await pool.close()
 
-    await ctx.log("info",
-                  f"financials_verify gaps — income:{len(inc_gap)}, "
-                  f"balance:{len(bal_gap)}, cashflow:{len(cf_gap)}")
+    await ctx.log(
+        "info",
+        f"financials_verify gaps — income:{len(inc_gap)}, "
+        f"balance:{len(bal_gap)}, cashflow:{len(cf_gap)}",
+    )
 
     # 누락 0 → 깔끔, 그대로 종료
     if not inc_gap and not bal_gap and not cf_gap:
-        return {"income_gap": 0, "balance_gap": 0, "cashflow_gap": 0,
-                "status": "clean"}
+        return {"income_gap": 0, "balance_gap": 0, "cashflow_gap": 0, "status": "clean"}
 
     # 좁은 deadline (2 시간) — 누락이 적어 그 안에 다 들어와야 함
     deadline = datetime.now() + timedelta(hours=2)
-    call_interval = 0.7   # ~85 calls/min, conservative
+    call_interval = 0.7  # ~85 calls/min, conservative
 
     # 핵심 트릭: collector 가 skip_symbols 가 set 일 때 그것만 제외하므로,
     # "처리해야 할 종목" 을 받는 메커니즘이 없다. 대신 'all active' 에서
@@ -1083,42 +1358,50 @@ async def task_financials_verify(ctx: Ctx) -> dict:
         if not gap_list:
             return {"skipped": "no gap"}
         async with capture_logs(ctx):
-            col = CollectorCls(api_key, DATABASE_URL,
-                               call_interval=call_interval, deadline=deadline)
+            col = CollectorCls(api_key, DATABASE_URL, call_interval=call_interval, deadline=deadline)
             # 직접 universe 주입 — get_existing_symbols 우회
             col.skip_symbols = None
             col._gap_only = set(gap_list)
+
             # monkey-patch: get_existing_symbols 가 gap 만 반환하도록
             async def _gap_universe():
                 return list(gap_list)
+
             col.get_existing_symbols = _gap_universe
             await col.run_collection_optimized()
         return {"attempted": len(gap_list)}
 
     # 직렬 실행 (병렬 X) — burst-limit 회피
     inc_result = await _run_one(IncomeStatementCollector, inc_gap, "INCOME")
-    bal_result = await _run_one(BalanceSheetCollector,    bal_gap, "BALANCE")
-    cf_result  = await _run_one(CashFlowCollector,        cf_gap,  "CASHFLOW")
+    bal_result = await _run_one(BalanceSheetCollector, bal_gap, "BALANCE")
+    cf_result = await _run_one(CashFlowCollector, cf_gap, "CASHFLOW")
 
     # 사후 점검
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
     try:
         async with pool.acquire() as conn:
-            inc_after = [r["symbol"] for r in await conn.fetch(
-                GAP_SQL.format(tbl="us_income_statement"), "us_income_statement")]
-            bal_after = [r["symbol"] for r in await conn.fetch(
-                GAP_SQL.format(tbl="us_balance_sheet"), "us_balance_sheet")]
-            cf_after  = [r["symbol"] for r in await conn.fetch(
-                GAP_SQL.format(tbl="us_cash_flow"), "us_cash_flow")]
+            inc_after = [
+                r["symbol"]
+                for r in await conn.fetch(GAP_SQL.format(tbl="us_income_statement"), "us_income_statement")
+            ]
+            bal_after = [
+                r["symbol"]
+                for r in await conn.fetch(GAP_SQL.format(tbl="us_balance_sheet"), "us_balance_sheet")
+            ]
+            cf_after = [
+                r["symbol"] for r in await conn.fetch(GAP_SQL.format(tbl="us_cash_flow"), "us_cash_flow")
+            ]
     finally:
         await pool.close()
 
-    await ctx.log("ok",
-                  f"financials_verify after-pass gaps — "
-                  f"income:{len(inc_after)} (was {len(inc_gap)}), "
-                  f"balance:{len(bal_after)} (was {len(bal_gap)}), "
-                  f"cashflow:{len(cf_after)} (was {len(cf_gap)}). "
-                  f"잔여 누락은 다음 run 이 자연 backfill.")
+    await ctx.log(
+        "ok",
+        f"financials_verify after-pass gaps — "
+        f"income:{len(inc_after)} (was {len(inc_gap)}), "
+        f"balance:{len(bal_after)} (was {len(bal_gap)}), "
+        f"cashflow:{len(cf_after)} (was {len(cf_gap)}). "
+        f"잔여 누락은 다음 run 이 자연 backfill.",
+    )
 
     # available_at fallback 비율 로깅 — 백테스트 leak 위험 정량화
     # +45d fallback 이 많을수록 look-ahead 위험. 정상 reported_date 비율을
@@ -1142,25 +1425,33 @@ async def task_financials_verify(ctx: Ctx) -> dict:
         await pool.close()
 
     fb_summary = [
-        {"year": int(r["year"]), "rows": int(r["rows"]),
-         "fallback_rows": int(r["fallback_rows"]),
-         "pct_fallback": float(r["pct_fallback"]) if r["pct_fallback"] is not None else None}
+        {
+            "year": int(r["year"]),
+            "rows": int(r["rows"]),
+            "fallback_rows": int(r["fallback_rows"]),
+            "pct_fallback": float(r["pct_fallback"]) if r["pct_fallback"] is not None else None,
+        }
         for r in fallback_dist
     ]
     high_fb = [y for y in fb_summary if y["pct_fallback"] and y["pct_fallback"] > 30]
     if high_fb:
         parts = [f"{y['year']}({y['pct_fallback']}%)" for y in high_fb[:6]]
-        await ctx.log("warn",
-                      "+45d fallback >30% (look-ahead 위험) 분기-연도: "
-                      + ", ".join(parts)
-                      + ". earnings_history backfill 로 reported_date 보강 필요.")
+        await ctx.log(
+            "warn",
+            "+45d fallback >30% (look-ahead 위험) 분기-연도: "
+            + ", ".join(parts)
+            + ". earnings_history backfill 로 reported_date 보강 필요.",
+        )
     else:
         await ctx.log("ok", "+45d fallback 비율 모든 연도 <30% — look-ahead 위험 낮음.")
 
     return {
-        "income_gap_before": len(inc_gap),  "income_gap_after": len(inc_after),
-        "balance_gap_before": len(bal_gap), "balance_gap_after": len(bal_after),
-        "cashflow_gap_before": len(cf_gap), "cashflow_gap_after": len(cf_after),
+        "income_gap_before": len(inc_gap),
+        "income_gap_after": len(inc_after),
+        "balance_gap_before": len(bal_gap),
+        "balance_gap_after": len(bal_after),
+        "cashflow_gap_before": len(cf_gap),
+        "cashflow_gap_after": len(cf_after),
         "fallback_by_year": fb_summary,
         "status": "completed",
     }
@@ -1198,10 +1489,12 @@ async def task_us_etf(ctx: Ctx) -> dict:
     # ETF_LOOKBACK_CALENDAR_DAYS (~800d = 2 + 1 years) before ctx.start_date.
     etf_start = ctx.start_date - timedelta(days=ETF_LOOKBACK_CALENDAR_DAYS)
 
-    await ctx.log("info",
-                  f"Backfilling {len(etf_symbols)} ETFs from {etf_start} "
-                  f"(={ctx.start_date} - {ETF_LOOKBACK_CALENDAR_DAYS}d lookback) "
-                  f"to {ctx.end_date}")
+    await ctx.log(
+        "info",
+        f"Backfilling {len(etf_symbols)} ETFs from {etf_start} "
+        f"(={ctx.start_date} - {ETF_LOOKBACK_CALENDAR_DAYS}d lookback) "
+        f"to {ctx.end_date}",
+    )
 
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=8)
     inserted_total = 0
@@ -1211,13 +1504,13 @@ async def task_us_etf(ctx: Ctx) -> dict:
     async with capture_logs(ctx), monitor_progress(
         ctx,
         f"SELECT COUNT(*) FROM us_daily_etf WHERE date BETWEEN '{etf_start}' AND '{ctx.end_date}'",
-        "us_daily_etf rows (in range)", interval=30,
+        "us_daily_etf rows (in range)",
+        interval=30,
     ):
         async with aiohttp.ClientSession() as session:
             for sym in etf_symbols:
                 # 1) Compute missing dates
-                missing = await cstate.get_missing_dates(
-                    pool, "us_daily_etf", sym, etf_start, ctx.end_date)
+                missing = await cstate.get_missing_dates(pool, "us_daily_etf", sym, etf_start, ctx.end_date)
                 if not missing:
                     skipped_total += 1
                     continue
@@ -1233,7 +1526,8 @@ async def task_us_etf(ctx: Ctx) -> dict:
                 try:
                     async with session.get(
                         "https://www.alphavantage.co/query",
-                        params=params, timeout=aiohttp.ClientTimeout(total=60),
+                        params=params,
+                        timeout=aiohttp.ClientTimeout(total=60),
                     ) as resp:
                         data = await resp.json()
                 except Exception as e:
@@ -1258,20 +1552,21 @@ async def task_us_etf(ctx: Ctx) -> dict:
                     if date_str not in missing_set:
                         continue
                     try:
-                        rows.append((
-                            sym,
-                            date.fromisoformat(date_str),
-                            float(ohlcv.get("1. open")    or 0),
-                            float(ohlcv.get("2. high")    or 0),
-                            float(ohlcv.get("3. low")     or 0),
-                            float(ohlcv.get("4. close")   or 0),
-                            int(float(ohlcv.get("5. volume") or 0)),
-                        ))
+                        rows.append(
+                            (
+                                sym,
+                                date.fromisoformat(date_str),
+                                float(ohlcv.get("1. open") or 0),
+                                float(ohlcv.get("2. high") or 0),
+                                float(ohlcv.get("3. low") or 0),
+                                float(ohlcv.get("4. close") or 0),
+                                int(float(ohlcv.get("5. volume") or 0)),
+                            )
+                        )
                     except Exception as parse_err:
                         parse_errors += 1
                         if parse_errors <= 2:
-                            await ctx.log("warn",
-                                          f"{sym} parse err {date_str}: {parse_err}")
+                            await ctx.log("warn", f"{sym} parse err {date_str}: {parse_err}")
 
                 if rows:
                     async with pool.acquire() as conn:
@@ -1286,11 +1581,9 @@ async def task_us_etf(ctx: Ctx) -> dict:
                             rows,
                         )
                     # 4) Mark collected dates
-                    await cstate.mark_collected(
-                        pool, "us_daily_etf", sym, [r[1] for r in rows])
+                    await cstate.mark_collected(pool, "us_daily_etf", sym, [r[1] for r in rows])
                     inserted_total += len(rows)
-                    await ctx.log("ok",
-                                  f"{sym}: +{len(rows)} rows (had {len(missing)} missing)")
+                    await ctx.log("ok", f"{sym}: +{len(rows)} rows (had {len(missing)} missing)")
 
                 await asyncio.sleep(0.2)  # AV rate limit safety
 
@@ -1303,9 +1596,9 @@ async def task_us_etf(ctx: Ctx) -> dict:
                        VALUES ('us_daily_etf', $1, CURRENT_DATE, 'no_data')
                        ON CONFLICT (collection_name, symbol, date) DO UPDATE
                          SET status='no_data', collected_at=NOW()""",
-                    [(f["symbol"],) for f in failed])
-            await ctx.log("info",
-                          f"no_data marked for {len(failed)} failed ETF symbols")
+                    [(f["symbol"],) for f in failed],
+                )
+            await ctx.log("info", f"no_data marked for {len(failed)} failed ETF symbols")
 
     await pool.close()
 
@@ -1313,8 +1606,8 @@ async def task_us_etf(ctx: Ctx) -> dict:
         await ctx.log("info", "All ETFs already fully collected — nothing to do")
 
     return {
-        "etf_count":   len(etf_symbols),
-        "inserted":    inserted_total,
+        "etf_count": len(etf_symbols),
+        "inserted": inserted_total,
         "skipped_all_done": skipped_total,
         "failed_count": len(failed),
         "first_failures": failed[:5],
@@ -1341,18 +1634,15 @@ async def task_us_weekly(ctx: Ctx) -> dict:
     # 60일 (≈ EM8 lookback margin) 으로 더 일찍 잡음.
     weekly_start = ctx.start_date - timedelta(days=60)
     async with capture_logs(ctx), monitor_progress(
-        ctx,
-        "SELECT COUNT(*) FROM us_weekly",
-        "us_weekly rows", interval=30):
-        col = WeeklyCollector(api_key, DATABASE_URL, max_concurrent=20,
-                              start_date=weekly_start)
+        ctx, "SELECT COUNT(*) FROM us_weekly", "us_weekly rows", interval=30
+    ):
+        col = WeeklyCollector(api_key, DATABASE_URL, max_concurrent=20, start_date=weekly_start)
         await col.run_collection()
 
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
     try:
         async with pool.acquire() as conn:
-            row = await conn.fetchrow(
-                """SELECT COUNT(*) AS rows, COUNT(DISTINCT symbol) AS syms,
+            row = await conn.fetchrow("""SELECT COUNT(*) AS rows, COUNT(DISTINCT symbol) AS syms,
                           COUNT(DISTINCT date) AS weeks,
                           MIN(date) AS earliest, MAX(date) AS latest
                    FROM us_weekly""")
@@ -1360,8 +1650,7 @@ async def task_us_weekly(ctx: Ctx) -> dict:
         await pool.close()
 
     if row["rows"] == 0:
-        raise RuntimeError(
-            "us_weekly empty after WeeklyCollector ran — check AV key/quota")
+        raise RuntimeError("us_weekly empty after WeeklyCollector ran — check AV key/quota")
 
     return dict(row)
 
@@ -1392,43 +1681,50 @@ async def task_us_calculator(ctx: Ctx) -> dict:
             rows = await conn.fetch(
                 """SELECT DISTINCT date FROM us_daily
                    WHERE date BETWEEN $1 AND $2 ORDER BY date""",
-                extended_start, ctx.end_date)
+                extended_start,
+                ctx.end_date,
+            )
             trading_days = [r["date"] for r in rows]
 
             # Skip dates that already have indicators populated
             done_rows = await conn.fetch(
                 """SELECT DISTINCT date FROM us_indicators
                    WHERE date BETWEEN $1 AND $2""",
-                extended_start, ctx.end_date)
+                extended_start,
+                ctx.end_date,
+            )
             done_dates = {r["date"] for r in done_rows}
     finally:
         await pool.close()
 
     pending_dates = [d for d in trading_days if d not in done_dates]
-    await ctx.log("info",
-                  f"us_calculator: {len(trading_days)} trading days in range, "
-                  f"{len(done_dates)} already done, "
-                  f"{len(pending_dates)} to process")
+    await ctx.log(
+        "info",
+        f"us_calculator: {len(trading_days)} trading days in range, "
+        f"{len(done_dates)} already done, "
+        f"{len(pending_dates)} to process",
+    )
 
     if not pending_dates:
         return {"status": "all_done", "dates": len(trading_days)}
 
     from us.us_calculator import USTechnicalIndicatorCalculator
+
     async with capture_logs(ctx), monitor_progress(
-        ctx,
-        "SELECT COUNT(*) FROM us_indicators",
-        "us_indicators rows", interval=60):
-        calc = USTechnicalIndicatorCalculator(database_url=DATABASE_URL,
-                                              max_concurrent_batches=40)
+        ctx, "SELECT COUNT(*) FROM us_indicators", "us_indicators rows", interval=60
+    ):
+        calc = USTechnicalIndicatorCalculator(database_url=DATABASE_URL, max_concurrent_batches=40)
         # Single batched call: compute full indicator series once per symbol
         # for every pending date. ~200x less compute than the per-date loop
         # (pandas was internally producing N rolling values per indicator
         # call but the per-date path discarded all but iloc[-1]).
         result = await calc.run_calculator_range(pending_dates)
 
-    return {"status": "ok",
-            "processed_dates": len(pending_dates),
-            "rows_upserted": result.get("rows_upserted", 0)}
+    return {
+        "status": "ok",
+        "processed_dates": len(pending_dates),
+        "rows_upserted": result.get("rows_upserted", 0),
+    }
 
 
 async def task_macros(ctx: Ctx) -> dict:
@@ -1445,21 +1741,25 @@ async def task_macros(ctx: Ctx) -> dict:
     api_key = os.getenv("ALPHAVANTAGE_API_KEY")
     if not api_key:
         raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
-    from us.finance_data import (FederalFundsRateCollector, TreasuryYieldCollector,
-                                  CPICollector, UnemploymentRateCollector)
+    from us.finance_data import (
+        FederalFundsRateCollector,
+        TreasuryYieldCollector,
+        CPICollector,
+        UnemploymentRateCollector,
+    )
+
     macro_start = ctx.start_date - timedelta(days=30)
     collectors = [
-        ("us_fed_funds_rate",    FederalFundsRateCollector),
-        ("us_treasury_yield",    TreasuryYieldCollector),
-        ("us_cpi",               CPICollector),
+        ("us_fed_funds_rate", FederalFundsRateCollector),
+        ("us_treasury_yield", TreasuryYieldCollector),
+        ("us_cpi", CPICollector),
         ("us_unemployment_rate", UnemploymentRateCollector),
     ]
     out = {}
     for name, Cls in collectors:
         try:
             async with capture_logs(ctx):
-                col = Cls(api_key, DATABASE_URL, call_interval=0.2,
-                          start_date=macro_start)
+                col = Cls(api_key, DATABASE_URL, call_interval=0.2, start_date=macro_start)
                 await col.run_collection_optimized()
             out[name] = "ok"
         except Exception as e:
@@ -1478,9 +1778,11 @@ async def task_kr_dart(ctx: Ctx) -> dict:
     if ctx.country != "KR":
         return {"skipped": "US run"}
     out = {}
-    for ep in ["collect/kr/dart/company-info",
-               "collect/kr/dart/financial-position",
-               "collect/kr/dart/dividends"]:
+    for ep in [
+        "collect/kr/dart/company-info",
+        "collect/kr/dart/financial-position",
+        "collect/kr/dart/dividends",
+    ]:
         try:
             out[ep] = await _self_post(ctx, ep)
         except Exception as e:
@@ -1512,20 +1814,24 @@ async def task_us_mv_sector_refresh(ctx: Ctx) -> dict:
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
     try:
         async with capture_logs(ctx):
-            await ctx.log("info",
-                          f"mv_us_sector_refresh: {ctx.start_date} ~ {ctx.end_date}")
+            await ctx.log("info", f"mv_us_sector_refresh: {ctx.start_date} ~ {ctx.end_date}")
             async with pool.acquire() as conn:
                 # 1) Drop existing rows in range to avoid stale sector ranks.
-                await conn.execute("""
+                await conn.execute(
+                    """
                     DELETE FROM mv_us_sector_daily_performance
                     WHERE date BETWEEN $1 AND $2
-                """, ctx.start_date, ctx.end_date)
+                """,
+                    ctx.start_date,
+                    ctx.end_date,
+                )
 
                 # 2) Bulk INSERT.
                 # us_stock_basic is point-in-time per (symbol, date) so we
                 # use the row with date <= analysis date (latest sector
                 # classification known on that day).
-                result = await conn.execute("""
+                result = await conn.execute(
+                    """
                     INSERT INTO mv_us_sector_daily_performance
                         (date, sector_code, avg_return_30d, stock_count, sector_rank)
                     WITH dates AS (
@@ -1571,19 +1877,23 @@ async def task_us_mv_sector_refresh(ctx: Ctx) -> dict:
                            ROW_NUMBER() OVER (PARTITION BY date ORDER BY avg_ret DESC NULLS LAST)
                     FROM agg
                     ON CONFLICT (date, sector_code) DO NOTHING
-                """, ctx.start_date, ctx.end_date)
+                """,
+                    ctx.start_date,
+                    ctx.end_date,
+                )
 
                 row_count = await conn.fetchval(
-                    "SELECT COUNT(*) FROM mv_us_sector_daily_performance "
-                    "WHERE date BETWEEN $1 AND $2",
-                    ctx.start_date, ctx.end_date)
+                    "SELECT COUNT(*) FROM mv_us_sector_daily_performance " "WHERE date BETWEEN $1 AND $2",
+                    ctx.start_date,
+                    ctx.end_date,
+                )
                 date_count = await conn.fetchval(
                     "SELECT COUNT(DISTINCT date) FROM mv_us_sector_daily_performance "
                     "WHERE date BETWEEN $1 AND $2",
-                    ctx.start_date, ctx.end_date)
-            await ctx.log("info",
-                          f"mv_us_sector_refresh: {row_count} rows across "
-                          f"{date_count} dates")
+                    ctx.start_date,
+                    ctx.end_date,
+                )
+            await ctx.log("info", f"mv_us_sector_refresh: {row_count} rows across " f"{date_count} dates")
             return {"rows": row_count, "dates": date_count}
     finally:
         await pool.close()
@@ -1610,9 +1920,7 @@ async def task_em8_pre_filter(ctx: Ctx) -> dict:
     failed_dates = []
 
     async with capture_logs(ctx):
-        await ctx.log("info",
-                      f"EM8 pre-filter starting: top-{top_n}, "
-                      f"{ctx.start_date}~{ctx.end_date}")
+        await ctx.log("info", f"EM8 pre-filter starting: top-{top_n}, " f"{ctx.start_date}~{ctx.end_date}")
         d = ctx.start_date
         while d <= ctx.end_date:
             if d.weekday() >= 5:
@@ -1620,7 +1928,8 @@ async def task_em8_pre_filter(ctx: Ctx) -> dict:
                 continue
             try:
                 async with pool.acquire() as conn:
-                    rows = await conn.fetch("""
+                    rows = await conn.fetch(
+                        """
                         WITH ranked AS (
                           SELECT symbol, close,
                                  ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn
@@ -1653,10 +1962,14 @@ async def task_em8_pre_filter(ctx: Ctx) -> dict:
                         )
                         SELECT symbol, rs_value, rank FROM ranked_em8
                         WHERE rank <= $2 ORDER BY rank
-                    """, d, top_n)
+                    """,
+                        d,
+                        top_n,
+                    )
 
                     if rows:
-                        await conn.executemany("""
+                        await conn.executemany(
+                            """
                             INSERT INTO daily_top_symbols
                                 (date, symbol, rank, em8_score, computed_at)
                             VALUES ($1, $2, $3, $4, NOW())
@@ -1664,18 +1977,20 @@ async def task_em8_pre_filter(ctx: Ctx) -> dict:
                                 rank = EXCLUDED.rank,
                                 em8_score = EXCLUDED.em8_score,
                                 computed_at = NOW()
-                        """, [(d, r["symbol"], r["rank"], float(r["rs_value"]))
-                              for r in rows])
+                        """,
+                            [(d, r["symbol"], r["rank"], float(r["rs_value"])) for r in rows],
+                        )
                         dates_processed.append(str(d))
                         if len(dates_processed) % 10 == 0:
-                            await ctx.log("info",
-                                          f"em8 pre-filter: {len(dates_processed)} dates done, "
-                                          f"latest [{d}] top5: "
-                                          f"{', '.join(r['symbol'] for r in rows[:5])}")
+                            await ctx.log(
+                                "info",
+                                f"em8 pre-filter: {len(dates_processed)} dates done, "
+                                f"latest [{d}] top5: "
+                                f"{', '.join(r['symbol'] for r in rows[:5])}",
+                            )
                     else:
                         failed_dates.append(str(d))
-                        await ctx.log("warn",
-                                      f"em8 {d}: 0 symbols (insufficient history)")
+                        await ctx.log("warn", f"em8 {d}: 0 symbols (insufficient history)")
             except Exception as e:
                 failed_dates.append(str(d))
                 await ctx.log("error", f"em8 {d}: {e}")
@@ -1683,10 +1998,10 @@ async def task_em8_pre_filter(ctx: Ctx) -> dict:
     await pool.close()
 
     return {
-        "top_n":            top_n,
-        "dates_processed":  len(dates_processed),
-        "failed_dates":     len(failed_dates),
-        "sample_failures":  failed_dates[:5],
+        "top_n": top_n,
+        "dates_processed": len(dates_processed),
+        "failed_dates": len(failed_dates),
+        "sample_failures": failed_dates[:5],
     }
 
 
@@ -1698,16 +2013,52 @@ async def task_grades_pass_a(ctx: Ctx) -> dict:
     Pass-A runs BEFORE options are collected — it only ranks symbols to decide
     which get options backfilled. So with_event_modifier=False: skip the
     event_engine (option/GEX/earnings) modifier, which would be stale noise
-    here and pure cost. Pass-B re-grades the same universe with events on."""
-    return await _quant_post(ctx, "backtest/generate-grades", {
-        "country":             ctx.country,
-        "start_date":          str(ctx.start_date),
-        "end_date":            str(ctx.end_date),
-        "skip_existing":       True,
-        "use_prefilter":       True,
-        "prefilter_top_n":     ctx.params.get("prefilter_top_n", 500),
-        "with_event_modifier": False,
-    })
+    here and pure cost. Pass-B re-grades the same universe with events on.
+
+    Chunked into `grade_chunk_months`-month sub-requests (default 3). Each
+    trading day costs ~6min with the top-N prefilter, so a multi-year range is
+    days of work — a single HTTP request always blew past the 24h client
+    read-timeout and the whole DAG stalled. With skip_existing=True every chunk
+    skips already-graded dates, so chunks are fully idempotent/resumable: a
+    failed chunk only re-does its own incomplete dates on the next resume."""
+    chunk_months = int(ctx.params.get("grade_chunk_months", 3))
+    chunks = _month_chunks(ctx.start_date, ctx.end_date, chunk_months)
+    totals = {"processed_count": 0, "skipped_count": 0, "failed_count": 0,
+              "chunks": len(chunks), "failed_dates": []}
+    await ctx.log("info",
+                  f"grades_pass_a: {len(chunks)} chunk(s) of ~{chunk_months}mo "
+                  f"over {ctx.start_date}~{ctx.end_date}")
+    for i, (cs, ce) in enumerate(chunks, 1):
+        await ctx.log("run", f"grades_pass_a chunk {i}/{len(chunks)}: {cs}~{ce}")
+        res = await _quant_post(
+            ctx,
+            "backtest/generate-grades",
+            {
+                "country": ctx.country,
+                "start_date": str(cs),
+                "end_date": str(ce),
+                "skip_existing": True,
+                "use_prefilter": True,
+                "prefilter_top_n": ctx.params.get("prefilter_top_n", 500),
+                "with_event_modifier": False,
+                # reco DAG 한정 팩터 개선(value 게이팅). backtest run 은 False 유지.
+                "improved_factors": ctx.run_id.startswith("reco_"),
+            },
+            # 3-month chunk ≈ 6.3h of work; 12h timeout leaves wide margin and
+            # fails a genuinely hung chunk in 12h instead of the old 24h.
+            timeout=float(ctx.params.get("grade_chunk_timeout", 43200)),
+        )
+        for k in ("processed_count", "skipped_count", "failed_count"):
+            totals[k] += int(res.get(k, 0) or 0)
+        for f in (res.get("failed") or []):
+            totals["failed_dates"].append(f.get("date") if isinstance(f, dict) else f)
+        await ctx.log("ok",
+                      f"grades_pass_a chunk {i}/{len(chunks)} done: "
+                      f"processed={res.get('processed_count')} "
+                      f"skipped={res.get('skipped_count')} "
+                      f"failed={res.get('failed_count')}")
+    totals["failed_dates"] = totals["failed_dates"][:20]
+    return totals
 
 
 # ------------------------------------------ Top-N symbol selection (DB-side)
@@ -1718,7 +2069,8 @@ async def task_select_top_n(ctx: Ctx) -> dict:
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=3)
     try:
         async with pool.acquire() as conn:
-            rows = await conn.fetch("""
+            rows = await conn.fetch(
+                """
                 SELECT DISTINCT symbol FROM (
                   SELECT date, symbol, final_score,
                          ROW_NUMBER() OVER (PARTITION BY date ORDER BY final_score DESC NULLS LAST) AS rn
@@ -1727,13 +2079,16 @@ async def task_select_top_n(ctx: Ctx) -> dict:
                     AND final_grade IN ('STRONG_BUY','BUY','NEUTRAL')
                     AND final_score IS NOT NULL
                 ) t WHERE rn <= $3
-            """, ctx.start_date, ctx.end_date, top_n)
+            """,
+                ctx.start_date,
+                ctx.end_date,
+                top_n,
+            )
             symbols = [r["symbol"] for r in rows]
     finally:
         await pool.close()
     await ctx.log("info", f"top-{top_n}/date → {len(symbols)} unique symbols")
-    return {"top_n_per_date": top_n, "unique_symbols": len(symbols),
-            "sample": symbols[:25]}
+    return {"top_n_per_date": top_n, "unique_symbols": len(symbols), "sample": symbols[:25]}
 
 
 # --------------------- Pass-B options backfill (only the top-N symbols, looped)
@@ -1763,32 +2118,41 @@ async def task_options_top_n(ctx: Ctx) -> dict:
             done_rows = await conn.fetch(
                 """SELECT DISTINCT date FROM us_option_daily_summary
                    WHERE date BETWEEN $1 AND $2""",
-                ctx.start_date, ctx.end_date)
+                ctx.start_date,
+                ctx.end_date,
+            )
             already_done = {r["date"] for r in done_rows}
             grade_rows = await conn.fetch(
                 """SELECT DISTINCT date FROM us_stock_grade
                    WHERE date BETWEEN $1 AND $2""",
-                ctx.start_date, ctx.end_date)
+                ctx.start_date,
+                ctx.end_date,
+            )
             graded_days = {r["date"] for r in grade_rows}
     finally:
         await pool.close()
-    await ctx.log("info",
-                  f"options_top_n: {len(already_done)} already summarized, "
-                  f"{len(graded_days)} dates have grades (=trading days w/ top-N)")
+    await ctx.log(
+        "info",
+        f"options_top_n: {len(already_done)} already summarized, "
+        f"{len(graded_days)} dates have grades (=trading days w/ top-N)",
+    )
 
     d = ctx.start_date
     ok, fail, skipped, holidays = 0, 0, 0, 0
     while d <= ctx.end_date:
         if d.weekday() >= 5:
-            d += timedelta(days=1); continue
+            d += timedelta(days=1)
+            continue
         if d not in graded_days:
             # No grades for this date — either market holiday or grades_pass_a
             # didn't cover it. Either way, options collection is unusable.
             holidays += 1
-            d += timedelta(days=1); continue
+            d += timedelta(days=1)
+            continue
         if d in already_done:
             skipped += 1
-            d += timedelta(days=1); continue
+            d += timedelta(days=1)
+            continue
         try:
             # Per-date mode (no start_date/end_date → collector picks that date's
             # top-N by grade). The score-affecting option signals (event_engine
@@ -1796,16 +2160,17 @@ async def task_options_top_n(ctx: Ctx) -> dict:
             # option row ≤ analysis_date, so per-date coverage is sufficient for
             # backtest results. Union (continuous 252-day history) is only needed
             # for agent_metrics iv_percentile, which doesn't feed final_score.
-            await _self_post(ctx, "collect/us/options-top-n",
-                             params={"target_date": d.isoformat(),
-                                     "top_n":       ctx.params.get("option_top_n", 50)})
+            await _self_post(
+                ctx,
+                "collect/us/options-top-n",
+                params={"target_date": d.isoformat(), "top_n": ctx.params.get("option_top_n", 50)},
+            )
             ok += 1
         except Exception as e:
             await ctx.log("error", f"options {d}: {e}")
             fail += 1
         d += timedelta(days=1)
-    return {"success_days": ok, "failed_days": fail,
-            "skipped_days": skipped, "holiday_days": holidays}
+    return {"success_days": ok, "failed_days": fail, "skipped_days": skipped, "holiday_days": holidays}
 
 
 # -------------------------------------------- Pass-B grades w/ options (top-N)
@@ -1819,28 +2184,64 @@ async def task_grades_pass_b(ctx: Ctx) -> dict:
     # collected for the top-N union, so re-grading the full universe wastes
     # time on ~5,000 symbols that have no options and thus produce identical
     # grades to Pass-A.
-    return await _quant_post(ctx, "backtest/generate-grades", {
-        "country": ctx.country,
-        "start_date": str(ctx.start_date),
-        "end_date":   str(ctx.end_date),
-        "skip_existing": False,
-        "use_prefilter":   True,
-        "prefilter_top_n": ctx.params.get("prefilter_top_n", 500),
-        # Pass-B folds in option signals (options_modifier + gex_modifier) now
-        # that options are collected — this is the entire point of the 2nd pass.
-        "with_event_modifier": True,
-    })
+    #
+    # Chunked like Pass-A so a multi-year range never hits the client
+    # read-timeout. skip_existing=False here (we deliberately overwrite to fold
+    # in option signals), so a failed chunk re-grades its whole range on resume
+    # — still safe, just not a no-op like Pass-A's skip.
+    chunk_months = int(ctx.params.get("grade_chunk_months", 3))
+    chunks = _month_chunks(ctx.start_date, ctx.end_date, chunk_months)
+    totals = {"processed_count": 0, "skipped_count": 0, "failed_count": 0,
+              "chunks": len(chunks), "failed_dates": []}
+    await ctx.log("info",
+                  f"grades_pass_b: {len(chunks)} chunk(s) of ~{chunk_months}mo "
+                  f"over {ctx.start_date}~{ctx.end_date}")
+    for i, (cs, ce) in enumerate(chunks, 1):
+        await ctx.log("run", f"grades_pass_b chunk {i}/{len(chunks)}: {cs}~{ce}")
+        res = await _quant_post(
+            ctx,
+            "backtest/generate-grades",
+            {
+                "country": ctx.country,
+                "start_date": str(cs),
+                "end_date": str(ce),
+                "skip_existing": False,
+                "use_prefilter": True,
+                "prefilter_top_n": ctx.params.get("prefilter_top_n", 500),
+                # Pass-B folds in option signals (options_modifier + gex_modifier)
+                # now that options are collected — the point of the 2nd pass.
+                "with_event_modifier": True,
+                # reco DAG 한정 팩터 개선(value 게이팅). backtest run 은 False 유지.
+                "improved_factors": ctx.run_id.startswith("reco_"),
+            },
+            timeout=float(ctx.params.get("grade_chunk_timeout", 43200)),
+        )
+        for k in ("processed_count", "skipped_count", "failed_count"):
+            totals[k] += int(res.get(k, 0) or 0)
+        for f in (res.get("failed") or []):
+            totals["failed_dates"].append(f.get("date") if isinstance(f, dict) else f)
+        await ctx.log("ok",
+                      f"grades_pass_b chunk {i}/{len(chunks)} done: "
+                      f"processed={res.get('processed_count')} "
+                      f"skipped={res.get('skipped_count')} "
+                      f"failed={res.get('failed_count')}")
+    totals["failed_dates"] = totals["failed_dates"][:20]
+    return totals
 
 
 async def task_backtest(ctx: Ctx) -> dict:
-    return await _quant_post(ctx, "backtest/run", {
-        "country": ctx.country,
-        "start_date": str(ctx.start_date),
-        "end_date":   str(ctx.end_date),
-        "initial_cash":     ctx.params.get("initial_cash", 10_000_000),
-        "top_n":            ctx.params.get("backtest_top_n", 10),
-        "rebal_freq_days":  ctx.params.get("rebal_freq_days", 5),
-    })
+    return await _quant_post(
+        ctx,
+        "backtest/run",
+        {
+            "country": ctx.country,
+            "start_date": str(ctx.start_date),
+            "end_date": str(ctx.end_date),
+            "initial_cash": ctx.params.get("initial_cash", 10_000_000),
+            "top_n": ctx.params.get("backtest_top_n", 10),
+            "rebal_freq_days": ctx.params.get("rebal_freq_days", 5),
+        },
+    )
 
 
 # ---------------------------------------------- News + Insider 사전수집 (reco 전용)
@@ -1875,7 +2276,9 @@ async def task_news_insider_top_n(ctx: Ctx) -> dict:
                     AND final_score IS NOT NULL
                 ) t WHERE rn <= $3
                 """,
-                ctx.start_date, ctx.end_date, top_n,
+                ctx.start_date,
+                ctx.end_date,
+                top_n,
             )
             symbols = [r["symbol"] for r in rows]
     finally:
@@ -1888,18 +2291,20 @@ async def task_news_insider_top_n(ctx: Ctx) -> dict:
     if not api_key:
         raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
 
-    await ctx.log("info",
-                  f"news/insider 사전수집: {len(symbols)}종목 × 2 endpoint")
+    await ctx.log("info", f"news/insider 사전수집: {len(symbols)}종목 × 2 endpoint")
     result = await _fetch_catalysts_for_symbols(
-        api_key, symbols,
+        api_key,
+        symbols,
         news_per_symbol=10,
         insider_lookback_days=90,
     )
     bullish_news = sum(len(v.get("news") or []) for v in result.values())
     insider_active = sum(1 for v in result.values() if v.get("insider_buys"))
-    await ctx.log("ok",
-                  f"news/insider 적재 완료 → bullish news {bullish_news}건, "
-                  f"인사이더 매수 활성 종목 {insider_active}/{len(symbols)}")
+    await ctx.log(
+        "ok",
+        f"news/insider 적재 완료 → bullish news {bullish_news}건, "
+        f"인사이더 매수 활성 종목 {insider_active}/{len(symbols)}",
+    )
     return {
         "status": "completed",
         "symbols_processed": len(symbols),
@@ -1945,11 +2350,11 @@ async def task_top_signal_reco(ctx: Ctx) -> dict:
                 ORDER BY g.final_score DESC
                 LIMIT $2
                 """,
-                as_of, reco_n + watch_n,
+                as_of,
+                reco_n + watch_n,
             )
             sb_count = await conn.fetchval(
-                "SELECT COUNT(*) FROM us_stock_grade "
-                "WHERE date = $1 AND final_grade = '강력 매수'",
+                "SELECT COUNT(*) FROM us_stock_grade " "WHERE date = $1 AND final_grade = '강력 매수'",
                 as_of,
             )
     finally:
@@ -1971,9 +2376,10 @@ async def task_top_signal_reco(ctx: Ctx) -> dict:
     # 거래일 시가. 리밸런싱 주기는 최우수 전략(top-3 STRONG_BUY / 20 거래일).
     def _next_bday(d, n=1):
         from datetime import timedelta as _td_local
+
         while n > 0:
             d = d + _td_local(days=1)
-            if d.weekday() < 5:   # Mon-Fri
+            if d.weekday() < 5:  # Mon-Fri
                 n -= 1
         return d
 
@@ -1988,38 +2394,47 @@ async def task_top_signal_reco(ctx: Ctx) -> dict:
     if av_key and buy_now_symbols:
         try:
             catalysts = await _fetch_catalysts_for_symbols(av_key, buy_now_symbols)
-            await ctx.log("info", "catalysts: " + ", ".join(
-                f"{s}:📰{len(v.get('news') or [])}"
-                + (f"/💰{v['insider_buys']['count']}건"
-                   if v.get('insider_buys') else "")
-                for s, v in catalysts.items()))
+            await ctx.log(
+                "info",
+                "catalysts: "
+                + ", ".join(
+                    f"{s}:📰{len(v.get('news') or [])}"
+                    + (f"/💰{v['insider_buys']['count']}건" if v.get("insider_buys") else "")
+                    for s, v in catalysts.items()
+                ),
+            )
         except Exception as e:
             await ctx.log("warn", f"catalyst fetch failed (ignored): {e}")
 
     out = {
         "as_of_date": str(as_of),
-        "strategy": ("top-3 / STRONG_BUY(강력 매수) / 20거래일 리밸 — "
-                     "backtest +166.1% (Sharpe 1.87, MDD -25.3%, Calmar 6.56)"),
+        "strategy": (
+            "top-3 / STRONG_BUY(강력 매수) / 20거래일 리밸 — "
+            "backtest +166.1% (Sharpe 1.87, MDD -25.3%, Calmar 6.56)"
+        ),
         "buy_now": picks[:reco_n],
-        "watchlist": picks[reco_n:reco_n + watch_n],
+        "watchlist": picks[reco_n : reco_n + watch_n],
         "strong_buy_universe_size": sb_count,
         "execution": {
             "buy_date": str(buy_date),
             "buy_timing": "open",
             "buy_note": f"실거래: {buy_date} 시가(OPEN)에 매수 권장. "
-                        f"백테스트는 {as_of} 종가(CLOSE) 기준 — 종가 확정 후에야 "
-                        f"등급을 알 수 있어 live 는 다음 거래일 OPEN 이 현실적.",
+            f"백테스트는 {as_of} 종가(CLOSE) 기준 — 종가 확정 후에야 "
+            f"등급을 알 수 있어 live 는 다음 거래일 OPEN 이 현실적.",
             "rebal_freq_days": rebal_n,
             "next_rebal_date": str(next_rebal),
             "next_rebal_note": f"{buy_date} 이후 {rebal_n} 거래일째인 "
-                               f"{next_rebal} 에 reco DAG 재실행 → 그날 신규 "
-                               f"top-3 로 교체(시가 매수/매도).",
+            f"{next_rebal} 에 reco DAG 재실행 → 그날 신규 "
+            f"top-3 로 교체(시가 매수/매도).",
         },
         "catalysts": catalysts,
     }
-    await ctx.log("ok", f"[reco] {as_of} buy_now="
-                  f"{[p['symbol'] for p in out['buy_now']]} "
-                  f"buy={buy_date} next_rebal={next_rebal}")
+    await ctx.log(
+        "ok",
+        f"[reco] {as_of} buy_now="
+        f"{[p['symbol'] for p in out['buy_now']]} "
+        f"buy={buy_date} next_rebal={next_rebal}",
+    )
     return out
 
 
@@ -2040,30 +2455,31 @@ async def task_earnings_history(ctx: Ctx) -> dict:
     targets = await _symbols_due_for_report(days)
     if not targets:
         await ctx.log("ok", f"earnings_history skip: 발표일 기준 due 종목 0개")
-        return {"status": "skipped_no_due", "due_count": 0,
-                "threshold_days": days}
-    await ctx.log("info",
-                  f"earnings_history: due {len(targets)}종목만 재수집")
+        return {"status": "skipped_no_due", "due_count": 0, "threshold_days": days}
+    await ctx.log("info", f"earnings_history: due {len(targets)}종목만 재수집")
 
     api_key = os.getenv("ALPHAVANTAGE_API_KEY")
     if not api_key:
         raise RuntimeError("ALPHAVANTAGE_API_KEY not set")
 
     from us.alphavantage import EarningsHistoryCollector
+
     async with capture_logs(ctx), monitor_progress(
-        ctx,
-        "SELECT COUNT(*) FROM us_earnings_history",
-        "us_earnings_history rows", interval=30):
-        col = EarningsHistoryCollector(api_key, DATABASE_URL,
-                                       max_concurrent=3,
-                                       target_symbols=targets)
+        ctx, "SELECT COUNT(*) FROM us_earnings_history", "us_earnings_history rows", interval=30
+    ):
+        col = EarningsHistoryCollector(api_key, DATABASE_URL, max_concurrent=3, target_symbols=targets)
         result = await col.run_collection()
     return result
 
 
 async def _compute_stock_basic_window(
-    pool, load_start, load_end, output_start, output_end,
-    *, api_df=None,
+    pool,
+    load_start,
+    load_end,
+    output_start,
+    output_end,
+    *,
+    api_df=None,
 ) -> "tuple[int, int]":
     """Pure compute helper — 하나의 [load_start, load_end] 윈도우 처리.
 
@@ -2083,8 +2499,15 @@ async def _compute_stock_basic_window(
 
     async with pool.acquire() as conn:
         daily_rows = await conn.fetch(
-            "SELECT symbol, date, close FROM us_daily "
-            "WHERE date BETWEEN $1 AND $2", load_start, load_end)
+            "SELECT symbol, date, close FROM us_daily " "WHERE date BETWEEN $1 AND $2", load_start, load_end
+        )
+        # SPY = beta 계산용 market proxy (252d rolling 회귀). load 윈도우 전체를
+        # 가져와 lookback 기간 returns 까지 확보.
+        spy_rows = await conn.fetch(
+            "SELECT date, close FROM us_daily_etf "
+            "WHERE symbol='SPY' AND date BETWEEN $1 AND $2 ORDER BY date",
+            load_start, load_end,
+        )
         inc_rows = await conn.fetch(
             """SELECT symbol, fiscal_date_ending, available_at,
                       net_income, total_revenue, operating_income,
@@ -2092,7 +2515,9 @@ async def _compute_stock_basic_window(
                FROM us_income_statement
                WHERE fiscal_date_ending >= $1::date - INTERVAL '5 years'
                  AND fiscal_date_ending <= $2::date""",
-            load_start, load_end)
+            load_start,
+            load_end,
+        )
         bal_rows = await conn.fetch(
             """SELECT symbol, fiscal_date_ending, available_at,
                       total_assets, total_shareholder_equity,
@@ -2102,167 +2527,349 @@ async def _compute_stock_basic_window(
                FROM us_balance_sheet
                WHERE fiscal_date_ending >= $1::date - INTERVAL '5 years'
                  AND fiscal_date_ending <= $2::date""",
-            load_start, load_end)
+            load_start,
+            load_end,
+        )
+        # 배당 이력 — 시점별 exdividenddate/dividenddate as-of 용 (load_end 까지).
+        div_rows = await conn.fetch(
+            "SELECT symbol, ex_dividend_date, payment_date, amount FROM us_dividends "
+            "WHERE ex_dividend_date <= $1::date",
+            load_end,
+        )
         if api_df is None:
-            api_rows = await conn.fetch(
-                """SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
+            # peg, forwardpe, analysttargetprice 는 AV OVERVIEW (= source='api')
+            # 에 들어있어서 가장 최근 snapshot 을 computed 행에 propagate.
+            # 시점-aware 가 아니라 가장 최근 값을 모든 시점에 동일 적용 (사용자
+            # 의도 "있으면 쓰는" — historical 정확도 보다 sub-indicator 활성 우선).
+            api_rows = await conn.fetch("""SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
                           currency, sector, industry, beta, is_active,
-                          sharesoutstanding AS api_shares
+                          assettype, description, cik, country, address,
+                          officialsite, fiscalyearend,
+                          sharesoutstanding AS api_shares,
+                          peg AS api_peg,
+                          forwardpe AS api_forwardpe,
+                          analysttargetprice AS api_target_price,
+                          dividendpershare AS api_divps,
+                          dividendyield AS api_divyield
                    FROM us_stock_basic WHERE source='api'
                    ORDER BY symbol, date DESC""")
-            api_df = pd.DataFrame(api_rows,
-                columns=['symbol', 'stock_name', 'exchange', 'currency',
-                         'sector', 'industry', 'beta', 'is_active', 'api_shares'])
+            api_df = pd.DataFrame(
+                api_rows,
+                columns=[
+                    "symbol",
+                    "stock_name",
+                    "exchange",
+                    "currency",
+                    "sector",
+                    "industry",
+                    "beta",
+                    "is_active",
+                    "assettype",
+                    "description",
+                    "cik",
+                    "country",
+                    "address",
+                    "officialsite",
+                    "fiscalyearend",
+                    "api_shares",
+                    "api_peg",
+                    "api_forwardpe",
+                    "api_target_price",
+                    "api_divps",
+                    "api_divyield",
+                ],
+            )
 
-    logger.info(f"[compute_window {output_start}~{output_end}] "
-                f"loaded daily={len(daily_rows)} inc={len(inc_rows)} bal={len(bal_rows)}")
+    logger.info(
+        f"[compute_window {output_start}~{output_end}] "
+        f"loaded daily={len(daily_rows)} inc={len(inc_rows)} bal={len(bal_rows)}"
+    )
 
     if not daily_rows:
         return 0, 0
 
-    daily_df = pd.DataFrame(daily_rows, columns=['symbol', 'date', 'close'])
-    daily_df['date'] = pd.to_datetime(daily_df['date'])
-    daily_df['close'] = daily_df['close'].astype('float64')
+    daily_df = pd.DataFrame(daily_rows, columns=["symbol", "date", "close"])
+    daily_df["date"] = pd.to_datetime(daily_df["date"])
+    daily_df["close"] = daily_df["close"].astype("float64")
 
     # ---------- financials → TTM + YoY ----------
     if inc_rows or bal_rows:
-        inc_df = pd.DataFrame(inc_rows, columns=[
-            'symbol', 'fiscal_date_ending', 'available_at_inc',
-            'net_income', 'total_revenue', 'operating_income',
-            'gross_profit', 'ebitda'])
-        bal_df = pd.DataFrame(bal_rows, columns=[
-            'symbol', 'fiscal_date_ending', 'available_at_bal',
-            'total_assets', 'total_shareholder_equity',
-            'common_stock_shares_outstanding',
-            'short_long_term_debt_total',
-            'cash_and_short_term_investments'])
-        fin_df = pd.merge(inc_df, bal_df,
-                          on=['symbol', 'fiscal_date_ending'], how='outer')
+        inc_df = pd.DataFrame(
+            inc_rows,
+            columns=[
+                "symbol",
+                "fiscal_date_ending",
+                "available_at_inc",
+                "net_income",
+                "total_revenue",
+                "operating_income",
+                "gross_profit",
+                "ebitda",
+            ],
+        )
+        bal_df = pd.DataFrame(
+            bal_rows,
+            columns=[
+                "symbol",
+                "fiscal_date_ending",
+                "available_at_bal",
+                "total_assets",
+                "total_shareholder_equity",
+                "common_stock_shares_outstanding",
+                "short_long_term_debt_total",
+                "cash_and_short_term_investments",
+            ],
+        )
+        fin_df = pd.merge(inc_df, bal_df, on=["symbol", "fiscal_date_ending"], how="outer")
         del inc_df, bal_df
     else:
-        fin_df = pd.DataFrame(columns=['symbol', 'fiscal_date_ending'])
+        fin_df = pd.DataFrame(columns=["symbol", "fiscal_date_ending"])
 
     if not fin_df.empty:
-        fin_df['fiscal_date_ending'] = pd.to_datetime(fin_df['fiscal_date_ending'])
-        fin_df = fin_df.sort_values(['symbol', 'fiscal_date_ending']).reset_index(drop=True)
+        fin_df["fiscal_date_ending"] = pd.to_datetime(fin_df["fiscal_date_ending"])
+        fin_df = fin_df.sort_values(["symbol", "fiscal_date_ending"]).reset_index(drop=True)
 
-        num_cols = ['net_income', 'total_revenue', 'operating_income',
-                    'gross_profit', 'ebitda',
-                    'total_assets', 'total_shareholder_equity',
-                    'common_stock_shares_outstanding',
-                    'short_long_term_debt_total',
-                    'cash_and_short_term_investments']
+        num_cols = [
+            "net_income",
+            "total_revenue",
+            "operating_income",
+            "gross_profit",
+            "ebitda",
+            "total_assets",
+            "total_shareholder_equity",
+            "common_stock_shares_outstanding",
+            "short_long_term_debt_total",
+            "cash_and_short_term_investments",
+        ]
         for c in num_cols:
-            fin_df[c] = pd.to_numeric(fin_df[c], errors='coerce')
+            fin_df[c] = pd.to_numeric(fin_df[c], errors="coerce")
 
-        grp = fin_df.groupby('symbol', sort=False)
-        for c in ['net_income', 'total_revenue', 'operating_income',
-                  'gross_profit', 'ebitda']:
-            fin_df[f'{c}_ttm'] = grp[c].transform(
-                lambda s: s.rolling(4, min_periods=1).sum())
-        for c in ['total_assets', 'total_shareholder_equity']:
-            fin_df[f'{c}_avg'] = grp[c].transform(
-                lambda s: s.rolling(2, min_periods=1).mean())
-        fin_df['net_income_4q_ago'] = grp['net_income'].shift(4)
-        fin_df['revenue_4q_ago'] = grp['total_revenue'].shift(4)
+        grp = fin_df.groupby("symbol", sort=False)
+        for c in ["net_income", "total_revenue", "operating_income", "gross_profit", "ebitda"]:
+            fin_df[f"{c}_ttm"] = grp[c].transform(lambda s: s.rolling(4, min_periods=1).sum())
+        for c in ["total_assets", "total_shareholder_equity"]:
+            fin_df[f"{c}_avg"] = grp[c].transform(lambda s: s.rolling(2, min_periods=1).mean())
+        fin_df["net_income_4q_ago"] = grp["net_income"].shift(4)
+        fin_df["revenue_4q_ago"] = grp["total_revenue"].shift(4)
 
-        fin_df['available_at'] = pd.to_datetime(
-            fin_df.get('available_at_inc')).fillna(
-            pd.to_datetime(fin_df.get('available_at_bal'))).fillna(
-            fin_df['fiscal_date_ending'] + pd.Timedelta(days=45))
-        fin_df = fin_df.dropna(subset=['available_at'])
-        fin_df = fin_df.sort_values('available_at', kind='mergesort').reset_index(drop=True)
+        fin_df["available_at"] = (
+            pd.to_datetime(fin_df.get("available_at_inc"))
+            .fillna(pd.to_datetime(fin_df.get("available_at_bal")))
+            .fillna(fin_df["fiscal_date_ending"] + pd.Timedelta(days=45))
+        )
+        fin_df = fin_df.dropna(subset=["available_at"])
+        fin_df = fin_df.sort_values("available_at", kind="mergesort").reset_index(drop=True)
 
-        daily_df_for_merge = daily_df.sort_values('date', kind='mergesort').reset_index(drop=True)
+        daily_df_for_merge = daily_df.sort_values("date", kind="mergesort").reset_index(drop=True)
         merged = pd.merge_asof(
-            daily_df_for_merge, fin_df,
-            left_on='date', right_on='available_at',
-            by='symbol', direction='backward')
+            daily_df_for_merge,
+            fin_df,
+            left_on="date",
+            right_on="available_at",
+            by="symbol",
+            direction="backward",
+        )
         del fin_df, daily_df_for_merge
     else:
         merged = daily_df.copy()
 
     # ---------- rolling (52w high/low, 50/200 MA) ----------
-    daily_df_sorted = daily_df.sort_values(['symbol', 'date']).reset_index(drop=True)
-    grpd = daily_df_sorted.groupby('symbol', sort=False)['close']
-    daily_df_sorted['week52high'] = grpd.transform(
-        lambda s: s.rolling(252, min_periods=1).max())
-    daily_df_sorted['week52low'] = grpd.transform(
-        lambda s: s.rolling(252, min_periods=1).min())
-    daily_df_sorted['day50movingaverage'] = grpd.transform(
-        lambda s: s.rolling(50, min_periods=1).mean())
-    daily_df_sorted['day200movingaverage'] = grpd.transform(
-        lambda s: s.rolling(200, min_periods=1).mean())
+    daily_df_sorted = daily_df.sort_values(["symbol", "date"]).reset_index(drop=True)
+    grpd = daily_df_sorted.groupby("symbol", sort=False)["close"]
+    daily_df_sorted["week52high"] = grpd.transform(lambda s: s.rolling(252, min_periods=1).max())
+    daily_df_sorted["week52low"] = grpd.transform(lambda s: s.rolling(252, min_periods=1).min())
+    daily_df_sorted["day50movingaverage"] = grpd.transform(lambda s: s.rolling(50, min_periods=1).mean())
+    daily_df_sorted["day200movingaverage"] = grpd.transform(lambda s: s.rolling(200, min_periods=1).mean())
 
-    merged = pd.merge(merged,
-        daily_df_sorted[['symbol', 'date', 'week52high', 'week52low',
-                         'day50movingaverage', 'day200movingaverage']],
-        on=['symbol', 'date'], how='left')
+    # ---------- 시점별 beta (252d daily, vs SPY) ----------
+    # look-ahead 방지: api 스냅샷 beta(현재값)를 과거 전 구간에 박는 대신,
+    # 각 (symbol, date) 에서 직전 252 거래일 daily 수익률을 SPY 대비 회귀.
+    #   beta = Cov(r_i, r_mkt) / Var(r_mkt)
+    #        = (n·Σxy − Σx·Σy) / (n·Σy² − (Σy)²)  (rolling 합으로 벡터화)
+    # 관측치 < 120 이면 NULL (신규 IPO/희소 종목 보호).
+    beta_map = None
+    if spy_rows:
+        spy_df = pd.DataFrame(spy_rows, columns=["date", "spy_close"])
+        spy_df["date"] = pd.to_datetime(spy_df["date"])
+        spy_df["spy_ret"] = spy_df["spy_close"].astype("float64").pct_change()
+        bdf = daily_df_sorted[["symbol", "date", "close"]].copy()
+        bdf["ret"] = bdf.groupby("symbol", sort=False)["close"].pct_change()
+        bdf = bdf.merge(spy_df[["date", "spy_ret"]], on="date", how="left")
+        bdf = bdf.dropna(subset=["ret", "spy_ret"])
+        if not bdf.empty:
+            bdf = bdf.sort_values(["symbol", "date"]).reset_index(drop=True)
+            bdf["xy"] = bdf["ret"] * bdf["spy_ret"]
+            bdf["yy"] = bdf["spy_ret"] * bdf["spy_ret"]
+            g = bdf.groupby("symbol", sort=False)
+            WIN, MINP = 252, 120
+
+            def _rsum(col):
+                return g[col].transform(lambda s: s.rolling(WIN, min_periods=MINP).sum())
+
+            cnt = g["ret"].transform(lambda s: s.rolling(WIN, min_periods=MINP).count())
+            sx, sy = _rsum("ret"), _rsum("spy_ret")
+            sxy, syy = _rsum("xy"), _rsum("yy")
+            denom = cnt * syy - sy * sy
+            bdf["beta_computed"] = (cnt * sxy - sx * sy) / denom.where(denom != 0)
+            beta_map = bdf[["symbol", "date", "beta_computed"]]
+        del bdf, spy_df
+
+    merged = pd.merge(
+        merged,
+        daily_df_sorted[
+            ["symbol", "date", "week52high", "week52low", "day50movingaverage", "day200movingaverage"]
+        ],
+        on=["symbol", "date"],
+        how="left",
+    )
+    if beta_map is not None:
+        merged = pd.merge(merged, beta_map, on=["symbol", "date"], how="left")
+        del beta_map
+    else:
+        merged["beta_computed"] = np.nan
     del daily_df, daily_df_sorted
 
-    merged = merged.merge(api_df, on='symbol', how='left')
+    merged = merged.merge(api_df, on="symbol", how="left")
 
     # ---------- 17 컬럼 벡터 계산 ----------
-    so = merged.get('common_stock_shares_outstanding')
+    so = merged.get("common_stock_shares_outstanding")
     if so is None:
         so = pd.Series([np.nan] * len(merged))
-    so = so.fillna(merged['api_shares']).astype('float64')
-    close = merged['close']
+    so = so.fillna(merged["api_shares"]).astype("float64")
+    close = merged["close"]
 
     def _safe_div(num, den):
         d = den.where(den > 0)
         return num / d
 
-    merged['sharesoutstanding'] = so
-    merged['market_cap'] = (close * so).where(so > 0)
-    ni_ttm = merged.get('net_income_ttm', pd.Series([np.nan] * len(merged)))
-    merged['eps'] = _safe_div(ni_ttm, so)
-    merged['dilutedepsttm'] = merged['eps']
-    merged['per'] = _safe_div(close, merged['eps'])
-    equity = merged.get('total_shareholder_equity',
-                        pd.Series([np.nan] * len(merged)))
-    merged['bookvalue'] = _safe_div(equity, so)
-    merged['pricetobookratio'] = _safe_div(close, merged['bookvalue'])
-    rev_ttm = merged.get('total_revenue_ttm', pd.Series([np.nan] * len(merged)))
-    merged['revenuettm'] = rev_ttm
-    merged['grossprofitttm'] = merged.get('gross_profit_ttm')
-    merged['profitmargin'] = _safe_div(ni_ttm, rev_ttm)
-    merged['operatingmarginttm'] = _safe_div(
-        merged.get('operating_income_ttm',
-                   pd.Series([np.nan] * len(merged))), rev_ttm)
-    merged['returnonequityttm'] = _safe_div(ni_ttm,
-        merged.get('total_shareholder_equity_avg',
-                   pd.Series([np.nan] * len(merged))))
-    merged['returnonassetsttm'] = _safe_div(ni_ttm,
-        merged.get('total_assets_avg',
-                   pd.Series([np.nan] * len(merged))))
-    merged['pricetosalesratiottm'] = _safe_div(merged['market_cap'], rev_ttm)
-    debt = merged.get('short_long_term_debt_total',
-                      pd.Series([np.nan] * len(merged))).fillna(0)
-    cash = merged.get('cash_and_short_term_investments',
-                      pd.Series([np.nan] * len(merged))).fillna(0)
-    ev = merged['market_cap'].fillna(0) + debt - cash
-    merged['evtorevenue'] = _safe_div(ev, rev_ttm)
-    merged['evtoebitda'] = _safe_div(ev,
-        merged.get('ebitda_ttm', pd.Series([np.nan] * len(merged))))
-    ni = merged.get('net_income', pd.Series([np.nan] * len(merged)))
-    ni_yoy_base = merged.get('net_income_4q_ago',
-                             pd.Series([np.nan] * len(merged)))
-    rev = merged.get('total_revenue', pd.Series([np.nan] * len(merged)))
-    rev_yoy_base = merged.get('revenue_4q_ago',
-                              pd.Series([np.nan] * len(merged)))
-    merged['quarterlyearningsgrowthyoy'] = _safe_div(ni, ni_yoy_base.abs()) - 1
-    merged['quarterlyrevenuegrowthyoy'] = _safe_div(rev, rev_yoy_base.abs()) - 1
+    merged["sharesoutstanding"] = so
+    merged["market_cap"] = (close * so).where(so > 0)
+    ni_ttm = merged.get("net_income_ttm", pd.Series([np.nan] * len(merged)))
+    merged["eps"] = _safe_div(ni_ttm, so)
+    merged["dilutedepsttm"] = merged["eps"]
+    merged["per"] = _safe_div(close, merged["eps"])
+    equity = merged.get("total_shareholder_equity", pd.Series([np.nan] * len(merged)))
+    merged["bookvalue"] = _safe_div(equity, so)
+    merged["pricetobookratio"] = _safe_div(close, merged["bookvalue"])
+    rev_ttm = merged.get("total_revenue_ttm", pd.Series([np.nan] * len(merged)))
+    merged["revenuettm"] = rev_ttm
+    merged["grossprofitttm"] = merged.get("gross_profit_ttm")
+    merged["profitmargin"] = _safe_div(ni_ttm, rev_ttm)
+    merged["operatingmarginttm"] = _safe_div(
+        merged.get("operating_income_ttm", pd.Series([np.nan] * len(merged))), rev_ttm
+    )
+    merged["returnonequityttm"] = _safe_div(
+        ni_ttm, merged.get("total_shareholder_equity_avg", pd.Series([np.nan] * len(merged)))
+    )
+    merged["returnonassetsttm"] = _safe_div(
+        ni_ttm, merged.get("total_assets_avg", pd.Series([np.nan] * len(merged)))
+    )
+    merged["pricetosalesratiottm"] = _safe_div(merged["market_cap"], rev_ttm)
+    debt = merged.get("short_long_term_debt_total", pd.Series([np.nan] * len(merged))).fillna(0)
+    cash = merged.get("cash_and_short_term_investments", pd.Series([np.nan] * len(merged))).fillna(0)
+    ev = merged["market_cap"].fillna(0) + debt - cash
+    merged["evtorevenue"] = _safe_div(ev, rev_ttm)
+    merged["evtoebitda"] = _safe_div(ev, merged.get("ebitda_ttm", pd.Series([np.nan] * len(merged))))
+    ni = merged.get("net_income", pd.Series([np.nan] * len(merged)))
+    ni_yoy_base = merged.get("net_income_4q_ago", pd.Series([np.nan] * len(merged)))
+    rev = merged.get("total_revenue", pd.Series([np.nan] * len(merged)))
+    rev_yoy_base = merged.get("revenue_4q_ago", pd.Series([np.nan] * len(merged)))
+    merged["quarterlyearningsgrowthyoy"] = _safe_div(ni, ni_yoy_base.abs()) - 1
+    merged["quarterlyrevenuegrowthyoy"] = _safe_div(rev, rev_yoy_base.abs()) - 1
 
-    merged['market_cap'] = merged['market_cap'].astype('Float64').round().astype('Int64')
+    # 추가 computable 컬럼 (quant 사용분 보강, 시점별 정확):
+    #   ebitda            = TTM EBITDA (evtoebitda 에 쓰던 ebitda_ttm 을 저장)
+    #   trailingpe        = close / dilutedepsttm (= per 와 동일 trailing 계산)
+    #   revenuepersharettm= revenuettm / sharesoutstanding
+    merged["ebitda"] = merged.get("ebitda_ttm", pd.Series([np.nan] * len(merged)))
+    merged["trailingpe"] = merged["per"]
+    merged["revenuepersharettm"] = _safe_div(rev_ttm, so)
+
+    # B: api 메타에서 peg/forwardpe/target_price propagate.
+    # 시점-aware 아닌 latest snapshot — RV1 (PEG) / RV2 (Forward PE) / RV6 (price
+    # to target) 활성용. 데이터 없는 종목은 NaN → quant 가 score=None 처리.
+    # forwardpe / peg / analysttargetprice 는 forward 추정·현재 애널리스트 컨센서스라
+    # PIT historical 값이 없다. 과거 시점에 현재 스냅샷을 박으면 look-ahead 가 되므로
+    # NULL 로 둔다(quant 가 no_data 처리 → RV1/RV2/RV6 historical 비활성).
+    # dividendpershare/dividendyield 는 아래 배당 블록에서 us_dividends 로 PIT 계산.
+    # peg(trailing): PE / 연 EPS성장률(%). per>0 & 성장률>0 에서만 정의(아니면 NULL).
+    # forward-PEG 가 아니라 trailing 이라 look-ahead 없는 PIT (RV1 활성용).
+    _peg_growth_pct = merged["quarterlyearningsgrowthyoy"] * 100.0
+    merged["peg"] = (merged["per"] / _peg_growth_pct).where(
+        (_peg_growth_pct > 0) & (merged["per"] > 0)
+    )
+    merged["forwardpe"] = None
+    merged["analysttargetprice"] = None
+    # latestquarter: asof 로 매칭된 최근 분기 fiscal_date_ending (PIT 정확).
+    if "fiscal_date_ending" in merged.columns:
+        merged["latestquarter"] = pd.to_datetime(merged["fiscal_date_ending"]).dt.date
+    else:
+        merged["latestquarter"] = None
+
+    merged["market_cap"] = merged["market_cap"].astype("Float64").round().astype("Int64")
+
+    # ---------- 배당 as-of (PIT): exdividenddate/dividenddate + 배당지표 ----------
+    # 각 (symbol, date) 에서 ex_dividend_date <= date 인 가장 최근 배당 매칭.
+    #   exdividenddate = 그 ex-배당일, dividenddate = 그 배당의 지급일.
+    #   dividendpershare = 직전 12개월 배당 합(누적합 asof 차분), dividendyield = ÷종가.
+    # 배당이력 없는 시점은 NULL (carry-over 대신 PIT — look-ahead 방지).
+    if div_rows:
+        div_df = pd.DataFrame(
+            div_rows, columns=["symbol", "ex_dividend_date", "payment_date", "amount"]
+        )
+        # 날짜 키는 모두 datetime64[ns] 로 통일 (pandas 2.x 의 us/s 해상도 혼합 →
+        # merge_asof "incompatible merge keys" 회피).
+        div_df["ex_dividend_date"] = pd.to_datetime(div_df["ex_dividend_date"]).astype("datetime64[ns]")
+        div_df["payment_date"] = pd.to_datetime(div_df["payment_date"]).astype("datetime64[ns]")
+        div_df["amount"] = pd.to_numeric(div_df["amount"], errors="coerce").fillna(0.0)
+        div_df = (
+            div_df.dropna(subset=["ex_dividend_date"])
+            .sort_values(["symbol", "ex_dividend_date"], kind="mergesort")
+            .reset_index(drop=True)
+        )
+        div_df["cum_amt"] = div_df.groupby("symbol", sort=False)["amount"].cumsum()
+
+        merged["date"] = pd.to_datetime(merged["date"]).astype("datetime64[ns]")
+        merged = merged.sort_values("date", kind="mergesort").reset_index(drop=True)
+        # (1) 최근 배당 + 그 시점까지 누적 배당합
+        right1 = div_df[["symbol", "ex_dividend_date", "payment_date", "cum_amt"]].sort_values(
+            "ex_dividend_date", kind="mergesort"
+        )
+        merged = pd.merge_asof(
+            merged, right1, left_on="date", right_on="ex_dividend_date",
+            by="symbol", direction="backward",
+        )
+        merged["exdividenddate"] = merged["ex_dividend_date"].dt.date
+        merged["dividenddate"] = merged["payment_date"].dt.date
+        cum_now = merged["cum_amt"]
+        # (2) 365일 전 시점까지 누적합 → trailing 12mo = cum_now - cum_365
+        b365 = merged[["symbol", "date"]].reset_index()
+        b365["d365"] = (merged["date"] - pd.Timedelta(days=365)).astype("datetime64[ns]")
+        b365 = b365.sort_values("d365", kind="mergesort")
+        right2 = (
+            div_df[["symbol", "ex_dividend_date", "cum_amt"]]
+            .rename(columns={"cum_amt": "cum_365"})
+            .sort_values("ex_dividend_date", kind="mergesort")
+        )
+        m365 = pd.merge_asof(
+            b365, right2, left_on="d365", right_on="ex_dividend_date",
+            by="symbol", direction="backward",
+        ).set_index("index").sort_index()
+        dps = (cum_now - m365["cum_365"].fillna(0.0)).where(cum_now.notna())
+        merged["dividendpershare"] = dps
+        merged["dividendyield"] = (dps / merged["close"]).where(merged["close"] > 0)
+    else:
+        merged["exdividenddate"] = None
+        merged["dividenddate"] = None
+        merged["dividendpershare"] = None
+        merged["dividendyield"] = None
 
     # ---------- 출력 윈도우 필터 (lookback row drop) ----------
     out_start_ts = pd.Timestamp(output_start)
     out_end_ts = pd.Timestamp(output_end)
-    merged = merged[(merged['date'] >= out_start_ts) & (merged['date'] <= out_end_ts)]
+    merged = merged[(merged["date"] >= out_start_ts) & (merged["date"] <= out_end_ts)]
     merged = merged.reset_index(drop=True)
-    logger.info(f"[compute_window {output_start}~{output_end}] "
-                f"after output filter: {len(merged)} rows")
+    logger.info(f"[compute_window {output_start}~{output_end}] " f"after output filter: {len(merged)} rows")
 
     if merged.empty:
         return 0, 0
@@ -2270,39 +2877,115 @@ async def _compute_stock_basic_window(
     # ---------- INSERT ----------
     now_ts = datetime.now(timezone.utc)
     insert_cols = [
-        'symbol', 'date', 'source',
-        'market_cap', 'per', 'pricetobookratio',
-        'eps', 'dilutedepsttm', 'bookvalue', 'sharesoutstanding',
-        'revenuettm', 'grossprofitttm',
-        'profitmargin', 'operatingmarginttm',
-        'returnonequityttm', 'returnonassetsttm',
-        'pricetosalesratiottm', 'evtorevenue', 'evtoebitda',
-        'quarterlyearningsgrowthyoy', 'quarterlyrevenuegrowthyoy',
-        'week52high', 'week52low',
-        'day50movingaverage', 'day200movingaverage',
-        'stock_name', 'exchange', 'currency', 'sector', 'industry',
-        'beta', 'is_active', 'created_at', 'updated_at',
+        "symbol",
+        "date",
+        "source",
+        "market_cap",
+        "per",
+        "pricetobookratio",
+        "eps",
+        "dilutedepsttm",
+        "bookvalue",
+        "sharesoutstanding",
+        "revenuettm",
+        "grossprofitttm",
+        "profitmargin",
+        "operatingmarginttm",
+        "returnonequityttm",
+        "returnonassetsttm",
+        "pricetosalesratiottm",
+        "evtorevenue",
+        "evtoebitda",
+        "quarterlyearningsgrowthyoy",
+        "quarterlyrevenuegrowthyoy",
+        "week52high",
+        "week52low",
+        "day50movingaverage",
+        "day200movingaverage",
+        "ebitda",
+        "trailingpe",
+        "revenuepersharettm",
+        # B: 신규 propagated 컬럼 (RV1 / RV2 / RV6 활성용)
+        "peg",
+        "forwardpe",
+        "analysttargetprice",
+        "dividendpershare",
+        "dividendyield",
+        "exdividenddate",
+        "dividenddate",
+        "latestquarter",
+        "assettype",
+        "description",
+        "cik",
+        "country",
+        "address",
+        "officialsite",
+        "fiscalyearend",
+        "stock_name",
+        "exchange",
+        "currency",
+        "sector",
+        "industry",
+        "beta",
+        "is_active",
+        "created_at",
+        "updated_at",
     ]
 
     out = pd.DataFrame()
-    out['symbol'] = merged['symbol']
-    out['date'] = merged['date'].dt.date
-    out['source'] = 'computed'
-    for c in ['market_cap', 'per', 'pricetobookratio',
-              'eps', 'dilutedepsttm', 'bookvalue', 'sharesoutstanding',
-              'revenuettm', 'grossprofitttm',
-              'profitmargin', 'operatingmarginttm',
-              'returnonequityttm', 'returnonassetsttm',
-              'pricetosalesratiottm', 'evtorevenue', 'evtoebitda',
-              'quarterlyearningsgrowthyoy', 'quarterlyrevenuegrowthyoy',
-              'week52high', 'week52low',
-              'day50movingaverage', 'day200movingaverage']:
+    out["symbol"] = merged["symbol"]
+    out["date"] = merged["date"].dt.date
+    out["source"] = "computed"
+    for c in [
+        "market_cap",
+        "per",
+        "pricetobookratio",
+        "eps",
+        "dilutedepsttm",
+        "bookvalue",
+        "sharesoutstanding",
+        "revenuettm",
+        "grossprofitttm",
+        "profitmargin",
+        "operatingmarginttm",
+        "returnonequityttm",
+        "returnonassetsttm",
+        "pricetosalesratiottm",
+        "evtorevenue",
+        "evtoebitda",
+        "quarterlyearningsgrowthyoy",
+        "quarterlyrevenuegrowthyoy",
+        "week52high",
+        "week52low",
+        "day50movingaverage",
+        "day200movingaverage",
+        "ebitda",
+        "trailingpe",
+        "revenuepersharettm",
+        "peg",
+        "forwardpe",
+        "analysttargetprice",
+        "dividendpershare",
+        "dividendyield",
+    ]:
         out[c] = merged[c] if c in merged.columns else None
-    for c in ['stock_name', 'exchange', 'currency', 'sector', 'industry',
-              'beta', 'is_active']:
+    for c in ["stock_name", "exchange", "currency", "sector", "industry",
+              "assettype", "description", "cik", "country", "address",
+              "officialsite", "fiscalyearend"]:
         out[c] = merged[c]
-    out['created_at'] = now_ts
-    out['updated_at'] = now_ts
+    out["latestquarter"] = merged["latestquarter"]
+    out["exdividenddate"] = merged["exdividenddate"]
+    out["dividenddate"] = merged["dividenddate"]
+    # is_active 는 NOT NULL 컬럼. api 스냅샷에 없는 us_daily 종목(폐지/units/
+    # stock_basic 에러분 등 ~수백개)은 api_df left-merge 결과 NaN → False 로
+    # 채운다(활성 universe 오염 방지 + NotNullViolation 회피). 가격기반 컬럼
+    # (52w/MA/beta)은 그대로 유지.
+    out["is_active"] = merged["is_active"].fillna(False).astype(bool)
+    # beta 는 carry-over(현재 스냅샷) 대신 시점별 252d rolling 회귀값 사용.
+    # 관측치 부족 행은 NaN → 아래 None 정규화로 NULL 저장.
+    out["beta"] = merged["beta_computed"] if "beta_computed" in merged.columns else None
+    out["created_at"] = now_ts
+    out["updated_at"] = now_ts
 
     out = out.astype(object).where(pd.notna(out), None)
 
@@ -2313,10 +2996,9 @@ async def _compute_stock_basic_window(
             return int(v)
         except (TypeError, ValueError):
             return None
-    for _bc in ('market_cap', 'revenuettm', 'grossprofitttm', 'sharesoutstanding'):
-        out[_bc] = pd.Series(
-            [_to_bigint(v) for v in out[_bc]],
-            index=out.index, dtype=object)
+
+    for _bc in ("market_cap", "revenuettm", "grossprofitttm", "sharesoutstanding", "ebitda"):
+        out[_bc] = pd.Series([_to_bigint(v) for v in out[_bc]], index=out.index, dtype=object)
 
     records = list(out[insert_cols].itertuples(index=False, name=None))
     total_records = len(records)
@@ -2331,15 +3013,14 @@ async def _compute_stock_basic_window(
                 CREATE TEMP TABLE _us_stock_basic_compute (LIKE us_stock_basic
                 INCLUDING DEFAULTS) ON COMMIT DROP""")
             for i in range(0, total_records, CHUNK):
-                chunk = records[i:i + CHUNK]
+                chunk = records[i : i + CHUNK]
                 await conn.copy_records_to_table(
-                    '_us_stock_basic_compute',
-                    records=chunk, columns=insert_cols)
+                    "_us_stock_basic_compute", records=chunk, columns=insert_cols
+                )
                 inserted += len(chunk)
                 logger.info(f"  staged {inserted}/{total_records}")
-            update_cols = [c for c in insert_cols
-                           if c not in ('symbol', 'date', 'source', 'created_at')]
-            set_clause = ', '.join(f"{c} = EXCLUDED.{c}" for c in update_cols)
+            update_cols = [c for c in insert_cols if c not in ("symbol", "date", "source", "created_at")]
+            set_clause = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_cols)
             await conn.execute(f"""
                 INSERT INTO us_stock_basic ({', '.join(insert_cols)})
                 SELECT {', '.join(insert_cols)} FROM _us_stock_basic_compute
@@ -2404,59 +3085,101 @@ async def task_us_stock_basic_compute(ctx: Ctx) -> dict:
         chunks.append((cs, ce))
         cs = ce + timedelta(days=1)
 
-    await ctx.log("info",
-                  f"stock_basic_compute: window {overall_out_start}~{overall_out_end} "
-                  f"→ {len(chunks)} chunks ({chunk_days}d each, daily lookback {daily_lookback}d)")
+    await ctx.log(
+        "info",
+        f"stock_basic_compute: window {overall_out_start}~{overall_out_end} "
+        f"→ {len(chunks)} chunks ({chunk_days}d each, daily lookback {daily_lookback}d)",
+    )
 
     async with capture_logs(ctx), monitor_progress(
         ctx,
         "SELECT COUNT(*) FROM us_stock_basic WHERE source='computed'",
-        "us_stock_basic computed rows", interval=60):
+        "us_stock_basic computed rows",
+        interval=60,
+    ):
 
         pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=5)
         try:
             # api 메타는 한 번만 로드 → 청크 간 공유
             async with pool.acquire() as conn:
-                api_rows = await conn.fetch(
-                    """SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
+                api_rows = await conn.fetch("""SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
                               currency, sector, industry, beta, is_active,
-                              sharesoutstanding AS api_shares
+                              assettype, description, cik, country, address,
+                              officialsite, fiscalyearend,
+                              sharesoutstanding AS api_shares,
+                              peg AS api_peg,
+                              forwardpe AS api_forwardpe,
+                              analysttargetprice AS api_target_price,
+                              dividendpershare AS api_divps,
+                              dividendyield AS api_divyield
                        FROM us_stock_basic WHERE source='api'
                        ORDER BY symbol, date DESC""")
-            api_df = pd.DataFrame(api_rows,
-                columns=['symbol', 'stock_name', 'exchange', 'currency',
-                         'sector', 'industry', 'beta', 'is_active', 'api_shares'])
+            api_df = pd.DataFrame(
+                api_rows,
+                columns=[
+                    "symbol",
+                    "stock_name",
+                    "exchange",
+                    "currency",
+                    "sector",
+                    "industry",
+                    "beta",
+                    "is_active",
+                    "assettype",
+                    "description",
+                    "cik",
+                    "country",
+                    "address",
+                    "officialsite",
+                    "fiscalyearend",
+                    "api_shares",
+                    "api_peg",
+                    "api_forwardpe",
+                    "api_target_price",
+                    "api_divps",
+                    "api_divyield",
+                ],
+            )
             await ctx.log("info", f"api_meta loaded: {len(api_df)} symbols")
 
             grand_inserted = 0
             grand_total = 0
             for i, (out_start, out_end) in enumerate(chunks, 1):
                 load_start = out_start - timedelta(days=daily_lookback)
-                await ctx.log("info",
-                              f"chunk {i}/{len(chunks)} out=[{out_start}~{out_end}] "
-                              f"load=[{load_start}~{out_end}]")
+                await ctx.log(
+                    "info",
+                    f"chunk {i}/{len(chunks)} out=[{out_start}~{out_end}] "
+                    f"load=[{load_start}~{out_end}]",
+                )
                 inserted, total = await _compute_stock_basic_window(
-                    pool, load_start, out_end, out_start, out_end, api_df=api_df)
+                    pool, load_start, out_end, out_start, out_end, api_df=api_df
+                )
                 grand_inserted += inserted
                 grand_total += total
-                await ctx.log("info",
-                              f"chunk {i}/{len(chunks)} done: {inserted} rows staged "
-                              f"(cumulative {grand_inserted})")
+                await ctx.log(
+                    "info",
+                    f"chunk {i}/{len(chunks)} done: {inserted} rows staged "
+                    f"(cumulative {grand_inserted})",
+                )
 
             # 최종 카운트
             async with pool.acquire() as conn:
                 computed_count = await conn.fetchval(
                     """SELECT COUNT(*) FROM us_stock_basic
                        WHERE source='computed' AND date BETWEEN $1 AND $2""",
-                    overall_out_start, overall_out_end)
+                    overall_out_start,
+                    overall_out_end,
+                )
         finally:
             await pool.close()
 
-    return {"computed_rows": computed_count,
-            "date_range": f"{overall_out_start.isoformat()}~{overall_out_end.isoformat()}",
-            "chunks": len(chunks),
-            "staged": grand_inserted,
-            "total_records_across_chunks": grand_total}
+    return {
+        "computed_rows": computed_count,
+        "date_range": f"{overall_out_start.isoformat()}~{overall_out_end.isoformat()}",
+        "chunks": len(chunks),
+        "staged": grand_inserted,
+        "total_records_across_chunks": grand_total,
+    }
 
 
 async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
@@ -2474,22 +3197,25 @@ async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
     async with capture_logs(ctx), monitor_progress(
         ctx,
         "SELECT COUNT(*) FROM us_stock_basic WHERE source='computed'",
-        "us_stock_basic computed rows", interval=60):
+        "us_stock_basic computed rows",
+        interval=60,
+    ):
 
         pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=5)
         try:
             # ---------- 1) 모든 소스 데이터 한 번에 로드 ----------
             async with pool.acquire() as conn:
                 daily_rows = await conn.fetch(
-                    "SELECT symbol, date, close FROM us_daily "
-                    "WHERE date BETWEEN $1 AND $2", start, end)
+                    "SELECT symbol, date, close FROM us_daily " "WHERE date BETWEEN $1 AND $2", start, end
+                )
                 inc_rows = await conn.fetch(
                     """SELECT symbol, fiscal_date_ending, available_at,
                               net_income, total_revenue, operating_income,
                               gross_profit, ebitda
                        FROM us_income_statement
                        WHERE fiscal_date_ending >= $1::date - INTERVAL '5 years'""",
-                    start)
+                    start,
+                )
                 bal_rows = await conn.fetch(
                     """SELECT symbol, fiscal_date_ending, available_at,
                               total_assets, total_shareholder_equity,
@@ -2498,212 +3224,293 @@ async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
                               cash_and_short_term_investments
                        FROM us_balance_sheet
                        WHERE fiscal_date_ending >= $1::date - INTERVAL '5 years'""",
-                    start)
-                api_rows = await conn.fetch(
-                    """SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
+                    start,
+                )
+                api_rows = await conn.fetch("""SELECT DISTINCT ON (symbol) symbol, stock_name, exchange,
                               currency, sector, industry, beta, is_active,
                               sharesoutstanding AS api_shares
                        FROM us_stock_basic WHERE source='api'
                        ORDER BY symbol, date DESC""")
 
-            logger.info(f"loaded: daily={len(daily_rows)} inc={len(inc_rows)} "
-                        f"bal={len(bal_rows)} api_meta={len(api_rows)}")
+            logger.info(
+                f"loaded: daily={len(daily_rows)} inc={len(inc_rows)} "
+                f"bal={len(bal_rows)} api_meta={len(api_rows)}"
+            )
 
             if not daily_rows:
                 return {"computed_rows": 0, "reason": "no us_daily rows in range"}
 
-            daily_df = pd.DataFrame(daily_rows, columns=['symbol', 'date', 'close'])
-            daily_df['date'] = pd.to_datetime(daily_df['date'])
-            daily_df['close'] = daily_df['close'].astype('float64')
+            daily_df = pd.DataFrame(daily_rows, columns=["symbol", "date", "close"])
+            daily_df["date"] = pd.to_datetime(daily_df["date"])
+            daily_df["close"] = daily_df["close"].astype("float64")
 
-            api_df = pd.DataFrame(api_rows,
-                columns=['symbol', 'stock_name', 'exchange', 'currency',
-                         'sector', 'industry', 'beta', 'is_active', 'api_shares'])
+            api_df = pd.DataFrame(
+                api_rows,
+                columns=[
+                    "symbol",
+                    "stock_name",
+                    "exchange",
+                    "currency",
+                    "sector",
+                    "industry",
+                    "beta",
+                    "is_active",
+                    "api_shares",
+                ],
+            )
 
             # ---------- 2) financials → 분기별 TTM + YoY ----------
             if inc_rows or bal_rows:
-                inc_df = pd.DataFrame(inc_rows, columns=[
-                    'symbol', 'fiscal_date_ending', 'available_at_inc',
-                    'net_income', 'total_revenue', 'operating_income',
-                    'gross_profit', 'ebitda'])
-                bal_df = pd.DataFrame(bal_rows, columns=[
-                    'symbol', 'fiscal_date_ending', 'available_at_bal',
-                    'total_assets', 'total_shareholder_equity',
-                    'common_stock_shares_outstanding',
-                    'short_long_term_debt_total',
-                    'cash_and_short_term_investments'])
-                fin_df = pd.merge(inc_df, bal_df,
-                                  on=['symbol', 'fiscal_date_ending'], how='outer')
+                inc_df = pd.DataFrame(
+                    inc_rows,
+                    columns=[
+                        "symbol",
+                        "fiscal_date_ending",
+                        "available_at_inc",
+                        "net_income",
+                        "total_revenue",
+                        "operating_income",
+                        "gross_profit",
+                        "ebitda",
+                    ],
+                )
+                bal_df = pd.DataFrame(
+                    bal_rows,
+                    columns=[
+                        "symbol",
+                        "fiscal_date_ending",
+                        "available_at_bal",
+                        "total_assets",
+                        "total_shareholder_equity",
+                        "common_stock_shares_outstanding",
+                        "short_long_term_debt_total",
+                        "cash_and_short_term_investments",
+                    ],
+                )
+                fin_df = pd.merge(inc_df, bal_df, on=["symbol", "fiscal_date_ending"], how="outer")
             else:
                 # financials 아직 적재 전 — 메타만 채운 row 적재
-                fin_df = pd.DataFrame(columns=['symbol', 'fiscal_date_ending'])
+                fin_df = pd.DataFrame(columns=["symbol", "fiscal_date_ending"])
 
             if not fin_df.empty:
-                fin_df['fiscal_date_ending'] = pd.to_datetime(fin_df['fiscal_date_ending'])
-                fin_df = fin_df.sort_values(['symbol', 'fiscal_date_ending']).reset_index(drop=True)
+                fin_df["fiscal_date_ending"] = pd.to_datetime(fin_df["fiscal_date_ending"])
+                fin_df = fin_df.sort_values(["symbol", "fiscal_date_ending"]).reset_index(drop=True)
 
                 # 모든 numeric 컬럼 float64
-                num_cols = ['net_income', 'total_revenue', 'operating_income',
-                            'gross_profit', 'ebitda',
-                            'total_assets', 'total_shareholder_equity',
-                            'common_stock_shares_outstanding',
-                            'short_long_term_debt_total',
-                            'cash_and_short_term_investments']
+                num_cols = [
+                    "net_income",
+                    "total_revenue",
+                    "operating_income",
+                    "gross_profit",
+                    "ebitda",
+                    "total_assets",
+                    "total_shareholder_equity",
+                    "common_stock_shares_outstanding",
+                    "short_long_term_debt_total",
+                    "cash_and_short_term_investments",
+                ]
                 for c in num_cols:
-                    fin_df[c] = pd.to_numeric(fin_df[c], errors='coerce')
+                    fin_df[c] = pd.to_numeric(fin_df[c], errors="coerce")
 
-                grp = fin_df.groupby('symbol', sort=False)
+                grp = fin_df.groupby("symbol", sort=False)
                 # TTM = trailing 4Q sum
-                for c in ['net_income', 'total_revenue', 'operating_income',
-                          'gross_profit', 'ebitda']:
-                    fin_df[f'{c}_ttm'] = grp[c].transform(
-                        lambda s: s.rolling(4, min_periods=1).sum())
+                for c in ["net_income", "total_revenue", "operating_income", "gross_profit", "ebitda"]:
+                    fin_df[f"{c}_ttm"] = grp[c].transform(lambda s: s.rolling(4, min_periods=1).sum())
                 # 분모용 2Q avg
-                for c in ['total_assets', 'total_shareholder_equity']:
-                    fin_df[f'{c}_avg'] = grp[c].transform(
-                        lambda s: s.rolling(2, min_periods=1).mean())
+                for c in ["total_assets", "total_shareholder_equity"]:
+                    fin_df[f"{c}_avg"] = grp[c].transform(lambda s: s.rolling(2, min_periods=1).mean())
                 # YoY = 4Q ago
-                fin_df['net_income_4q_ago'] = grp['net_income'].shift(4)
-                fin_df['revenue_4q_ago'] = grp['total_revenue'].shift(4)
+                fin_df["net_income_4q_ago"] = grp["net_income"].shift(4)
+                fin_df["revenue_4q_ago"] = grp["total_revenue"].shift(4)
 
                 # available_at: us_income_statement/us_balance_sheet 의 정밀 값 사용
                 # (이미 financials INSERT 시 us_earnings_history.reported_date 로 채워짐).
                 # 두 컬럼 중 우선 income, 없으면 balance, 둘 다 NULL 이면 +45일 fallback.
-                fin_df['available_at'] = pd.to_datetime(
-                    fin_df.get('available_at_inc')).fillna(
-                    pd.to_datetime(fin_df.get('available_at_bal'))).fillna(
-                    fin_df['fiscal_date_ending'] + pd.Timedelta(days=45))
-                fin_df = fin_df.dropna(subset=['available_at'])
+                fin_df["available_at"] = (
+                    pd.to_datetime(fin_df.get("available_at_inc"))
+                    .fillna(pd.to_datetime(fin_df.get("available_at_bal")))
+                    .fillna(fin_df["fiscal_date_ending"] + pd.Timedelta(days=45))
+                )
+                fin_df = fin_df.dropna(subset=["available_at"])
                 # merge_asof (pandas 3.x) requires the on-key globally monotonic
                 # even when `by` is used — single-key sort, not hierarchical.
-                fin_df = fin_df.sort_values('available_at', kind='mergesort').reset_index(drop=True)
+                fin_df = fin_df.sort_values("available_at", kind="mergesort").reset_index(drop=True)
 
                 # ---------- 3) as-of merge ----------
-                daily_df = daily_df.sort_values('date', kind='mergesort').reset_index(drop=True)
+                daily_df = daily_df.sort_values("date", kind="mergesort").reset_index(drop=True)
                 merged = pd.merge_asof(
-                    daily_df, fin_df,
-                    left_on='date', right_on='available_at',
-                    by='symbol', direction='backward')
+                    daily_df,
+                    fin_df,
+                    left_on="date",
+                    right_on="available_at",
+                    by="symbol",
+                    direction="backward",
+                )
             else:
                 merged = daily_df.copy()
 
             # ---------- 4) us_daily rolling — 52w high/low, 50/200 MA ----------
-            daily_df_sorted = daily_df.sort_values(['symbol', 'date']).reset_index(drop=True)
-            grpd = daily_df_sorted.groupby('symbol', sort=False)['close']
-            daily_df_sorted['week52high'] = grpd.transform(
-                lambda s: s.rolling(252, min_periods=1).max())
-            daily_df_sorted['week52low'] = grpd.transform(
-                lambda s: s.rolling(252, min_periods=1).min())
-            daily_df_sorted['day50movingaverage'] = grpd.transform(
-                lambda s: s.rolling(50, min_periods=1).mean())
-            daily_df_sorted['day200movingaverage'] = grpd.transform(
-                lambda s: s.rolling(200, min_periods=1).mean())
+            daily_df_sorted = daily_df.sort_values(["symbol", "date"]).reset_index(drop=True)
+            grpd = daily_df_sorted.groupby("symbol", sort=False)["close"]
+            daily_df_sorted["week52high"] = grpd.transform(lambda s: s.rolling(252, min_periods=1).max())
+            daily_df_sorted["week52low"] = grpd.transform(lambda s: s.rolling(252, min_periods=1).min())
+            daily_df_sorted["day50movingaverage"] = grpd.transform(
+                lambda s: s.rolling(50, min_periods=1).mean()
+            )
+            daily_df_sorted["day200movingaverage"] = grpd.transform(
+                lambda s: s.rolling(200, min_periods=1).mean()
+            )
 
-            merged = pd.merge(merged,
-                daily_df_sorted[['symbol', 'date', 'week52high', 'week52low',
-                                 'day50movingaverage', 'day200movingaverage']],
-                on=['symbol', 'date'], how='left')
+            merged = pd.merge(
+                merged,
+                daily_df_sorted[
+                    [
+                        "symbol",
+                        "date",
+                        "week52high",
+                        "week52low",
+                        "day50movingaverage",
+                        "day200movingaverage",
+                    ]
+                ],
+                on=["symbol", "date"],
+                how="left",
+            )
 
             # 메타 join
-            merged = merged.merge(api_df, on='symbol', how='left')
+            merged = merged.merge(api_df, on="symbol", how="left")
 
             # ---------- 5) 시점별 17 컬럼 벡터 계산 ----------
             # shares 출처: balance_sheet 의 시점별 값 우선, 없으면 today api 값 fallback
-            so = merged.get('common_stock_shares_outstanding')
+            so = merged.get("common_stock_shares_outstanding")
             if so is None:
                 so = pd.Series([np.nan] * len(merged))
-            so = so.fillna(merged['api_shares']).astype('float64')
-            close = merged['close']
+            so = so.fillna(merged["api_shares"]).astype("float64")
+            close = merged["close"]
 
             def _safe_div(num, den):
                 d = den.where(den > 0)
                 return num / d
 
-            merged['sharesoutstanding'] = so
-            merged['market_cap'] = (close * so).where(so > 0)
+            merged["sharesoutstanding"] = so
+            merged["market_cap"] = (close * so).where(so > 0)
             # eps_ttm = net_income_ttm / shares
-            ni_ttm = merged.get('net_income_ttm', pd.Series([np.nan] * len(merged)))
-            merged['eps'] = _safe_div(ni_ttm, so)
-            merged['dilutedepsttm'] = merged['eps']
-            merged['per'] = _safe_div(close, merged['eps'])
+            ni_ttm = merged.get("net_income_ttm", pd.Series([np.nan] * len(merged)))
+            merged["eps"] = _safe_div(ni_ttm, so)
+            merged["dilutedepsttm"] = merged["eps"]
+            merged["per"] = _safe_div(close, merged["eps"])
             # bookvalue per share
-            equity = merged.get('total_shareholder_equity',
-                                pd.Series([np.nan] * len(merged)))
-            merged['bookvalue'] = _safe_div(equity, so)
-            merged['pricetobookratio'] = _safe_div(close, merged['bookvalue'])
+            equity = merged.get("total_shareholder_equity", pd.Series([np.nan] * len(merged)))
+            merged["bookvalue"] = _safe_div(equity, so)
+            merged["pricetobookratio"] = _safe_div(close, merged["bookvalue"])
             # TTM aggregates
-            rev_ttm = merged.get('total_revenue_ttm', pd.Series([np.nan] * len(merged)))
-            merged['revenuettm'] = rev_ttm
-            merged['grossprofitttm'] = merged.get('gross_profit_ttm')
-            merged['profitmargin'] = _safe_div(ni_ttm, rev_ttm)
-            merged['operatingmarginttm'] = _safe_div(
-                merged.get('operating_income_ttm',
-                           pd.Series([np.nan] * len(merged))), rev_ttm)
-            merged['returnonequityttm'] = _safe_div(ni_ttm,
-                merged.get('total_shareholder_equity_avg',
-                           pd.Series([np.nan] * len(merged))))
-            merged['returnonassetsttm'] = _safe_div(ni_ttm,
-                merged.get('total_assets_avg',
-                           pd.Series([np.nan] * len(merged))))
-            merged['pricetosalesratiottm'] = _safe_div(merged['market_cap'], rev_ttm)
+            rev_ttm = merged.get("total_revenue_ttm", pd.Series([np.nan] * len(merged)))
+            merged["revenuettm"] = rev_ttm
+            merged["grossprofitttm"] = merged.get("gross_profit_ttm")
+            merged["profitmargin"] = _safe_div(ni_ttm, rev_ttm)
+            merged["operatingmarginttm"] = _safe_div(
+                merged.get("operating_income_ttm", pd.Series([np.nan] * len(merged))), rev_ttm
+            )
+            merged["returnonequityttm"] = _safe_div(
+                ni_ttm, merged.get("total_shareholder_equity_avg", pd.Series([np.nan] * len(merged)))
+            )
+            merged["returnonassetsttm"] = _safe_div(
+                ni_ttm, merged.get("total_assets_avg", pd.Series([np.nan] * len(merged)))
+            )
+            merged["pricetosalesratiottm"] = _safe_div(merged["market_cap"], rev_ttm)
             # Enterprise Value
-            debt = merged.get('short_long_term_debt_total',
-                              pd.Series([np.nan] * len(merged))).fillna(0)
-            cash = merged.get('cash_and_short_term_investments',
-                              pd.Series([np.nan] * len(merged))).fillna(0)
-            ev = merged['market_cap'].fillna(0) + debt - cash
-            merged['evtorevenue'] = _safe_div(ev, rev_ttm)
-            merged['evtoebitda'] = _safe_div(ev,
-                merged.get('ebitda_ttm', pd.Series([np.nan] * len(merged))))
+            debt = merged.get("short_long_term_debt_total", pd.Series([np.nan] * len(merged))).fillna(0)
+            cash = merged.get("cash_and_short_term_investments", pd.Series([np.nan] * len(merged))).fillna(
+                0
+            )
+            ev = merged["market_cap"].fillna(0) + debt - cash
+            merged["evtorevenue"] = _safe_div(ev, rev_ttm)
+            merged["evtoebitda"] = _safe_div(
+                ev, merged.get("ebitda_ttm", pd.Series([np.nan] * len(merged)))
+            )
             # YoY
-            ni = merged.get('net_income', pd.Series([np.nan] * len(merged)))
-            ni_yoy_base = merged.get('net_income_4q_ago',
-                                     pd.Series([np.nan] * len(merged)))
-            rev = merged.get('total_revenue', pd.Series([np.nan] * len(merged)))
-            rev_yoy_base = merged.get('revenue_4q_ago',
-                                      pd.Series([np.nan] * len(merged)))
-            merged['quarterlyearningsgrowthyoy'] = _safe_div(ni, ni_yoy_base.abs()) - 1
-            merged['quarterlyrevenuegrowthyoy'] = _safe_div(rev, rev_yoy_base.abs()) - 1
+            ni = merged.get("net_income", pd.Series([np.nan] * len(merged)))
+            ni_yoy_base = merged.get("net_income_4q_ago", pd.Series([np.nan] * len(merged)))
+            rev = merged.get("total_revenue", pd.Series([np.nan] * len(merged)))
+            rev_yoy_base = merged.get("revenue_4q_ago", pd.Series([np.nan] * len(merged)))
+            merged["quarterlyearningsgrowthyoy"] = _safe_div(ni, ni_yoy_base.abs()) - 1
+            merged["quarterlyrevenuegrowthyoy"] = _safe_div(rev, rev_yoy_base.abs()) - 1
 
             # market_cap → BIGINT 변환
-            merged['market_cap'] = merged['market_cap'].astype('Float64').round().astype('Int64')
+            merged["market_cap"] = merged["market_cap"].astype("Float64").round().astype("Int64")
 
             # ---------- 6) bulk INSERT via temp table + ON CONFLICT ----------
             now_ts = datetime.now(timezone.utc)
             insert_cols = [
-                'symbol', 'date', 'source',
-                'market_cap', 'per', 'pricetobookratio',
-                'eps', 'dilutedepsttm', 'bookvalue', 'sharesoutstanding',
-                'revenuettm', 'grossprofitttm',
-                'profitmargin', 'operatingmarginttm',
-                'returnonequityttm', 'returnonassetsttm',
-                'pricetosalesratiottm', 'evtorevenue', 'evtoebitda',
-                'quarterlyearningsgrowthyoy', 'quarterlyrevenuegrowthyoy',
-                'week52high', 'week52low',
-                'day50movingaverage', 'day200movingaverage',
-                'stock_name', 'exchange', 'currency', 'sector', 'industry',
-                'beta', 'is_active', 'created_at', 'updated_at',
+                "symbol",
+                "date",
+                "source",
+                "market_cap",
+                "per",
+                "pricetobookratio",
+                "eps",
+                "dilutedepsttm",
+                "bookvalue",
+                "sharesoutstanding",
+                "revenuettm",
+                "grossprofitttm",
+                "profitmargin",
+                "operatingmarginttm",
+                "returnonequityttm",
+                "returnonassetsttm",
+                "pricetosalesratiottm",
+                "evtorevenue",
+                "evtoebitda",
+                "quarterlyearningsgrowthyoy",
+                "quarterlyrevenuegrowthyoy",
+                "week52high",
+                "week52low",
+                "day50movingaverage",
+                "day200movingaverage",
+                "stock_name",
+                "exchange",
+                "currency",
+                "sector",
+                "industry",
+                "beta",
+                "is_active",
+                "created_at",
+                "updated_at",
             ]
 
             out = pd.DataFrame()
-            out['symbol'] = merged['symbol']
-            out['date'] = merged['date'].dt.date
-            out['source'] = 'computed'
-            for c in ['market_cap', 'per', 'pricetobookratio',
-                      'eps', 'dilutedepsttm', 'bookvalue', 'sharesoutstanding',
-                      'revenuettm', 'grossprofitttm',
-                      'profitmargin', 'operatingmarginttm',
-                      'returnonequityttm', 'returnonassetsttm',
-                      'pricetosalesratiottm', 'evtorevenue', 'evtoebitda',
-                      'quarterlyearningsgrowthyoy', 'quarterlyrevenuegrowthyoy',
-                      'week52high', 'week52low',
-                      'day50movingaverage', 'day200movingaverage']:
+            out["symbol"] = merged["symbol"]
+            out["date"] = merged["date"].dt.date
+            out["source"] = "computed"
+            for c in [
+                "market_cap",
+                "per",
+                "pricetobookratio",
+                "eps",
+                "dilutedepsttm",
+                "bookvalue",
+                "sharesoutstanding",
+                "revenuettm",
+                "grossprofitttm",
+                "profitmargin",
+                "operatingmarginttm",
+                "returnonequityttm",
+                "returnonassetsttm",
+                "pricetosalesratiottm",
+                "evtorevenue",
+                "evtoebitda",
+                "quarterlyearningsgrowthyoy",
+                "quarterlyrevenuegrowthyoy",
+                "week52high",
+                "week52low",
+                "day50movingaverage",
+                "day200movingaverage",
+            ]:
                 out[c] = merged[c] if c in merged.columns else None
-            for c in ['stock_name', 'exchange', 'currency', 'sector', 'industry',
-                      'beta', 'is_active']:
+            for c in ["stock_name", "exchange", "currency", "sector", "industry", "beta", "is_active"]:
                 out[c] = merged[c]
-            out['created_at'] = now_ts
-            out['updated_at'] = now_ts
+            out["created_at"] = now_ts
+            out["updated_at"] = now_ts
 
             # NaN / NaT → None (asyncpg)
             out = out.astype(object).where(pd.notna(out), None)
@@ -2716,12 +3523,11 @@ async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
                     return int(v)
                 except (TypeError, ValueError):
                     return None
+
             # Series.apply with mixed int+None coerces back to float64 (None→NaN).
             # Build with explicit dtype=object to preserve None for asyncpg.
-            for _bc in ('market_cap', 'revenuettm', 'grossprofitttm', 'sharesoutstanding'):
-                out[_bc] = pd.Series(
-                    [_to_bigint(v) for v in out[_bc]],
-                    index=out.index, dtype=object)
+            for _bc in ("market_cap", "revenuettm", "grossprofitttm", "sharesoutstanding"):
+                out[_bc] = pd.Series([_to_bigint(v) for v in out[_bc]], index=out.index, dtype=object)
 
             records = list(out[insert_cols].itertuples(index=False, name=None))
             total_records = len(records)
@@ -2739,16 +3545,17 @@ async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
                         CREATE TEMP TABLE _us_stock_basic_compute (LIKE us_stock_basic
                         INCLUDING DEFAULTS) ON COMMIT DROP""")
                     for i in range(0, total_records, CHUNK):
-                        chunk = records[i:i + CHUNK]
+                        chunk = records[i : i + CHUNK]
                         await conn.copy_records_to_table(
-                            '_us_stock_basic_compute',
-                            records=chunk, columns=insert_cols)
+                            "_us_stock_basic_compute", records=chunk, columns=insert_cols
+                        )
                         inserted += len(chunk)
                         logger.info(f"  staged {inserted}/{total_records}")
 
-                    update_cols = [c for c in insert_cols
-                                   if c not in ('symbol', 'date', 'source', 'created_at')]
-                    set_clause = ', '.join(f"{c} = EXCLUDED.{c}" for c in update_cols)
+                    update_cols = [
+                        c for c in insert_cols if c not in ("symbol", "date", "source", "created_at")
+                    ]
+                    set_clause = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_cols)
                     await conn.execute(f"""
                         INSERT INTO us_stock_basic ({', '.join(insert_cols)})
                         SELECT {', '.join(insert_cols)} FROM _us_stock_basic_compute
@@ -2758,41 +3565,51 @@ async def _LEGACY_task_us_stock_basic_compute_single_pass(ctx: Ctx) -> dict:
                 computed_count = await conn.fetchval(
                     """SELECT COUNT(*) FROM us_stock_basic
                        WHERE source='computed' AND date BETWEEN $1 AND $2""",
-                    start, end)
+                    start,
+                    end,
+                )
         finally:
             await pool.close()
 
-    return {"computed_rows": computed_count,
-            "date_range": f"{start.isoformat()}~{end.isoformat()}",
-            "staged": inserted}
+    return {
+        "computed_rows": computed_count,
+        "date_range": f"{start.isoformat()}~{end.isoformat()}",
+        "staged": inserted,
+    }
 
 
 # ============================================================ DAG registry
 TASK_REGISTRY: dict[str, Callable] = {
-    "partitions":    task_partitions,
+    "partitions": task_partitions,
     "stock_listing": task_stock_listing,
     "finnhub_symbol": task_finnhub_symbol,
-    "stock_basic":   task_stock_basic,
+    # task_stock_basic 가 EODHD /fundamentals 1콜로 us_stock_basic snapshot +
+    # financials 3종 적재. 시점별 17 컬럼 generate 는 stock_basic_compute 가
+    # 별도 단계로 수행 (cycle 회피 — us_daily depends_on stock_basic, compute
+    # depends_on us_daily). 옛 task_financials / financials_verify 는
+    # deprecated (코드 그대로 보존 — historic 비교용 / 임시 fallback 가능).
+    "stock_basic": task_stock_basic,
+    "dividends": task_dividends,
     "stock_basic_compute": task_us_stock_basic_compute,
     "earnings_history": task_earnings_history,
-    "us_daily":      task_us_daily,
-    "us_etf":        task_us_etf,
-    "us_weekly":     task_us_weekly,
+    "earnings_estimates": task_earnings_estimates,
+    "institutional_holdings": task_institutional_holdings,
+    "us_daily": task_us_daily,
+    "us_etf": task_us_etf,
+    "us_weekly": task_us_weekly,
     "us_calculator": task_us_calculator,
-    "financials":    task_financials,
-    "financials_verify": task_financials_verify,
     "listing_status": task_listing_status,
-    "macros":        task_macros,
-    "kr_daily":      task_kr_daily,
-    "kr_dart":       task_kr_dart,
+    "macros": task_macros,
+    "kr_daily": task_kr_daily,
+    "kr_dart": task_kr_dart,
     "em8_pre_filter": task_em8_pre_filter,
     "us_mv_sector_refresh": task_us_mv_sector_refresh,
     "grades_pass_a": task_grades_pass_a,
-    "select_top_n":  task_select_top_n,
+    "select_top_n": task_select_top_n,
     "options_top_n": task_options_top_n,
     "grades_pass_b": task_grades_pass_b,
-    "backtest":      task_backtest,
-    "news_insider_top_n":   task_news_insider_top_n,
+    "backtest": task_backtest,
+    "news_insider_top_n": task_news_insider_top_n,
     "news_history_backfill": task_news_history_backfill,
     "top_signal_reco": task_top_signal_reco,
 }
@@ -2810,38 +3627,128 @@ def build_dag(country: str, kind: str = "full") -> List[dict]:
                    (짧은 최근 구간으로 실행 — main.py 가 reco 기본 윈도우를 좁힘)
     """
     if country == "US":
+        # `stock_basic` 는 EODHD /fundamentals 1콜로 stock_basic snapshot +
+        # financials 3종 quarterly 적재 (fetch 단계).
+        # `stock_basic_compute` 는 us_daily + 방금 적재한 financials 로 시점별
+        # 17 컬럼 generate. 두 task 가 한 collector 의 두 단계 — 분할 이유는
+        # us_daily 가 stock_basic 의 universe (is_active=true) 를 필요로 해
+        # `stock_basic` 안에서 us_daily 의존 시 순환 cycle 발생. compute 만
+        # 분리하면 OK. 옛 `financials` / `financials_verify` 노드는 DAG 에서
+        # 제거 (TASK_REGISTRY 의 함수들은 historic 비교용 보존).
         dag = [
-            {"id": "partitions",     "name": "0. DB partitions",                  "depends_on": []},
-            {"id": "stock_listing",  "name": "1. NASDAQ/NYSE listing",            "depends_on": ["partitions"]},
-            {"id": "listing_status", "name": "1b. AV listing_status (active+delisted, PIT universe)", "depends_on": ["partitions"]},
-            {"id": "finnhub_symbol", "name": "2. Finnhub symbol master",          "depends_on": ["stock_listing"]},
-            {"id": "stock_basic",    "name": "3. US Stock Basic (fundamentals)",  "depends_on": ["finnhub_symbol"]},
-            {"id": "us_daily",       "name": "4. US Daily OHLCV (outputsize=full)","depends_on": ["stock_basic"]},
-            {"id": "us_etf",         "name": "5. US ETF daily (SPY/QQQ — 시장레짐)", "depends_on": ["partitions"]},
-            {"id": "us_weekly",      "name": "5b. US Weekly OHLCV (indicator 의존)", "depends_on": ["stock_basic"]},
-            {"id": "us_calculator",  "name": "6. Technical indicators (14종, DB 계산)", "depends_on": ["us_daily","us_weekly"]},
-            {"id": "earnings_history", "name": "7a. Earnings history (reportedDate)", "depends_on": ["stock_basic"]},
-            {"id": "financials",     "name": "7. Income / Balance / CashFlow",    "depends_on": ["stock_basic","earnings_history"]},
-            {"id": "financials_verify", "name": "7a-2. Financials gap-fill (silent-drop 보호)", "depends_on": ["financials"]},
-            {"id": "stock_basic_compute", "name": "7b. Stock Basic 시점별 computed (pandas asof, 17 컬럼)", "depends_on": ["us_daily","stock_basic","financials_verify"]},
-            {"id": "macros",         "name": "8. Macros (Fed/Treasury/CPI/UE)",   "depends_on": ["partitions"]},
-            {"id": "em8_pre_filter", "name": "9. EM8 pre-filter (top-500/date)",  "depends_on": ["us_daily","us_weekly","us_calculator"]},
-            {"id": "us_mv_sector_refresh", "name": "9b. Sector MV (mv_us_sector_daily_performance)", "depends_on": ["us_daily","stock_basic"]},
-            {"id": "grades_pass_a",  "name": "10. Pass-A grades (top-N only)",    "depends_on": ["us_calculator","us_etf","financials_verify","macros","em8_pre_filter","stock_basic_compute","us_mv_sector_refresh","listing_status"]},
-            {"id": "select_top_n",   "name": "10. Pick top-N symbols",            "depends_on": ["grades_pass_a"]},
-            {"id": "options_top_n",  "name": "11. Options backfill (top-N only)", "depends_on": ["select_top_n"]},
-            {"id": "news_history_backfill", "name": "11b. News history backfill (top-N union, 분기 단위)", "depends_on": ["select_top_n"]},
-            {"id": "grades_pass_b",  "name": "12. Pass-B grades (with options)",  "depends_on": ["options_top_n","news_history_backfill"]},
-            {"id": "backtest",       "name": "13. Run backtest",                  "depends_on": ["grades_pass_b"]},
+            {"id": "partitions", "name": "0. DB partitions", "depends_on": []},
+            {"id": "stock_listing", "name": "1. NASDAQ/NYSE listing", "depends_on": ["partitions"]},
+            {
+                "id": "listing_status",
+                "name": "1b. AV listing_status (active+delisted, PIT universe)",
+                "depends_on": ["partitions"],
+            },
+            {"id": "finnhub_symbol", "name": "2. Finnhub symbol master", "depends_on": ["stock_listing"]},
+            {
+                "id": "stock_basic",
+                "name": "3. US Stock Basic (EODHD fundamentals — snapshot+financials 3종)",
+                "depends_on": ["finnhub_symbol"],
+            },
+            {
+                "id": "dividends",
+                "name": "3b. Dividends history (EODHD /div → us_dividends)",
+                "depends_on": ["stock_basic"],
+            },
+            {
+                "id": "us_daily",
+                "name": "4. US Daily OHLCV (outputsize=full)",
+                "depends_on": ["stock_basic"],
+            },
+            {"id": "us_etf", "name": "5. US ETF daily (SPY/QQQ — 시장레짐)", "depends_on": ["partitions"]},
+            # AV 수집기 직렬화: us_daily/us_weekly/earnings_history/
+            # earnings_estimates/institutional_holdings 가 모두 stock_basic 에만
+            # 의존하면 동시에 떠 AlphaVantage 전역 rate limit 을 초과 → RateLimitError
+            # 폭주 + 이벤트루프 starvation(EODHD dividends 까지 멈춤). 한 번에 하나만
+            # 돌도록 체인으로 묶는다 (각 task 내부 동시성은 유지). us_daily 가 가장
+            # critical(calculator/em8/compute 의존)이라 선두.
+            {
+                "id": "us_weekly",
+                "name": "5b. US Weekly OHLCV (indicator 의존)",
+                "depends_on": ["us_daily"],
+            },
+            {
+                "id": "us_calculator",
+                "name": "6. Technical indicators (14종, DB 계산)",
+                "depends_on": ["us_daily", "us_weekly"],
+            },
+            {
+                "id": "earnings_history",
+                "name": "7a. Earnings history (reportedDate)",
+                "depends_on": ["us_weekly"],
+            },
+            {
+                "id": "earnings_estimates",
+                "name": "7a-3. Earnings estimates (EM3/EM4/NQ2 활성용)",
+                "depends_on": ["earnings_history"],
+            },
+            {
+                "id": "institutional_holdings",
+                "name": "7a-4. Institutional holdings (NQ1 활성용, 최근 1년만)",
+                "depends_on": ["earnings_estimates"],
+            },
+            {
+                "id": "stock_basic_compute",
+                "name": "7b. Stock Basic 시점별 computed (pandas asof, 17 컬럼)",
+                "depends_on": ["us_daily", "stock_basic", "dividends"],
+            },
+            {"id": "macros", "name": "8. Macros (Fed/Treasury/CPI/UE)", "depends_on": ["partitions"]},
+            {
+                "id": "em8_pre_filter",
+                "name": "9. EM8 pre-filter (top-500/date)",
+                "depends_on": ["us_daily", "us_weekly", "us_calculator"],
+            },
+            {
+                "id": "us_mv_sector_refresh",
+                "name": "9b. Sector MV (mv_us_sector_daily_performance)",
+                "depends_on": ["us_daily", "stock_basic"],
+            },
+            {
+                "id": "grades_pass_a",
+                "name": "10. Pass-A grades (top-N only)",
+                "depends_on": [
+                    "us_calculator",
+                    "us_etf",
+                    "macros",
+                    "em8_pre_filter",
+                    "stock_basic",
+                    "stock_basic_compute",
+                    "us_mv_sector_refresh",
+                    "listing_status",
+                    "earnings_estimates",
+                    "institutional_holdings",
+                ],
+            },
+            {"id": "select_top_n", "name": "10. Pick top-N symbols", "depends_on": ["grades_pass_a"]},
+            {
+                "id": "options_top_n",
+                "name": "11. Options backfill (top-N only)",
+                "depends_on": ["select_top_n"],
+            },
+            {
+                "id": "news_history_backfill",
+                "name": "11b. News history backfill (top-N union, 분기 단위)",
+                "depends_on": ["select_top_n"],
+            },
+            {
+                "id": "grades_pass_b",
+                "name": "12. Pass-B grades (with options)",
+                "depends_on": ["options_top_n", "news_history_backfill"],
+            },
+            {"id": "backtest", "name": "13. Run backtest", "depends_on": ["grades_pass_b"]},
         ]
         reco_dep = "grades_pass_b"
     else:
         dag = [
-            {"id": "partitions",     "name": "0. DB partitions",          "depends_on": []},
-            {"id": "kr_daily",       "name": "1. KR daily pipeline",       "depends_on": ["partitions"]},
-            {"id": "kr_dart",        "name": "2. KR DART filings",         "depends_on": ["partitions"]},
-            {"id": "grades_pass_a",  "name": "3. Generate grades",         "depends_on": ["kr_daily","kr_dart"]},
-            {"id": "backtest",       "name": "4. Run backtest",            "depends_on": ["grades_pass_a"]},
+            {"id": "partitions", "name": "0. DB partitions", "depends_on": []},
+            {"id": "kr_daily", "name": "1. KR daily pipeline", "depends_on": ["partitions"]},
+            {"id": "kr_dart", "name": "2. KR DART filings", "depends_on": ["partitions"]},
+            {"id": "grades_pass_a", "name": "3. Generate grades", "depends_on": ["kr_daily", "kr_dart"]},
+            {"id": "backtest", "name": "4. Run backtest", "depends_on": ["grades_pass_a"]},
         ]
         reco_dep = "grades_pass_a"
 
@@ -2852,12 +3759,26 @@ def build_dag(country: str, kind: str = "full") -> List[dict]:
         # (테이블이 비어있으면 두 modifier 가 0 으로 무력화됨). full 백테스트
         # 에는 추가하지 않음 — 역사 뉴스 backfill 비용/유효성 문제.
         dag = [t for t in dag if t["id"] != "backtest"]
+        # reco 는 단일 시점 (today / 직전 거래일) grade 만 계산하므로 시점별
+        # computed fundamentals (stock_basic_compute) 가 불필요. quant 의
+        # prefetch SQL 이 `WHERE date <= $d ORDER BY date DESC LIMIT 1` 라
+        # source 무관 latest 1행만 선택 → 매일 task_stock_basic 이 만든
+        # us_stock_basic(api) 행 (그날 OVERVIEW snapshot) 이 자동 사용됨.
+        # stock_basic_compute 빼는 효과: 청크 처리 시간 (1-2h) 절약.
         if country == "US":
-            dag.append({
-                "id": "news_insider_top_n",
-                "name": "11b. News + Insider 사전수집 (top-N, reco 한정)",
-                "depends_on": ["select_top_n"],
-            })
+            dag = [t for t in dag if t["id"] != "stock_basic_compute"]
+            for t in dag:
+                if t["id"] == "grades_pass_a":
+                    deps = [d for d in (t.get("depends_on") or []) if d != "stock_basic_compute"]
+                    t["depends_on"] = deps
+                    break
+            dag.append(
+                {
+                    "id": "news_insider_top_n",
+                    "name": "11b. News + Insider 사전수집 (top-N, reco 한정)",
+                    "depends_on": ["select_top_n"],
+                }
+            )
             # grades_pass_b 가 news_insider 완료도 기다리도록 의존성 추가
             for t in dag:
                 if t["id"] == "grades_pass_b":
@@ -2866,9 +3787,11 @@ def build_dag(country: str, kind: str = "full") -> List[dict]:
                         deps.append("news_insider_top_n")
                     t["depends_on"] = deps
                     break
-        dag.append({
-            "id": "top_signal_reco",
-            "name": "14. 최고 signal 종목 추천 (top-3 STRONG_BUY / 20일 리밸 전략)",
-            "depends_on": [reco_dep],
-        })
+        dag.append(
+            {
+                "id": "top_signal_reco",
+                "name": "14. 최고 signal 종목 추천 (top-3 STRONG_BUY / 20일 리밸 전략)",
+                "depends_on": [reco_dep],
+            }
+        )
     return dag

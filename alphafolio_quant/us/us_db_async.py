@@ -201,6 +201,8 @@ class AsyncDatabaseManager:
             # Step 2: Calculate and INSERT if not exists
             logger.info(f"[US MV Refresh] {target_date} sector data creation started...")
 
+            # PIT: us_stock_basic 의 symbol 당 1행만 (target_date 시점 latest sector)
+            # — 안 하면 ~1,500x duplication 으로 sector_rank 왜곡
             refresh_query = """
             INSERT INTO mv_us_sector_daily_performance (date, sector_code, avg_return_30d, stock_count, sector_rank)
             SELECT
@@ -215,7 +217,13 @@ class AsyncDatabaseManager:
                         (d.close - d_30d.close)::NUMERIC / NULLIF(d_30d.close, 0) * 100
                     ) DESC NULLS LAST
                 ) as sector_rank
-            FROM us_stock_basic b
+            FROM (
+                SELECT DISTINCT ON (symbol) symbol, sector
+                FROM us_stock_basic
+                WHERE date <= $1
+                  AND sector IS NOT NULL AND sector != ''
+                ORDER BY symbol, date DESC
+            ) b
             INNER JOIN us_daily d
                 ON b.symbol = d.symbol
                 AND d.date = $1
@@ -232,8 +240,6 @@ class AsyncDatabaseManager:
                 d.close IS NOT NULL
                 AND d_30d.close IS NOT NULL
                 AND d_30d.date IS NOT NULL
-                AND b.sector IS NOT NULL
-                AND b.sector != ''
             GROUP BY b.sector
             ON CONFLICT (date, sector_code) DO NOTHING
             """
@@ -297,6 +303,10 @@ class AsyncDatabaseManager:
             # Step 2: Calculate and INSERT if not exists
             logger.info(f"[US MV Refresh] {target_date} industry data creation started...")
 
+            # PIT: us_stock_basic 은 (symbol, date, source) PK 라 한 symbol 당
+            # ~1,500 rows. DISTINCT ON (symbol) 으로 target_date 시점 latest industry 1개.
+            # 안 하면 INNER JOIN 결과가 symbol 당 1,500 × 1 = 1,500x duplication →
+            # AVG / industry_rank 결과 왜곡.
             refresh_query = """
             INSERT INTO mv_us_industry_daily_performance (date, industry_code, avg_score, stock_count, industry_rank)
             SELECT
@@ -307,16 +317,19 @@ class AsyncDatabaseManager:
                 ROW_NUMBER() OVER (
                     ORDER BY AVG(COALESCE(g.final_score, 50)) DESC NULLS LAST
                 ) as industry_rank
-            FROM us_stock_basic b
+            FROM (
+                SELECT DISTINCT ON (symbol) symbol, industry
+                FROM us_stock_basic
+                WHERE date <= $1
+                  AND industry IS NOT NULL AND industry != ''
+                ORDER BY symbol, date DESC
+            ) b
             INNER JOIN us_daily d
                 ON b.symbol = d.symbol
                 AND d.date = $1
             LEFT JOIN us_stock_grade g
                 ON b.symbol = g.symbol
                 AND g.date = $1
-            WHERE
-                b.industry IS NOT NULL
-                AND b.industry != ''
             GROUP BY b.industry
             ON CONFLICT (date, industry_code) DO NOTHING
             """
