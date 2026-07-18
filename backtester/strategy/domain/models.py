@@ -141,6 +141,119 @@ class MultiTrade(Trade):
     gross_pnl: float
 
 
+class BandRebalanceConfig(BaseModel):
+    """Config for the VOO+TQQQ(QLD) 50:50 band-rebalancing strategy.
+
+    Rules (docs/newstrategy 기준):
+
+    - 초기 자본을 ``aggressive_weight`` : ``1 - aggressive_weight``로
+      분할 매수하고, 공격 자산의 매수가를 **기준가**로 기록한다.
+    - 공격 자산 종가가 기준가 대비 ``band_pct`` 이상 **하락**하면
+      (줍줍 모드) 방어 자산 평가액의 ``dip_sell_defensive_pct``만큼
+      팔아 공격 자산을 사고, 기준가를 현재가로 갱신한다.
+    - 기준가 대비 ``band_pct`` 이상 **상승**하면 (수익 실현 모드)
+      총 평가액을 목표 비율로 완전 리밸런싱하고 기준가를 갱신한다.
+
+    체결은 트리거 당일 **종가** 기준, 수량은 소수점 허용(비중 전략
+    이므로 정수 주식 반올림 오차가 결과를 왜곡하지 않도록).
+    """
+
+    aggressive_ticker: str = "TQQQ"
+    defensive_ticker: str = "VOO"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    band_pct: float = 0.15
+    aggressive_weight: float = 0.5
+    dip_sell_defensive_pct: float = 0.15
+    # --- 하락장 방어 레짐 필터 (execute에 regime_close를 넘길 때만 동작) ---
+    # 원 전략의 치명 구간(1999-2002 닷컴 버블: MDD -97%)은 하락장
+    # 내내 방어 자산을 팔아 떨어지는 칼날을 계속 받는 구조에서 온다.
+    # 레짐 지수(예: QQQ)가 SMA 아래로 내려가면 방어 태세로 전환한다.
+    #
+    # ``risk_off_mode``:
+    #   - "derisk_defensive" — 공격 자산 전량을 방어 자산으로 대피
+    #   - "derisk_cash"      — 전 자산 현금(무수익) 대피
+    #   - "pause_dip"        — 보유 유지, 줍줍(하락 매수)만 중단
+    regime_sma_days: int = 200
+    regime_buffer_pct: float = 0.0
+    risk_off_mode: str = "derisk_defensive"
+    # 재진입 확인 일수: 레짐 지수가 N일 **연속** SMA 위를 유지해야
+    # risk-on 복귀. 2000-02 같은 긴 하락장의 베어랠리 휩쏘(짧은
+    # SMA 상향 돌파 → 재진입 → 다음 하락 다리 직격)를 걸러낸다.
+    # 이탈(risk-off)은 즉시 — 방어는 빠르게, 재진입은 신중하게.
+    regime_confirm_days: int = 0
+
+
+class RebalanceEvent(BaseModel):
+    """One triggered rebalancing action.
+
+    ``kind``:
+      - ``"dip_buy"``      — 기준가 대비 -band 하락: 방어 자산 일부
+        매도 → 공격 자산 매수 (줍줍 모드)
+      - ``"profit_take"``  — 기준가 대비 +band 상승: 목표 비율로
+        완전 리밸런싱 (수익 실현 모드)
+      - ``"risk_off"``     — 레짐 지수가 SMA 아래로 이탈: 방어 태세
+        전환 (risk_off_mode에 따라 대피/줍줍 중단)
+      - ``"risk_on"``      — 레짐 복귀: 목표 비율로 재진입, 기준가
+        리셋
+
+    ``traded_amount``는 공격 자산으로 이동한 금액(+) / 공격 자산에서
+    빠져나간 금액(-).
+    """
+
+    date: date
+    kind: str
+    aggressive_price: float
+    reference_price_before: float
+    traded_amount: float
+    aggressive_value_after: float
+    defensive_value_after: float
+    total_value_after: float
+    aggressive_weight_after: float
+
+
+class PortfolioPoint(BaseModel):
+    """Daily mark-to-market snapshot of the two-asset portfolio."""
+
+    date: date
+    total: float
+    aggressive_value: float
+    defensive_value: float
+    reference_price: float
+    cash: float = 0.0
+    risk_on: bool = True
+
+
+class PortfolioSummary(BaseModel):
+    """Headline stats for one portfolio variant (strategy or benchmark)."""
+
+    name: str
+    final_value: float
+    total_return_pct: float
+    cagr_pct: float
+    max_drawdown_pct: float
+
+
+class BandRebalanceResult(BaseModel):
+    config: BandRebalanceConfig
+    curve: list[PortfolioPoint]
+    events: list[RebalanceEvent]
+    summary: PortfolioSummary
+    # Buy-and-hold comparisons over the identical window: 방어 100%,
+    # 공격 100%, 그리고 리밸런싱 없는 50:50 방치.
+    benchmarks: list[PortfolioSummary]
+    benchmark_curves: dict[str, list[EquityPoint]]
+
+    @property
+    def dip_buy_count(self) -> int:
+        return sum(1 for e in self.events if e.kind == "dip_buy")
+
+    @property
+    def profit_take_count(self) -> int:
+        return sum(1 for e in self.events if e.kind == "profit_take")
+
+
 class MultiStrategyResult(BaseModel):
     config: MultiStrategyConfig
     tickers_scanned: int

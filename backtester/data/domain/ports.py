@@ -188,6 +188,26 @@ class NewsCatalystPort(ABC):
         ...
 
 
+class EconomicSeriesPort(ABC):
+    """Port: 거시 경제지표 시계열 fetcher.
+
+    ``series_id``는 소스 네이티브 식별자 (FRED면 ``"T10Y3M"``,
+    ``"UNRATE"`` 등). OHLCV가 아닌 단일 값 시계열이므로
+    :class:`MarketDataPort`와 분리 — 발표 주기(일/주/월)와 소스가
+    제각각이고, 수치의 look-ahead 처리(발표 지연 시프트)는 소비자
+    (스코어러) 책임이다.
+    """
+
+    @abstractmethod
+    def fetch_series(self, series_id: str, start: date, end: date) -> pd.Series:
+        """Return the raw observation series indexed by observation date.
+
+        결측치('.')는 제거된 float Series. 소스 장애 시 raises —
+        페이지/스코어러가 지표별로 optional 처리한다.
+        """
+        ...
+
+
 class UniverseProviderPort(ABC):
     """Port: ticker-universe provider.
 
