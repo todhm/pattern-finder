@@ -10,10 +10,11 @@ hand-wiring the adapters. The factory:
 
 2. Routes by interval:
      - daily       → yfinance primary + Massive fallback
-     - sub-daily   → EODHD primary + Massive fallback
+     - sub-daily   → **AlphaVantage** primary (month 단위 장기 15m
+       히스토리) → EODHD → Massive fallback
 
-   When EODHD or yfinance throws (HTTP 402 quota, 429 rate limit),
-   the fallback transparently routes to Massive/Polygon.
+   When a source throws (HTTP 401/402 quota, 429 rate limit), the
+   fallback transparently routes to the next one.
 
 3. When neither EODHD nor MASSIVE keys are configured, falls back
    to a single uncached yfinance for all intervals.
@@ -48,6 +49,7 @@ benefit from cross-machine cache sharing.
 
 from __future__ import annotations
 
+from data.adapters.alphavantage_adapter import AlphaVantageAdapter
 from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.eodhd_adapter import EODHDAdapter
 from data.adapters.fallback_market_data import FallbackMarketDataAdapter
@@ -108,16 +110,32 @@ def build_default_market_data(
         bypass_today=bypass_today,
     )
 
-    eodhd_cached = None
+    paid_sources: list[tuple[str, MarketDataPort]] = []
+    # Alpha Vantage를 최우선으로 — month 파라미터로 2000년대까지 15m
+    # 히스토리를 주는 유일한 소스 (2026-08 검증: EODHD 키 만료,
+    # Polygon 429, yfinance 최근 ~60일 한계).
     try:
-        eodhd_cached = MongoDayCacheAdapter(
-            EODHDAdapter(),
-            source_name="eodhd",
-            bypass_today=bypass_today,
-        )
+        paid_sources.append((
+            "AlphaVantage",
+            MongoDayCacheAdapter(
+                AlphaVantageAdapter(),
+                source_name="alphavantage",
+                bypass_today=bypass_today,
+            ),
+        ))
     except ValueError:
         pass
-
+    try:
+        paid_sources.append((
+            "EODHD",
+            MongoDayCacheAdapter(
+                EODHDAdapter(),
+                source_name="eodhd",
+                bypass_today=bypass_today,
+            ),
+        ))
+    except ValueError:
+        pass
     massive_cached = None
     try:
         massive_cached = MongoDayCacheAdapter(
@@ -125,24 +143,23 @@ def build_default_market_data(
             source_name="massive",
             bypass_today=bypass_today,
         )
+        paid_sources.append(("Massive", massive_cached))
     except ValueError:
         pass
 
-    # Compose sub-daily source. Prefer EODHD primary (KR coverage,
-    # cheaper, well-tested) with Massive fallback for quota-exhaust
-    # days. If only one is available, use it directly. If neither,
-    # all intervals go via uncached yfinance.
-    if eodhd_cached is not None and massive_cached is not None:
-        sub_daily_paid: MarketDataPort = FallbackMarketDataAdapter(
-            primary=eodhd_cached,
-            fallback=massive_cached,
-            primary_label="EODHD",
-            fallback_label="Massive",
-        )
-    elif eodhd_cached is not None:
-        sub_daily_paid = eodhd_cached
-    elif massive_cached is not None:
-        sub_daily_paid = massive_cached
+    # Compose sub-daily source: AlphaVantage → EODHD → Massive 순서로
+    # fallback 체인을 접는다. 키가 없는 소스는 빠지고, 하나도 없으면
+    # 모든 interval을 yfinance(무캐시)로 폴백.
+    if paid_sources:
+        label, sub_daily_paid = paid_sources[0]
+        for next_label, next_source in paid_sources[1:]:
+            sub_daily_paid = FallbackMarketDataAdapter(
+                primary=sub_daily_paid,
+                fallback=next_source,
+                primary_label=label,
+                fallback_label=next_label,
+            )
+            label = f"{label}/{next_label}"
     else:
         # No paid sub-daily source configured — fall back to yfinance
         # for all intervals. Drop Mongo wrap to avoid a useless
@@ -160,7 +177,7 @@ def build_default_market_data(
     sub_daily: MarketDataPort = FallbackMarketDataAdapter(
         primary=sub_daily_paid,
         fallback=yf_cached,
-        primary_label="EODHD/Massive",
+        primary_label=label,
         fallback_label="YFinance",
     )
 

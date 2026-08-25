@@ -20,6 +20,8 @@ services:
         condition: service_started
     env_file:
       - ./secrets/secret.env
+      # ALPHAVANTAGE_API_KEY — 인트라데이 최우선 소스 (alphafolio와 공유).
+      - ./secrets/alphafolio.env
     environment:
       - DATABASE_URL=postgresql://backtester:backtester@db:5432/backtester
       - MONGO_URL=mongodb://mongo:27017

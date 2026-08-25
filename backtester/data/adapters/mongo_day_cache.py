@@ -299,6 +299,14 @@ class MongoDayCacheAdapter(MarketDataPort):
         Days returned by upstream get their bars; days NOT returned
         (holidays) get empty-bars success docs so the next request
         treats them as covered.
+
+        **서브데일리 히스토리 한계 보호**: yfinance 15m처럼 히스토리
+        깊이가 제한된 소스는 오래된 날짜에 봉을 안 주는데, 이를
+        휴장일로 오인해 영구 빈 문서를 쓰면 다른 소스(Alpha Vantage
+        등)가 채울 기회까지 크로스소스 peek이 막아버린다. 그래서
+        서브데일리 interval에서는 **첫 반환 봉 이전 날짜는 캐시하지
+        않고**(커버리지 불명), 전부 미반환이면 아무것도 쓰지 않는다.
+        일봉 이상은 전 소스가 풀 히스토리라 기존 동작 유지.
         """
         today_iso = date.today().isoformat()
         now = datetime.now(timezone.utc)
@@ -316,10 +324,18 @@ class MongoDayCacheAdapter(MarketDataPort):
             for ts, group_df in local_df.groupby(local_df.index.date):
                 per_day_bars[ts.isoformat()] = self._df_to_records(group_df)
 
+        sub_daily = interval not in ("1d", "1wk", "1mo")
+        first_bar_date = min(per_day_bars) if per_day_bars else None
+
         ops = []
         for d in self._business_days(fetch_start, fetch_end):
             date_iso = d.isoformat()
             bars = per_day_bars.get(date_iso, [])
+            if sub_daily and not bars:
+                # 봉이 없는 날: 소스 히스토리 시작 이전이면 휴장이
+                # 아니라 '못 주는 날' — 캐시하지 않고 다음 소스에 맡긴다.
+                if first_bar_date is None or date_iso < first_bar_date:
+                    continue
             ops.append(UpdateOne(
                 {"symbol": symbol, "interval": interval, "date": date_iso},
                 {"$set": {

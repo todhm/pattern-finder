@@ -446,6 +446,101 @@ class ValueRebalanceResult(BaseModel):
         return sum(1 for e in self.events if e.kind == "sell")
 
 
+class InfiniteBuyingConfig(BaseModel):
+    """라오어 '무한매수법' 설정 (TQQQ 등 3배 레버리지 ETF 전용).
+
+    - 사이클 원금을 ``divisions``(기본 40)분할, 1일 매수금 T = 원금/40.
+    - 매일 LOC 주문 2건: **큰수 LOC** T/2(종가 무조건 체결) +
+      **평단 LOC** T/2(종가 ≤ 평단일 때만 체결). 사이클 첫날은 1T.
+    - 매도(v2.1): 전량 평단×(1+``target_profit_pct``) 지정가 GTC.
+      (v2.2): 보유량 25%는 평단×(1+target/2) **LOC 매도**, 75%는
+      평단×(1+target) 지정가 — 쿼터매도.
+    - 전량 매도 시 사이클 종료 → 다음 거래일 실현손익 재투자(복리)로
+      새 사이클 시작.
+    - 40분할 소진 시 ``depletion_mode``: "hold"(매수 중단, 매도 대기 —
+      기본) / "stop_loss"(전량 종가 손절 후 다음 날 재시작).
+    - 체결 판정: 지정가 매도는 인트라데이(15m) 데이터가 있으면 봉
+      단위로(갭 오픈 포함), 없으면 일봉 시가/고가 근사.
+    """
+
+    ticker: str = "TQQQ"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    divisions: int = 40
+    version: str = "v2.2"  # "v2.1" | "v2.2"
+    target_profit_pct: float = 0.10
+    depletion_mode: str = "hold"  # "hold" | "stop_loss"
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class InfiniteBuyingEvent(BaseModel):
+    """무한매수 매매 이벤트.
+
+    ``kind``: "start_buy"(사이클 첫 1T) / "big_buy"(큰수 LOC) /
+    "avg_buy"(평단 LOC) / "quarter_sell"(v2.2 쿼터 LOC 매도) /
+    "limit_sell"(지정가 익절) / "stop_loss"(소진 손절) /
+    "tax"(연초 정산). ``intraday``는 15m 데이터로 체결된 경우 True.
+
+    매수 한 건 한 건의 맥락 재구성용 필드:
+    ``qty``(거래 수량), ``tranche_no``(사이클 내 몇 번째 매수 —
+    매도/세금은 0), ``spent_pct``(체결 후 사이클 원금 투입률),
+    ``target_price``(체결 후 평단 기준 익절 목표가).
+    """
+
+    ts: datetime
+    kind: str
+    price: float
+    notional: float
+    qty: float = 0.0
+    shares_after: float
+    avg_price_after: float
+    cash_after: float
+    cycle_no: int
+    tranche_no: int = 0
+    spent_pct: float = 0.0
+    target_price: float = 0.0
+    intraday: bool = False
+
+
+class InfiniteBuyingCycle(BaseModel):
+    """한 사이클(진입→전량 청산) 기록."""
+
+    cycle_no: int
+    start: date
+    end: date | None
+    trading_days: int
+    invested_max: float
+    pnl: float
+    pnl_pct: float
+    outcome: str  # "profit" | "stop_loss" | "open"(진행 중)
+    depleted: bool
+
+
+class InfiniteBuyingPoint(BaseModel):
+    date: date
+    total: float
+    stock_value: float
+    cash: float
+    avg_price: float
+    tranches_spent_pct: float  # 사이클 원금 대비 투입 비율 (0~1)
+
+
+class InfiniteBuyingResult(BaseModel):
+    config: InfiniteBuyingConfig
+    curve: list[InfiniteBuyingPoint]
+    events: list[InfiniteBuyingEvent]
+    cycles: list[InfiniteBuyingCycle]
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    benchmarks: list[PortfolioSummary]
+    benchmark_curves: dict[str, list[EquityPoint]]
+    benchmark_after_tax: dict[str, float]
+    intraday_days: int  # 15m 체결 판정이 적용된 거래일 수
+
+
 class MultiStrategyResult(BaseModel):
     config: MultiStrategyConfig
     tickers_scanned: int
