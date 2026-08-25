@@ -141,6 +141,26 @@ class MultiTrade(Trade):
     gross_pnl: float
 
 
+class LiquidationSummary(BaseModel):
+    """마지막 날 전량 청산 가정의 세후 결과와 누적 비용.
+
+    수수료·양도세를 모델링하는 모든 전략이 공유한다.
+    ``total_interest``는 이자 수취가 없는 전략에선 0.
+    """
+
+    final_value_pre_tax: float
+    final_value_after_tax: float
+    final_tax: float
+    total_interest: float = 0.0
+    total_fees: float
+    total_tax: float
+    realized_gain_total: float
+
+
+# 하위 호환 별칭 — TqqqP2p 전용이던 시절의 이름.
+TqqqP2pLiquidation = LiquidationSummary
+
+
 class BandRebalanceConfig(BaseModel):
     """Config for the VOO+TQQQ(QLD) 50:50 band-rebalancing strategy.
 
@@ -183,6 +203,14 @@ class BandRebalanceConfig(BaseModel):
     # SMA 상향 돌파 → 재진입 → 다음 하락 다리 직격)를 걸러낸다.
     # 이탈(risk-off)은 즉시 — 방어는 빠르게, 재진입은 신중하게.
     regime_confirm_days: int = 0
+    # --- 수수료·양도소득세 (기본 미반영 = 기존 동작과 동일) ---
+    # fee_schedule을 넘기면 모든 매매에 수수료가 붙고, 실현 차익엔
+    # 연 단위 양도세(기본공제 차감)가 부과된다. 세금은 현금 → 방어
+    # 자산 매도 → 공격 자산 매도 순으로 납부. 결과의 ``liquidation``
+    # 에 최종 전량 청산 가정의 세후 가치가 담긴다.
+    fee_schedule: TossFeeSchedule | None = None
+    capital_gains_tax_pct: float = 0.0
+    tax_deduction: float = 2_500_000.0
 
 
 class RebalanceEvent(BaseModel):
@@ -244,6 +272,9 @@ class BandRebalanceResult(BaseModel):
     # 공격 100%, 그리고 리밸런싱 없는 50:50 방치.
     benchmarks: list[PortfolioSummary]
     benchmark_curves: dict[str, list[EquityPoint]]
+    # 수수료·세금 모델링 시의 청산 요약 (fee_schedule 미설정이면
+    # 수수료·세금 0으로 계산된 값 — after_tax == pre_tax).
+    liquidation: LiquidationSummary | None = None
 
     @property
     def dip_buy_count(self) -> int:
@@ -252,6 +283,167 @@ class BandRebalanceResult(BaseModel):
     @property
     def profit_take_count(self) -> int:
         return sum(1 for e in self.events if e.kind == "profit_take")
+
+
+class TqqqP2pConfig(BaseModel):
+    """Config for the TQQQ + P2P 채권 50:50 현금흐름 리밸런싱 전략.
+
+    - 초기 자본을 ``tqqq_weight`` : 나머지로 TQQQ / P2P 채권에 분할.
+    - 채권은 연 ``bond_annual_rate`` 이자를 **매월** 지급하고
+      ``bond_maturity_months``(기본 12개월 = 1년 만기) 뒤 원금을
+      상환하는 사다리(ladder).
+    - 매월 첫 거래일에 이자·만기 원금이 현금으로 들어오고, 이 현금을
+      목표 비중(50:50)에 모자란 쪽부터 최대로 투자한다. 남으면 새
+      채권을 매입한다 (채권 매입엔 수수료 없음).
+    - ``allow_sell_rebalance``: True면 TQQQ가 목표 비중을 초과할 때
+      초과분을 **매도**해서까지 50:50을 강제한다 (매도 시 수수료 +
+      양도차익 실현 → 과세). False(기본)면 현금흐름으로만 리밸런싱.
+    - 매도 차익엔 연 단위로 ``capital_gains_tax_pct`` 양도소득세를
+      부과 (연 ``tax_deduction`` 기본공제 차감 후). 채권 이자에 대한
+      소득세는 모델링하지 않는다 (P2P 법인 운영 가정 — 법인세는
+      out-of-band).
+    """
+
+    ticker: str = "TQQQ"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    tqqq_weight: float = 0.5
+    bond_annual_rate: float = 0.09
+    bond_maturity_months: int = 12
+    allow_sell_rebalance: bool = False
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class TqqqP2pEvent(BaseModel):
+    """월별 현금흐름 처리 내역 (매월 첫 거래일 종가 기준).
+
+    ``tqqq_traded``: TQQQ 매수 노셔널(+) / 매도 노셔널(−).
+    """
+
+    date: date
+    interest: float
+    matured_principal: float
+    tax_paid: float
+    tqqq_traded: float
+    bond_invested: float
+    tqqq_value_after: float
+    bond_value_after: float
+    cash_after: float
+    tqqq_weight_after: float
+
+
+class TqqqP2pPoint(BaseModel):
+    """일별 mark-to-market. 채권은 액면(원금) 기준 평가."""
+
+    date: date
+    total: float
+    tqqq_value: float
+    bond_value: float
+    cash: float
+
+
+class TqqqP2pResult(BaseModel):
+    config: TqqqP2pConfig
+    curve: list[TqqqP2pPoint]
+    events: list[TqqqP2pEvent]
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    benchmarks: list[PortfolioSummary]
+    benchmark_curves: dict[str, list[EquityPoint]]
+    # 벤치마크별 최종 청산 세후 가치 (이름 → 값).
+    benchmark_after_tax: dict[str, float]
+
+
+class ValueRebalanceConfig(BaseModel):
+    """라오어 '밸류 리밸런싱(VR)' 전략 설정 (거치식 기준).
+
+    - 초기 자본을 주식(``stock_ratio``) : Pool(현금)로 분할,
+      V(밸류패스) 초기값 = 초기 주식 평가금.
+    - ``cycle_days`` 거래일마다 ``V += Pool / G`` (거치식 — 적립/인출
+      없음). Pool이 클수록 V가 빨리 오르는 자기조절 구조.
+    - 평가금 E가 밴드 상단(V × (1+band))을 넘으면 초과분(E − V)을
+      매도해 Pool에 적립, 하단(V × (1−band)) 아래면 부족분(V − E)을
+      Pool 한도 내에서 매수.
+    - ``check_daily``: True(기본)면 매일 밴드를 검사(책의 매수표·
+      매도표 LOC 방식 근사), False면 사이클 시점에만 검사.
+    - 수수료·양도세는 TQQQ P2P 전략과 동일하게 연 단위 정산 +
+      최종 청산 과세.
+    """
+
+    ticker: str = "TQQQ"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    stock_ratio: float = 0.75
+    gradient: float = 10.0
+    cycle_days: int = 10
+    band_pct: float = 0.15
+    check_daily: bool = True
+    # 실력공식(고급) 근사: V 증가분에 √(E/V) 보정 — 평가금이 밸류패스에
+    # 못 미치는 하락장에선 V 상승을 늦춰 Pool 소진을 막고, 앞서가는
+    # 상승장에선 가속한다. 책 원본 공식은 비공개(서적 전용)라 공개된
+    # 설명("E와 V의 괴리를 루트로 보정")을 따른 근사임.
+    advanced_formula: bool = False
+    # 체결 목표: True(기본)면 밴드 **가장자리**까지만 복원 — 책의
+    # 매수표·매도표 LOC 분할 체결과 등가 (종가가 한 단계 더 벗어나면
+    # 그만큼만 추가 체결 = 가격대별 분할 매매). False면 V까지 한 번에
+    # 당기는 공격적 체결 (초기 구현 호환).
+    rebalance_to_edge: bool = True
+    # Pool(현금)을 P2P 채권 등으로 굴릴 때의 연이율 (0 = 무수익 현금).
+    # 일할 계산(연이율/252)으로 매 거래일 누적 — 즉시 인출 가능하다고
+    # 가정하므로 1년 만기 락업의 유동성 제약은 반영하지 않는 낙관적
+    # 상한임에 유의.
+    pool_annual_rate: float = 0.0
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class ValueRebalanceEvent(BaseModel):
+    """VR 매매/사이클 이벤트.
+
+    ``kind``: "sell"(상단 초과 매도) / "buy"(하단 이탈 매수) /
+    "tax"(연초 양도세 정산). ``traded``는 매매 노셔널(매수 +/매도 −).
+    """
+
+    date: date
+    kind: str
+    traded: float
+    value_path: float
+    stock_value_after: float
+    pool_after: float
+
+
+class ValueRebalancePoint(BaseModel):
+    """일별 스냅샷 — 평가금 E, Pool, 밸류패스 V."""
+
+    date: date
+    total: float
+    stock_value: float
+    pool: float
+    value_path: float
+
+
+class ValueRebalanceResult(BaseModel):
+    config: ValueRebalanceConfig
+    curve: list[ValueRebalancePoint]
+    events: list[ValueRebalanceEvent]
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    benchmarks: list[PortfolioSummary]
+    benchmark_curves: dict[str, list[EquityPoint]]
+    benchmark_after_tax: dict[str, float]
+
+    @property
+    def buy_count(self) -> int:
+        return sum(1 for e in self.events if e.kind == "buy")
+
+    @property
+    def sell_count(self) -> int:
+        return sum(1 for e in self.events if e.kind == "sell")
 
 
 class MultiStrategyResult(BaseModel):

@@ -15,7 +15,7 @@ from strategy.adapters.band_rebalance_strategy import (
     build_synthetic_leveraged,
     splice_series,
 )
-from strategy.domain.models import BandRebalanceConfig
+from strategy.domain.models import BandRebalanceConfig, TossFeeSchedule
 
 st.set_page_config(page_title="Optimal Portfolio", layout="wide")
 st.title("최적 포트폴리오 탐색기 — 위기 자산 바스켓")
@@ -118,6 +118,30 @@ with st.sidebar:
     confirm_days = st.number_input(
         "재진입 확인 일수", value=10, min_value=0, max_value=60, step=5,
         disabled=not enable_regime,
+    )
+
+    st.header("수수료 / 세금")
+    apply_costs = st.checkbox(
+        "토스증권 수수료 · 양도소득세 반영",
+        value=True,
+        help="모든 매매에 수수료(매수·매도 각 0.1% + SEC fee), 실현 "
+        "차익에 연 단위 양도세 22%(기본공제 250만) 부과. 점수는 "
+        "기준 대비 상대평가라 세전 곡선 기준을 유지하고, 리더보드에 "
+        "**세후 청산가** 컬럼이 추가된다.",
+    )
+    commission_pct = st.number_input(
+        "거래수수료 (%, 매수·매도 각각)",
+        value=0.10, min_value=0.0, max_value=1.0, step=0.01,
+        format="%.2f", disabled=not apply_costs,
+    )
+    tax_pct = st.number_input(
+        "양도소득세율 (%)",
+        value=22.0, min_value=0.0, max_value=50.0, step=1.0,
+        disabled=not apply_costs,
+    )
+    tax_deduction = st.number_input(
+        "연간 기본공제", value=2_500_000, min_value=0, step=500_000,
+        disabled=not apply_costs,
     )
 
     st.header("점수 가중치")
@@ -259,6 +283,14 @@ config = BandRebalanceConfig(
     band_pct=band_pct / 100.0,
     aggressive_weight=aggressive_weight / 100.0,
     dip_sell_defensive_pct=dip_sell_pct / 100.0,
+    fee_schedule=TossFeeSchedule(
+        buy_commission_pct=commission_pct / 100.0,
+        sell_commission_pct=commission_pct / 100.0,
+    )
+    if apply_costs
+    else None,
+    capital_gains_tax_pct=tax_pct / 100.0 if apply_costs else 0.0,
+    tax_deduction=float(tax_deduction),
 )
 strategy = BandRebalanceStrategy()
 ASSET_LABELS = {k: v["label"] for k, v in DEFENSIVE_ASSETS.items()}
@@ -327,6 +359,11 @@ for i, weights in enumerate(grid):
             "성장 점수": g_score,
             "위기 방어 점수": d_score,
             "최종 평가액": s.final_value,
+            "세후 청산가": (
+                result.liquidation.final_value_after_tax
+                if result.liquidation is not None
+                else s.final_value
+            ),
             "CAGR": s.cagr_pct,
             "MDD": s.max_drawdown_pct,
             "평균 위기 수익률": avg_crisis,
@@ -357,7 +394,11 @@ m2.metric(
     help="위기 구간 성적 50% + 전체 MDD 50%. 100=무손실, 0=주식 방어와 동일",
 )
 m3.metric("성장 점수", f"{best['성장 점수']:.0f}점", help="100=주식 방어와 동일 CAGR")
-m4.metric("최종 평가액", f"{best['최종 평가액']:,.0f}")
+m4.metric(
+    "최종 평가액",
+    f"{best['최종 평가액']:,.0f}",
+    help=f"세후 청산가 {best['세후 청산가']:,.0f}" if apply_costs else None,
+)
 m5, m6, m7, m8 = st.columns(4)
 m5.metric("CAGR", f"{best['CAGR']:+.2%}")
 m6.metric("MDD", f"{best['MDD']:.1%}")
@@ -379,6 +420,7 @@ st.dataframe(
             "성장": f"{r['성장 점수']:.0f}",
             "위기 방어": f"{r['위기 방어 점수']:.0f}",
             "최종 평가액": f"{r['최종 평가액']:,.0f}",
+            "세후 청산가": f"{r['세후 청산가']:,.0f}",
             "CAGR": f"{r['CAGR']:+.2%}",
             "MDD": f"{r['MDD']:.1%}",
             "평균 위기": f"{r['평균 위기 수익률']:+.1%}",

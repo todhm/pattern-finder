@@ -12,7 +12,7 @@ from strategy.adapters.band_rebalance_strategy import (
     build_synthetic_leveraged,
     splice_series,
 )
-from strategy.domain.models import BandRebalanceConfig
+from strategy.domain.models import BandRebalanceConfig, TossFeeSchedule
 
 st.set_page_config(page_title="VOO+TQQQ Rebalance", layout="wide")
 st.title("VOO + TQQQ(QLD) 밴드 리밸런싱")
@@ -183,6 +183,31 @@ with st.sidebar:
         "신중하게.",
     )
 
+    st.header("수수료 / 세금")
+    apply_costs = st.checkbox(
+        "토스증권 수수료 · 양도소득세 반영",
+        value=True,
+        help="모든 매매에 거래수수료(매수·매도 각 0.1% + SEC fee), "
+        "실현 차익에 연 단위 양도세(기본공제 차감)를 부과한다. "
+        "세금은 연초 첫 거래일에 현금 → 방어 → 공격 자산 순으로 "
+        "매도해 납부.",
+    )
+    commission_pct = st.number_input(
+        "거래수수료 (%, 매수·매도 각각)",
+        value=0.10, min_value=0.0, max_value=1.0, step=0.01,
+        format="%.2f", disabled=not apply_costs,
+    )
+    tax_pct = st.number_input(
+        "양도소득세율 (%)",
+        value=22.0, min_value=0.0, max_value=50.0, step=1.0,
+        disabled=not apply_costs,
+    )
+    tax_deduction = st.number_input(
+        "연간 기본공제",
+        value=2_500_000, min_value=0, step=500_000,
+        disabled=not apply_costs,
+    )
+
     run_btn = st.button("Run Backtest", type="primary", use_container_width=True)
 
 if not run_btn:
@@ -299,6 +324,14 @@ config = BandRebalanceConfig(
     regime_buffer_pct=regime_buffer / 100.0,
     risk_off_mode=RISK_OFF_MODES[risk_off_label],
     regime_confirm_days=int(regime_confirm_days),
+    fee_schedule=TossFeeSchedule(
+        buy_commission_pct=commission_pct / 100.0,
+        sell_commission_pct=commission_pct / 100.0,
+    )
+    if apply_costs
+    else None,
+    capital_gains_tax_pct=tax_pct / 100.0 if apply_costs else 0.0,
+    tax_deduction=float(tax_deduction),
 )
 
 with st.spinner("Running backtest..."):
@@ -348,6 +381,25 @@ else:
         help=f"vs {best_bench.name} ({best_bench.final_value:,.0f})",
     )
 m8.metric("초기 자본", f"{result.config.initial_capital:,.0f}")
+
+if apply_costs and result.liquidation is not None:
+    liq = result.liquidation
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric(
+        "세후 청산 가치",
+        f"{liq.final_value_after_tax:,.0f}",
+        help="마지막 날 전량 매도 가정: 매도 수수료 + 양도세 차감.",
+    )
+    c2.metric(
+        "세후 총 수익률",
+        f"{liq.final_value_after_tax / result.config.initial_capital - 1.0:+.1%}",
+    )
+    c3.metric("총 수수료", f"{liq.total_fees:,.0f}")
+    c4.metric(
+        "총 양도소득세",
+        f"{liq.total_tax:,.0f}",
+        help=f"연 단위 정산 + 최종 청산분 {liq.final_tax:,.0f} 포함.",
+    )
 
 # --- Comparison table ---
 st.subheader("전략 vs 벤치마크")

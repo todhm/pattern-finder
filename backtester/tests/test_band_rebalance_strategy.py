@@ -359,3 +359,69 @@ class TestValidation:
         # 겹치는 2일만 사용 — 01-04에 84(-16%)로 줍줍 1회.
         assert len(result.curve) == 2
         assert [e.kind for e in result.events] == ["dip_buy"]
+
+
+class TestFeesAndTax:
+    """fee_schedule / 양도세 경로 — 무설정 시 기존과 동일해야 한다."""
+
+    def _fee(self):
+        from strategy.domain.models import TossFeeSchedule
+
+        return TossFeeSchedule()
+
+    def test_no_fee_config_liquidation_equals_pre_tax(self):
+        agg = _series([100.0, 120.0, 90.0, 130.0])
+        dfn = _series([50.0, 50.0, 50.0, 50.0])
+        result = BandRebalanceStrategy().execute(agg, dfn, _config())
+        liq = result.liquidation
+        assert liq is not None
+        assert liq.total_fees == 0.0
+        assert liq.total_tax == 0.0
+        assert liq.final_value_after_tax == pytest.approx(
+            liq.final_value_pre_tax
+        )
+
+    def test_fees_reduce_final_value(self):
+        agg = _series([100.0, 120.0, 90.0, 130.0, 100.0, 140.0])
+        dfn = _series([50.0] * 6)
+        base = BandRebalanceStrategy().execute(agg, dfn, _config())
+        taxed = BandRebalanceStrategy().execute(
+            agg, dfn, _config(fee_schedule=self._fee())
+        )
+        assert taxed.liquidation.total_fees > 0
+        assert (
+            taxed.summary.final_value < base.summary.final_value
+        )
+
+    def test_final_liquidation_tax_on_gains(self):
+        # 상승 후 청산 — (실현익 − 공제) × 세율.
+        agg = _series([100.0, 100.0, 200.0])
+        dfn = _series([50.0, 50.0, 50.0])
+        cfg = _config(
+            initial_capital=100_000_000.0,
+            fee_schedule=self._fee(),
+            capital_gains_tax_pct=0.22,
+            tax_deduction=2_500_000.0,
+        )
+        result = BandRebalanceStrategy().execute(agg, dfn, cfg)
+        liq = result.liquidation
+        assert liq.final_tax > 0
+        expected = max(0.0, liq.realized_gain_total - 2_500_000.0) * 0.22
+        assert liq.total_tax == pytest.approx(expected)
+        assert liq.final_value_after_tax < liq.final_value_pre_tax
+
+    def test_annual_settlement_across_year_boundary(self):
+        # 연내 profit_take로 실현익 → 다음 해 첫 봉에서 정산.
+        idx = pd.bdate_range("2024-12-02", periods=40)
+        agg = pd.Series([100.0, 130.0] + [130.0] * 38, index=idx)
+        dfn = pd.Series([50.0] * 40, index=idx)
+        cfg = _config(
+            initial_capital=100_000_000.0,
+            fee_schedule=self._fee(),
+            capital_gains_tax_pct=0.22,
+            tax_deduction=0.0,
+        )
+        result = BandRebalanceStrategy().execute(agg, dfn, cfg)
+        # profit_take 1회 (12월) → 1월 정산분이 total_tax에 포함.
+        assert any(e.kind == "profit_take" for e in result.events)
+        assert result.liquidation.total_tax > result.liquidation.final_tax

@@ -13,6 +13,10 @@ docs/newstrategy의 전략을 구현한다:
 어댑터다 — 데이터 fetch / 합성 시계열 구성은 composition root
 (Streamlit 페이지)의 몫. 트리거 판정과 체결 모두 당일 종가 기준
 (원문 전략이 알람 기반 즉시 체결이므로 look-ahead 없음).
+
+**수수료·양도소득세**: ``config.fee_schedule``를 설정하면 모든
+매매에 수수료가 붙고 실현 차익엔 연 단위 양도세(기본공제 차감)가
+부과된다. 미설정(기본)이면 수수료·세금 0으로 기존 결과와 동일.
 """
 
 from __future__ import annotations
@@ -25,9 +29,11 @@ from strategy.domain.models import (
     BandRebalanceConfig,
     BandRebalanceResult,
     EquityPoint,
+    LiquidationSummary,
     PortfolioPoint,
     PortfolioSummary,
     RebalanceEvent,
+    TossFeeSchedule,
 )
 
 # 합성 레버리지 시계열의 기본 연간 보수율 (TQQQ 0.84%, QLD 0.95%
@@ -44,6 +50,10 @@ TRADING_DAYS_PER_YEAR = 252
 # 적용하면 1997-12~2010-02 실제 0.327배 vs 모델 0.329배로 재현됨
 # (일수익률 상관 0.974) — 상장 이전 백캐스트의 구조 검증 근거.
 CALIBRATED_DRAG = {3.0: 0.0251, 2.0: 0.0165}
+
+_ZERO_FEE = TossFeeSchedule(
+    buy_commission_pct=0.0, sell_commission_pct=0.0, sec_fee_pct=0.0
+)
 
 
 def build_synthetic_leveraged(
@@ -136,6 +146,63 @@ def _summarize(name: str, values: pd.Series, initial: float) -> PortfolioSummary
     )
 
 
+class _TradeLedger:
+    """두 자산의 매매 원장 — 수수료·평균 취득원가·실현손익 추적.
+
+    fee/tax가 0이면 모든 수학이 무비용 경로와 동일하므로, 전략
+    구현은 단일 경로로 이 원장만 거친다.
+    """
+
+    def __init__(
+        self, fee: TossFeeSchedule, tax_pct: float, deduction: float
+    ) -> None:
+        self.fee = fee
+        self.sell_rate = fee.sell_commission_pct + fee.sec_fee_pct
+        self.tax_pct = tax_pct
+        self.deduction = deduction
+        self.shares = {"agg": 0.0, "def": 0.0}
+        self.avg_cost = {"agg": 0.0, "def": 0.0}
+        self.realized_ytd = 0.0
+        self.realized_total = 0.0
+        self.total_fees = 0.0
+        self.total_tax = 0.0
+
+    def value(self, asset: str, price: float) -> float:
+        return self.shares[asset] * price
+
+    def buy(self, asset: str, amount: float, price: float) -> float:
+        """현금 ``amount``(수수료 포함)를 전부 써서 매수. 노셔널 반환."""
+        if amount <= 0 or price <= 0:
+            return 0.0
+        notional = amount / (1.0 + self.fee.buy_commission_pct)
+        prev_cost = self.shares[asset] * self.avg_cost[asset]
+        self.shares[asset] += notional / price
+        self.avg_cost[asset] = (prev_cost + amount) / self.shares[asset]
+        self.total_fees += amount - notional
+        return notional
+
+    def sell(self, asset: str, notional: float, price: float) -> float:
+        """평가액 ``notional``만큼 매도. 순현금(수수료 차감) 반환."""
+        notional = min(notional, self.shares[asset] * price)
+        if notional <= 0:
+            return 0.0
+        sold = notional / price
+        f = notional * self.sell_rate
+        gain = (notional - f) - sold * self.avg_cost[asset]
+        self.realized_ytd += gain
+        self.realized_total += gain
+        self.shares[asset] -= sold
+        self.total_fees += f
+        return notional - f
+
+    def year_tax(self) -> float:
+        """연간 실현손익 정산 — 납부할 세액을 반환하고 카운터 리셋."""
+        tax = max(0.0, self.realized_ytd - self.deduction) * self.tax_pct
+        self.realized_ytd = 0.0
+        self.total_tax += tax
+        return tax
+
+
 class BandRebalanceStrategy:
     """두 자산 밴드 리밸런싱 시뮬레이터."""
 
@@ -180,6 +247,12 @@ class BandRebalanceStrategy:
         w = config.aggressive_weight
         band = config.band_pct
         buf = config.regime_buffer_pct
+        taxed = config.fee_schedule is not None
+        ledger = _TradeLedger(
+            config.fee_schedule or _ZERO_FEE,
+            config.capital_gains_tax_pct if taxed else 0.0,
+            config.tax_deduction,
+        )
 
         # 레짐 지수를 백테스트 달력에 정렬 (휴장/결측은 직전값 유지).
         regime: pd.DataFrame | None = None
@@ -195,20 +268,60 @@ class BandRebalanceStrategy:
             flags = risk_on_series.reindex(joined.index, method="ffill")
 
         # --- Day 0: 초기 50:50 매수, 기준가 기록 ---
-        agg_shares = capital * w / float(agg.iloc[0])
-        def_shares = capital * (1.0 - w) / float(dfn.iloc[0])
-        ref_price = float(agg.iloc[0])
+        p0 = float(agg.iloc[0])
+        d0 = float(dfn.iloc[0])
+        ledger.buy("agg", capital * w, p0)
+        ledger.buy("def", capital * (1.0 - w), d0)
+        ref_price = p0
         cash = 0.0
         risk_on = True
         confirm_streak = 0  # risk-off 중 SMA 위 연속 유지 일수
+        prev_year = joined.index[0].year
 
         curve: list[PortfolioPoint] = []
         events: list[RebalanceEvent] = []
+
+        def rebalance_to_target(p: float, d: float) -> float:
+            """총액(현금 포함)을 목표 비중으로 재배분. 공격 방향
+            이동액(+)을 반환."""
+            nonlocal cash
+            agg_before = ledger.value("agg", p)
+            total = agg_before + ledger.value("def", d) + cash
+            target = total * w
+            if agg_before > target:
+                cash += ledger.sell("agg", agg_before - target, p)
+            need = max(0.0, target - ledger.value("agg", p))
+            spend = min(cash, need)
+            if spend > 0:
+                ledger.buy("agg", spend, p)
+                cash -= spend
+                need -= spend
+            if need > 1e-9 and ledger.shares["def"] > 0:
+                # 수수료만큼 목표에 살짝 못 미침 — 의도된 근사.
+                ledger.buy("agg", ledger.sell("def", need, d), p)
+            if cash > 1e-9:
+                ledger.buy("def", cash, d)
+                cash = 0.0
+            return ledger.value("agg", p) - agg_before
 
         for ts in joined.index:
             p = float(agg.loc[ts])
             d = float(dfn.loc[ts])
             transitioned = False
+
+            # --- 0) 연초: 전년도 실현손익 양도세 정산 ---
+            if ts.year != prev_year:
+                tax_due = ledger.year_tax()
+                if tax_due > 0:
+                    used = min(cash, tax_due)
+                    cash -= used
+                    tax_due -= used
+                    for asset, price in (("def", d), ("agg", p)):
+                        if tax_due <= 1e-9:
+                            break
+                        gross = tax_due / (1.0 - ledger.sell_rate)
+                        tax_due -= ledger.sell(asset, gross, price)
+                prev_year = ts.year
 
             # --- 1) 레짐 상태 전이 (당일 종가 체결) ---
             # 목표 상태 결정: 외부 주입 시계열(거시 합성 스코어 등,
@@ -241,21 +354,18 @@ class BandRebalanceStrategy:
                 sold_agg = 0.0
                 if config.risk_off_mode == "derisk_defensive":
                     # 공격 자산 전량 → 방어 자산 대피.
-                    sold_agg = agg_shares * p
-                    def_shares += sold_agg / d
-                    agg_shares = 0.0
+                    sold_agg = ledger.value("agg", p)
+                    ledger.buy("def", ledger.sell("agg", sold_agg, p), d)
                 elif config.risk_off_mode == "derisk_cash":
                     # 전 자산 현금 대피 (무수익).
-                    sold_agg = agg_shares * p
-                    cash += sold_agg + def_shares * d
-                    agg_shares = 0.0
-                    def_shares = 0.0
+                    sold_agg = ledger.value("agg", p)
+                    cash += ledger.sell("agg", sold_agg, p)
+                    cash += ledger.sell("def", ledger.value("def", d), d)
                 # "pause_dip": 보유 유지, 줍줍만 중단.
                 events.append(
                     self._event(
                         ts, "risk_off", p, d, ref_price,
-                        -sold_agg, agg_shares, def_shares,
-                        cash=cash,
+                        -sold_agg, ledger, cash=cash,
                     )
                 )
             elif desired is True and not risk_on:
@@ -264,16 +374,12 @@ class BandRebalanceStrategy:
                 confirm_streak = 0
                 if config.risk_off_mode != "pause_dip":
                     # 재진입: 총액을 목표 비중으로 재배분.
-                    total = agg_shares * p + def_shares * d + cash
-                    bought = total * w - agg_shares * p
-                    agg_shares = total * w / p
-                    def_shares = total * (1.0 - w) / d
-                    cash = 0.0
+                    bought = rebalance_to_target(p, d)
                     ref_before, ref_price = ref_price, p
                     events.append(
                         self._event(
                             ts, "risk_on", p, d, ref_before,
-                            bought, agg_shares, def_shares,
+                            bought, ledger, cash=cash,
                         )
                     )
 
@@ -289,36 +395,36 @@ class BandRebalanceStrategy:
             if dip_allowed and p <= ref_price * (1.0 - band):
                 # 줍줍 모드: 방어 평가액의 dip_sell_defensive_pct
                 # 만큼 팔아 싸진 공격 자산을 매수.
-                sell_amount = def_shares * d * config.dip_sell_defensive_pct
-                def_shares -= sell_amount / d
-                agg_shares += sell_amount / p
+                sell_amount = (
+                    ledger.value("def", d) * config.dip_sell_defensive_pct
+                )
+                ledger.buy("agg", ledger.sell("def", sell_amount, d), p)
                 ref_before, ref_price = ref_price, p
                 events.append(
                     self._event(
                         ts, "dip_buy", p, d, ref_before,
-                        sell_amount, agg_shares, def_shares, cash=cash,
+                        sell_amount, ledger, cash=cash,
                     )
                 )
             elif take_allowed and p >= ref_price * (1.0 + band):
                 # 수익 실현 모드: 총액을 목표 비율로 완전 리밸런싱.
-                total = agg_shares * p + def_shares * d
-                traded = agg_shares * p - total * w  # 공격→방어 이동액
-                agg_shares = total * w / p
-                def_shares = total * (1.0 - w) / d
+                moved = rebalance_to_target(p, d)
                 ref_before, ref_price = ref_price, p
                 events.append(
                     self._event(
                         ts, "profit_take", p, d, ref_before,
-                        -traded, agg_shares, def_shares, cash=cash,
+                        moved, ledger, cash=cash,
                     )
                 )
 
             curve.append(
                 PortfolioPoint(
                     date=ts.date(),
-                    total=agg_shares * p + def_shares * d + cash,
-                    aggressive_value=agg_shares * p,
-                    defensive_value=def_shares * d,
+                    total=ledger.value("agg", p)
+                    + ledger.value("def", d)
+                    + cash,
+                    aggressive_value=ledger.value("agg", p),
+                    defensive_value=ledger.value("def", d),
                     reference_price=ref_price,
                     cash=cash,
                     risk_on=risk_on,
@@ -327,6 +433,30 @@ class BandRebalanceStrategy:
 
         strategy_values = pd.Series(
             [pt.total for pt in curve], index=joined.index
+        )
+
+        # --- 최종 청산 요약 (마지막 봉 종가에 전량 매도 가정) ---
+        p_last = float(agg.iloc[-1])
+        d_last = float(dfn.iloc[-1])
+        final_fees = 0.0
+        final_gain = 0.0
+        for asset, price in (("agg", p_last), ("def", d_last)):
+            notional = ledger.value(asset, price)
+            f = notional * ledger.sell_rate
+            final_fees += f
+            final_gain += (notional - f) - ledger.shares[asset] * ledger.avg_cost[asset]
+        pre_tax = float(strategy_values.iloc[-1])
+        taxable = max(
+            0.0, ledger.realized_ytd + final_gain - config.tax_deduction
+        )
+        final_tax = taxable * (config.capital_gains_tax_pct if taxed else 0.0)
+        liquidation = LiquidationSummary(
+            final_value_pre_tax=pre_tax,
+            final_value_after_tax=pre_tax - final_fees - final_tax,
+            final_tax=final_tax,
+            total_fees=ledger.total_fees + final_fees,
+            total_tax=ledger.total_tax + final_tax,
+            realized_gain_total=ledger.realized_total + final_gain,
         )
 
         # --- 벤치마크: 첫 봉 종가 전액 매수 후 방치 ---
@@ -357,6 +487,8 @@ class BandRebalanceStrategy:
             strategy_name += " + 거시 레짐 방어"
         elif regime is not None:
             strategy_name += f" + {config.regime_sma_days}SMA 방어"
+        if taxed:
+            strategy_name += " · 수수료·세금 반영"
         return BandRebalanceResult(
             config=config,
             curve=curve,
@@ -364,6 +496,7 @@ class BandRebalanceStrategy:
             summary=_summarize(strategy_name, strategy_values, capital),
             benchmarks=benchmarks,
             benchmark_curves=benchmark_curves,
+            liquidation=liquidation,
         )
 
     @staticmethod
@@ -374,12 +507,11 @@ class BandRebalanceStrategy:
         def_price: float,
         ref_before: float,
         traded_amount: float,
-        agg_shares: float,
-        def_shares: float,
+        ledger: _TradeLedger,
         cash: float = 0.0,
     ) -> RebalanceEvent:
-        agg_value = agg_shares * agg_price
-        def_value = def_shares * def_price
+        agg_value = ledger.value("agg", agg_price)
+        def_value = ledger.value("def", def_price)
         total = agg_value + def_value + cash
         return RebalanceEvent(
             date=ts.date(),
