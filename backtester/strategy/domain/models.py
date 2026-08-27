@@ -541,6 +541,217 @@ class InfiniteBuyingResult(BaseModel):
     intraday_days: int  # 15m 체결 판정이 적용된 거래일 수
 
 
+class DipBuyConfig(BaseModel):
+    """전일 급락 분할 매수 전략 (무한매수법 변형).
+
+    - **전날 일간 수익률이 −``drop_pct`` 이하**면 다음 날 시가에
+      계좌 총액의 1/``split``(기본 3)만큼 매수. 사이클당 최대
+      ``split``번까지만 물타기 스택 (현금 한도 내).
+    - 보유 중엔 평단 × (1+``target_pct``) 지정가 익절 주문 상시 유지
+      — 시가 갭이면 시가, 장중 고가 터치면 목표가 체결. 전량 매도 후
+      사이클 종료 (매도한 날은 신규 매수 스킵).
+    - 손절 없음 — 목표가 도달까지 보유 (무한매수법과 동일 철학).
+    - 수수료(토스) + 양도세(연 정산 + 최종 청산) 반영.
+    """
+
+    ticker: str = "TQQQ"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    drop_pct: float = 0.05
+    target_pct: float = 0.012
+    split: int = 3
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class DipBuyEvent(BaseModel):
+    """급락 매수 전략의 개별 매매 기록.
+
+    ``kind``: "buy"(급락 다음 날 시가 매수) / "sell"(목표가 익절) /
+    "tax"(연초 양도세 정산). ``stack_no``는 사이클 내 몇 번째
+    물타기인지 (매도/세금은 0). ``trigger_ret``는 매수를 유발한
+    전날 일간 수익률.
+    """
+
+    date: date
+    kind: str
+    price: float
+    qty: float
+    notional: float
+    stack_no: int = 0
+    trigger_ret: float = 0.0
+    shares_after: float
+    avg_price_after: float
+    target_price: float = 0.0
+    cash_after: float
+    cycle_no: int
+
+
+class DipBuyCycle(BaseModel):
+    """진입(첫 매수) → 전량 익절까지 한 사이클."""
+
+    ticker: str = ""  # 멀티 종목 실행 시 소속 종목 (단일 실행은 빈 값)
+    start: date
+    end: date | None
+    holding_days: int
+    n_buys: int
+    avg_price: float
+    exit_price: float | None
+    invested: float
+    pnl: float
+    outcome: str  # "profit" | "open"
+
+
+class DipBuyResult(BaseModel):
+    config: DipBuyConfig
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    cycles: list[DipBuyCycle]
+    events: list[DipBuyEvent] = Field(default_factory=list)
+    equity_curve: list[EquityPoint]
+    benchmark_after_tax: float  # 동일 구간 100% B&H 세후
+
+    @property
+    def closed_cycles(self) -> list[DipBuyCycle]:
+        return [c for c in self.cycles if c.outcome != "open"]
+
+    @property
+    def win_rate(self) -> float:
+        closed = self.closed_cycles
+        if not closed:
+            return 0.0
+        return sum(1 for c in closed if c.pnl > 0) / len(closed)
+
+
+class MultiDipBuyConfig(BaseModel):
+    """여러 종목 동시 급락 매수 — 한 계좌, 공유 현금.
+
+    규칙은 단일 종목 :class:`DipBuyConfig`와 동일하되:
+
+    - 매일 **모든 종목**의 전날 등락률을 검사, −``drop_pct`` 이하인
+      종목마다 계좌 총액의 1/``split``을 시가 매수 (현금 한도 내).
+    - 같은 날 신호가 겹치면 **낙폭이 깊은 종목부터** 현금을 배정.
+    - 종목별로 평단·익절(평단×(1+``target_pct``))·스택(최대
+      ``split``회)을 독립 관리 — 한 종목이 익절돼 현금이 돌아오면
+      다른 종목 신호에 재사용된다.
+    """
+
+    tickers: list[str] = Field(default_factory=lambda: ["TQQQ"])
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    drop_pct: float = 0.05
+    target_pct: float = 0.012
+    split: int = 3
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class MultiDipBuyResult(BaseModel):
+    config: MultiDipBuyConfig
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    cycles: list[DipBuyCycle]
+    equity_curve: list[EquityPoint]
+    # 동일 구간 동일가중 B&H 세후 (각 종목 상장일부터 1/k씩).
+    benchmark_after_tax: float
+
+    @property
+    def closed_cycles(self) -> list[DipBuyCycle]:
+        return [c for c in self.cycles if c.outcome != "open"]
+
+    @property
+    def win_rate(self) -> float:
+        closed = self.closed_cycles
+        if not closed:
+            return 0.0
+        return sum(1 for c in closed if c.pnl > 0) / len(closed)
+
+
+class FearLadderConfig(BaseModel):
+    """'공포에 사는' 역발상 사다리 전략 (버핏·하워드 막스 방법론).
+
+    - 평시: 주식 ``base_stock_weight`` + 나머지 현금 예비대
+      (``cash_annual_rate``로 P2P 등 이자 운용 가능).
+    - 위기: 기준선 대비 낙폭이 ``levels``의 각 단계에 닿을 때마다
+      **현재 현금의 ``deploy_fractions[i]``**를 종가 매수 (깊을수록
+      더 산다). 기준선은 ``trigger_mode``에 따라:
+        - "ath": 역대 고점 대비 드로다운
+        - "ma": 200일선 대비 이탈 깊이 — "200MA 아래 = 기회" 구현
+    - 회복(ath: 신고점 / ma: 200일선 위 ``recovery_confirm_days``일
+      연속) 시 평시 비중으로 리밸런싱해 익절 + 실탄 재적립, 사다리
+      리셋.
+    - ``vix_confirm``: 켜면 VIX 21일 평균이 ``vix_threshold`` 이상일
+      때만 사다리 발동 (공포가 실재하는지 확인).
+    - 수수료·양도세는 다른 전략과 동일 (연 정산 + 최종 청산).
+    """
+
+    ticker: str = "TQQQ"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    base_stock_weight: float = 0.5
+    cash_annual_rate: float = 0.0
+    trigger_mode: str = "ath"  # "ath" | "ma"
+    ma_days: int = 200
+    levels: list[float] = Field(default_factory=lambda: [-0.20, -0.35, -0.50])
+    deploy_fractions: list[float] = Field(
+        default_factory=lambda: [1 / 3, 1 / 2, 1.0]
+    )
+    recovery_confirm_days: int = 10
+    vix_confirm: bool = False
+    vix_threshold: float = 30.0
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class FearLadderEvent(BaseModel):
+    """공포 사다리 매매 이벤트.
+
+    ``kind``: "base_buy"(초기 평시 매수) / "fear_buy"(사다리 발동) /
+    "recovery"(회복 리밸런싱 매도) / "tax". ``level``은 발동한 사다리
+    단계(1부터), ``drawdown``은 발동 시점 기준선 대비 낙폭.
+    """
+
+    date: date
+    kind: str
+    level: int = 0
+    drawdown: float = 0.0
+    price: float
+    notional: float
+    stock_value_after: float
+    cash_after: float
+    stock_weight_after: float
+
+
+class FearCycle(BaseModel):
+    """첫 사다리 발동 → 회복 리밸런싱까지 한 공포 사이클."""
+
+    start: date
+    end: date | None
+    min_drawdown: float
+    levels_hit: int
+    invested: float
+    harvested: float  # 회복 시 평시 비중으로 되돌리며 매도한 금액
+    outcome: str  # "recovered" | "open"
+
+
+class FearLadderResult(BaseModel):
+    config: FearLadderConfig
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    events: list[FearLadderEvent]
+    cycles: list[FearCycle]
+    equity_curve: list[EquityPoint]
+    benchmarks: list[PortfolioSummary]
+    benchmark_curves: dict[str, list[EquityPoint]]
+    benchmark_after_tax: dict[str, float]
+
+
 class MultiStrategyResult(BaseModel):
     config: MultiStrategyConfig
     tickers_scanned: int

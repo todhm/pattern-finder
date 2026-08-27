@@ -10,6 +10,7 @@ from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from strategy.adapters.infinite_buying_strategy import InfiniteBuyingStrategy
 from strategy.adapters.risk_metrics import compute_risk_metrics
+from pages._shared.formatting import fmt_price
 from strategy.domain.models import InfiniteBuyingConfig, TossFeeSchedule
 
 st.set_page_config(page_title="무한매수법", layout="wide")
@@ -21,19 +22,42 @@ st.caption(
     "봉으로 체결 시점·갭을 판정**한다(데이터 없는 구간은 일봉 시가/고가 "
     "근사). 토스 수수료 + 양도세 22% 반영."
 )
+st.caption("가격은 **분할·배당 조정가** 기준 — 실제 당시 호가와 다르다 (예: SOXL 2010년 표시 $0.66 = 실제 $40, 누적 60배 분할 반영). 규칙이 전부 %기반이라 수익률 결과는 동일하며, 호가단위·정수주 제약은 무시한다(1억 규모에서 오차 <0.01%).")
 
-INCEPTION = {"TQQQ": date(2010, 2, 11), "SOXL": date(2010, 3, 11), "UPRO": date(2009, 6, 25)}
+INCEPTION = {
+    "TQQQ": date(2010, 2, 11),
+    "SOXL": date(2010, 3, 11),
+    "UPRO": date(2009, 6, 25),
+    # 3배 신흥국 (Direxion Bull 3X)
+    "KORU": date(2013, 4, 10),   # 한국
+    "EDC": date(2008, 12, 17),   # 신흥국 전체 (MSCI EM)
+    "YINN": date(2009, 12, 3),   # 중국 FTSE China 50
+    "INDL": date(2010, 3, 11),   # 인도
+    "MEXX": date(2017, 5, 3),    # 멕시코
+}
 
 with st.sidebar:
     st.header("종목 / 기간")
-    ticker = st.selectbox("종목", ["TQQQ", "SOXL", "UPRO"], index=0)
+    ticker_choice = st.selectbox(
+        "종목",
+        [*INCEPTION, "직접 입력"],
+        index=0,
+        help="KORU(한국)·EDC(신흥국)·YINN(중국)·INDL(인도)·MEXX(멕시코) "
+        "= 3배 신흥국 레버리지. '직접 입력'으로 임의 티커도 가능.",
+    )
+    if ticker_choice == "직접 입력":
+        ticker = st.text_input("티커", value="KORU").strip().upper()
+    else:
+        ticker = ticker_choice
+    default_start = INCEPTION.get(ticker, date(2010, 2, 11))
     start_date = st.date_input(
-        "Start Date", value=INCEPTION["TQQQ"],
-        min_value=date(2009, 6, 25), max_value=date.today(),
+        "Start Date", value=default_start,
+        min_value=date(2008, 12, 17), max_value=date.today(),
+        help="종목 상장일 이전으로 잡아도 데이터 있는 구간부터 자동 시작.",
     )
     end_date = st.date_input(
         "End Date", value=date.today(),
-        min_value=date(2009, 6, 25), max_value=date.today(),
+        min_value=date(2008, 12, 17), max_value=date.today(),
     )
     initial_capital = st.number_input(
         "Initial Capital", value=100_000_000, min_value=1_000, step=10_000_000
@@ -75,63 +99,85 @@ with st.sidebar:
 
     run_btn = st.button("Run Backtest", type="primary", use_container_width=True)
 
-if not run_btn:
-    st.info("좌측에서 설정 후 **Run Backtest**를 눌러줘.")
-    st.stop()
-
-daily_source = CachedMarketDataAdapter(YFinanceAdapter())
-with st.spinner(f"Fetching {ticker} (일봉)..."):
-    try:
-        daily = daily_source.fetch_ohlcv(ticker, start_date, end_date)
-    except Exception as e:
-        st.error(f"일봉 fetch 실패: {e}")
-        st.stop()
-if daily.index.tz is not None:
-    daily.index = daily.index.tz_localize(None)
-daily.index = daily.index.normalize()
-
-intraday = None
-if use_intraday:
-    with st.spinner(f"Fetching {ticker} 15m (인트라데이 — 가능한 구간만)..."):
+if run_btn:
+    daily_source = CachedMarketDataAdapter(YFinanceAdapter())
+    with st.spinner(f"Fetching {ticker} (일봉)..."):
         try:
-            intraday_source = RegularSessionFilterAdapter(build_default_market_data())
-            intraday = intraday_source.fetch_ohlcv(
-                ticker, start_date, end_date, interval="15m"
-            )
-            if intraday is not None and len(intraday) == 0:
-                intraday = None
+            daily = daily_source.fetch_ohlcv(ticker, start_date, end_date)
         except Exception as e:
-            st.warning(f"15m 데이터 fetch 실패 — 일봉 근사로 진행: {e}")
-if use_intraday and intraday is not None:
-    first = intraday.index[0]
-    st.caption(
-        f"15m 데이터 구간: {first.date()} ~ {intraday.index[-1].date()} "
-        f"({len(intraday):,}봉) — 그 이전은 일봉 시가/고가 근사."
+            st.error(f"일봉 fetch 실패: {e}")
+            st.stop()
+    if daily.index.tz is not None:
+        daily.index = daily.index.tz_localize(None)
+    daily.index = daily.index.normalize()
+
+    intraday = None
+    if use_intraday:
+        with st.spinner(f"Fetching {ticker} 15m (인트라데이 — 가능한 구간만)..."):
+            try:
+                intraday_source = RegularSessionFilterAdapter(
+                    build_default_market_data()
+                )
+                intraday = intraday_source.fetch_ohlcv(
+                    ticker, start_date, end_date, interval="15m"
+                )
+                if intraday is not None and len(intraday) == 0:
+                    intraday = None
+            except Exception as e:
+                st.warning(f"15m 데이터 fetch 실패 — 일봉 근사로 진행: {e}")
+    intraday_note = None
+    if use_intraday and intraday is not None:
+        intraday_note = (
+            f"15m 데이터 구간: {intraday.index[0].date()} ~ "
+            f"{intraday.index[-1].date()} ({len(intraday):,}봉) — 그 이전은 "
+            "일봉 시가/고가 근사."
+        )
+
+    config = InfiniteBuyingConfig(
+        ticker=ticker,
+        start_date=start_date,
+        end_date=end_date,
+        initial_capital=float(initial_capital),
+        divisions=int(divisions),
+        version=version,
+        target_profit_pct=target_pct / 100.0,
+        depletion_mode="stop_loss" if depletion.startswith("전량") else "hold",
+        fee_schedule=TossFeeSchedule(
+            buy_commission_pct=commission_pct / 100.0,
+            sell_commission_pct=commission_pct / 100.0,
+        ),
+        capital_gains_tax_pct=tax_pct / 100.0,
+        tax_deduction=float(tax_deduction),
     )
 
-config = InfiniteBuyingConfig(
-    ticker=ticker,
-    start_date=start_date,
-    end_date=end_date,
-    initial_capital=float(initial_capital),
-    divisions=int(divisions),
-    version=version,
-    target_profit_pct=target_pct / 100.0,
-    depletion_mode="stop_loss" if depletion.startswith("전량") else "hold",
-    fee_schedule=TossFeeSchedule(
-        buy_commission_pct=commission_pct / 100.0,
-        sell_commission_pct=commission_pct / 100.0,
-    ),
-    capital_gains_tax_pct=tax_pct / 100.0,
-    tax_deduction=float(tax_deduction),
-)
+    with st.spinner("Running backtest..."):
+        try:
+            result = InfiniteBuyingStrategy().execute(
+                daily, config, intraday=intraday
+            )
+        except Exception as e:
+            st.error(f"Backtest failed: {e}")
+            st.stop()
+    # 세션에 보관 — 사이클 선택 등 위젯 조작으로 rerun 되어도 백테스트를
+    # 다시 돌리지 않고 결과 화면을 유지한다.
+    st.session_state["ib_state"] = {
+        "result": result, "daily": daily, "intraday_note": intraday_note,
+    }
 
-with st.spinner("Running backtest..."):
-    try:
-        result = InfiniteBuyingStrategy().execute(daily, config, intraday=intraday)
-    except Exception as e:
-        st.error(f"Backtest failed: {e}")
-        st.stop()
+_state = st.session_state.get("ib_state")
+if _state is None:
+    st.info("좌측에서 설정 후 **Run Backtest**를 눌러줘.")
+    st.stop()
+result = _state["result"]
+daily = _state["daily"]
+if _state["intraday_note"]:
+    st.caption(_state["intraday_note"])
+# 표시용 값들은 실행 시점의 config에서 복원 (사이드바를 바꿔도 화면은
+# 마지막 실행 기준 — 다시 반영하려면 Run Backtest).
+config = result.config
+ticker = config.ticker
+target_pct = config.target_profit_pct * 100.0
+start_date, end_date = config.start_date, config.end_date
 
 s = result.summary
 liq = result.liquidation
@@ -333,15 +379,24 @@ cycle_rows = [
         "매수 횟수": sum(
             1 for e in events_by_cycle.get(c.cycle_no, []) if "buy" in e.kind
         ),
-        "최대 투입": f"{c.invested_max:,.0f}",
-        "손익": f"{c.pnl:,.0f}",
-        "계좌 수익률": f"{c.pnl_pct:+.2%}",
+        "최대 투입": round(c.invested_max),
+        "손익": round(c.pnl),
+        "계좌 수익률": c.pnl_pct,
         "결과": {"profit": "익절", "stop_loss": "손절", "open": "진행 중"}[c.outcome],
         "소진": "O" if c.depleted else "",
     }
     for c in result.cycles
 ]
-st.dataframe(cycle_rows, use_container_width=True, hide_index=True)
+st.dataframe(
+    cycle_rows,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "최대 투입": st.column_config.NumberColumn(format="localized"),
+        "손익": st.column_config.NumberColumn(format="localized"),
+        "계좌 수익률": st.column_config.NumberColumn(format="percent"),
+    },
+)
 
 # --- 사이클 상세: 매수 하나하나 전부 ---
 st.subheader("사이클 상세 — 매매 전체 기록")
@@ -367,12 +422,12 @@ detail_rows = [
         "시각": e.ts,
         "구분": KIND_LABELS.get(e.kind, e.kind),
         "매수 회차": e.tranche_no if e.tranche_no else "",
-        "체결가": f"{e.price:,.2f}",
+        "체결가": fmt_price(e.price),
         "수량": f"{e.qty:,.2f}" if e.qty else "",
         "금액 (+매수/−매도)": f"{e.notional:,.0f}",
         "체결 후 보유": f"{e.shares_after:,.2f}",
-        "체결 후 평단": f"{e.avg_price_after:,.2f}" if e.avg_price_after else "",
-        "익절 목표가": f"{e.target_price:,.2f}" if e.target_price else "",
+        "체결 후 평단": fmt_price(e.avg_price_after),
+        "익절 목표가": fmt_price(e.target_price),
         "원금 투입률": f"{e.spent_pct:.1%}",
         "현금 잔고": f"{e.cash_after:,.0f}",
         "체결 판정": "15m 장중" if e.intraday else "일봉/종가",

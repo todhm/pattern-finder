@@ -14,7 +14,8 @@ from strategy.adapters.band_rebalance_strategy import (
     build_synthetic_leveraged,
     splice_series,
 )
-from strategy.domain.models import BandRebalanceConfig
+from pages._shared.formatting import fmt_price
+from strategy.domain.models import BandRebalanceConfig, TossFeeSchedule
 
 st.set_page_config(page_title="Macro Regime Rebalance", layout="wide")
 st.title("거시지표 선행 레짐 × 밴드 리밸런싱")
@@ -24,6 +25,13 @@ st.caption(
     "동시에** 확인될 때만 방어 전환한다. 거시가 건강한 조정·지정학 "
     "이벤트(전쟁 등)에는 반응하지 않아 휩쏘 없이 꾸준히 오르는 것이 "
     "목표. 모든 지표는 발표 지연을 반영해 look-ahead 없음."
+)
+st.caption(
+    "가격은 **분할·배당 조정가** 기준이라 실제 당시 호가와 다르다 — "
+    "TQQQ 2010년 표시 $0.4대 = 실제 $25 수준 (누적 60배 분할 반영). "
+    "0.30005처럼 보이는 체결가는 에러가 아니라 조정가이며, 규칙이 "
+    "전부 %·비중 기반이라 수익률 결과는 실제 가격과 동일하다. "
+    "$10 미만 가격은 소수 4자리로 표시한다."
 )
 
 ETF_INCEPTION = {
@@ -157,6 +165,30 @@ with st.sidebar:
         "Risk-off 행동", ["방어자산 대피", "현금 대피", "줍줍만 중단"], index=0
     )
 
+    st.header("수수료 / 세금")
+    apply_costs = st.checkbox(
+        "토스증권 수수료 · 양도소득세 반영",
+        value=True,
+        help="모든 매매에 거래수수료(매수·매도 각 0.1% + SEC fee), "
+        "실현 차익에 연 단위 양도세(기본공제 차감)를 부과. 거시/200SMA/"
+        "기존 전략 모두 동일하게 적용된다.",
+    )
+    commission_pct = st.number_input(
+        "거래수수료 (%, 매수·매도 각각)",
+        value=0.10, min_value=0.0, max_value=1.0, step=0.01,
+        format="%.2f", disabled=not apply_costs,
+    )
+    tax_pct = st.number_input(
+        "양도소득세율 (%)",
+        value=22.0, min_value=0.0, max_value=50.0, step=1.0,
+        disabled=not apply_costs,
+    )
+    tax_deduction = st.number_input(
+        "연간 기본공제",
+        value=2_500_000, min_value=0, step=500_000,
+        disabled=not apply_costs,
+    )
+
     run_btn = st.button("Run Backtest", type="primary", use_container_width=True)
 
 if not run_btn:
@@ -286,6 +318,14 @@ config = BandRebalanceConfig(
     aggressive_weight=aggressive_weight / 100.0,
     dip_sell_defensive_pct=dip_sell_pct / 100.0,
     risk_off_mode=RISK_OFF_MODES[risk_off_label],
+    fee_schedule=TossFeeSchedule(
+        buy_commission_pct=commission_pct / 100.0,
+        sell_commission_pct=commission_pct / 100.0,
+    )
+    if apply_costs
+    else None,
+    capital_gains_tax_pct=tax_pct / 100.0 if apply_costs else 0.0,
+    tax_deduction=float(tax_deduction),
 )
 
 with st.spinner("Running backtests (거시 / 200SMA / 기존)..."):
@@ -336,14 +376,43 @@ m8.metric(
     help=f"가격 200SMA 필터 최종 {sma_result.summary.final_value:,.0f}",
 )
 
+if apply_costs and result.liquidation is not None:
+    liq = result.liquidation
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric(
+        "세후 청산 가치",
+        f"{liq.final_value_after_tax:,.0f}",
+        help="마지막 날 전량 매도 가정: 매도 수수료 + 양도세 차감.",
+    )
+    c2.metric(
+        "세후 총 수익률",
+        f"{liq.final_value_after_tax / config.initial_capital - 1.0:+.1%}",
+    )
+    c3.metric("총 수수료", f"{liq.total_fees:,.0f}")
+    c4.metric(
+        "총 양도소득세",
+        f"{liq.total_tax:,.0f}",
+        help=f"연 단위 정산 + 최종 청산분 {liq.final_tax:,.0f} 포함.",
+    )
+
 # --- 비교표 ---
 st.subheader("전략 비교")
+_after_tax = {
+    s.name: result.liquidation,
+    sma_result.summary.name: sma_result.liquidation,
+    base_result.summary.name: base_result.liquidation,
+}
 compared = [s, sma_result.summary, base_result.summary, *result.benchmarks]
 st.dataframe(
     [
         {
             "포트폴리오": p.name,
             "최종 평가액": f"{p.final_value:,.0f}",
+            "세후 청산가": (
+                f"{_after_tax[p.name].final_value_after_tax:,.0f}"
+                if apply_costs and _after_tax.get(p.name) is not None
+                else "—"
+            ),
             "총 수익률": f"{p.total_return_pct:+.1%}",
             "CAGR": f"{p.cagr_pct:+.2%}",
             "MDD": f"{p.max_drawdown_pct:.1%}",
@@ -584,7 +653,7 @@ if result.events:
             {
                 "날짜": e.date,
                 "구분": KIND_LABELS.get(e.kind, e.kind),
-                f"{aggressive_ticker} 가격": f"{e.aggressive_price:,.2f}",
+                f"{aggressive_ticker} 가격": fmt_price(e.aggressive_price),
                 "이동 금액(공격 방향 +)": f"{e.traded_amount:,.0f}",
                 "총 평가액": f"{e.total_value_after:,.0f}",
                 "공격 비중": f"{e.aggressive_weight_after:.1%}",
