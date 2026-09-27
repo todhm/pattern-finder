@@ -61,7 +61,14 @@ with st.sidebar:
     cash_rate = st.number_input(
         "예비대 연이율 (%) — P2P 운용", value=9.0, min_value=0.0,
         max_value=30.0, step=1.0,
-        help="0이면 무수익 현금. 즉시 인출 가정(낙관적 상한).",
+        help="0이면 무수익 현금.",
+    )
+    p2p_lockup = st.checkbox(
+        "P2P 12개월 락업 현실 모드", value=True,
+        help="예비대를 월 코호트 12개의 P2P 사다리로 운용 — 매달 "
+        "이자+만기(1/12)만 유동화되고, 위기 중엔 그 월 유입이 사다리 "
+        "비율로 자동 투입된다(강제 분할매수). 검증(2026-08): 즉시 인출 "
+        "가정 대비 MDD -60%→-40% 개선. 끄면 즉시 인출 가정(낙관).",
     )
     trigger_mode = st.selectbox(
         "기준선",
@@ -143,6 +150,7 @@ if run_btn:
         base_stock_weight=base_weight / 100.0,
         cash_annual_rate=cash_rate / 100.0,
         trigger_mode="ma" if trigger_mode.startswith("200") else "ath",
+        p2p_lockup=p2p_lockup,
         levels=sorted([-lv1 / 100.0, -lv2 / 100.0, -lv3 / 100.0], reverse=True),
         deploy_fractions=[f1 / 100.0, f2 / 100.0, f3 / 100.0],
         recovery_confirm_days=int(recovery_days),

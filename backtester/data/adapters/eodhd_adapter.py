@@ -278,6 +278,15 @@ class EODHDAdapter(MarketDataPort):
                 f"{start} and {end} ({interval}) [EODHD]"
             )
         df = pd.DataFrame(rows)
+        # 분할 조정: yfinance auto_adjust 관례와 맞추기 위해 종가는
+        # adjusted_close를 쓰고 OHL은 같은 비율로 스케일한다.
+        # (비조정가를 그대로 쓰면 TQQQ 2021/2022 분할 구간 수익률이
+        # 붕괴한다 — 2026-08 벤치마크 비교 버그의 원인.)
+        if "adjusted_close" in df.columns:
+            factor = df["adjusted_close"] / df["close"]
+            for col in ("open", "high", "low"):
+                df[col] = df[col] * factor
+            df["close"] = df["adjusted_close"]
         df.rename(
             columns={
                 "open": "Open",

@@ -47,7 +47,9 @@ Negative cache (per-day)
 ------------------------
 On upstream throw, a ``status="fail"`` doc with TTL
 (``fail_ttl_hours``, default 24h) replaces the per-day entry for
-each missing day in the fetched range. Subsequent requests for
+each missing day in the fetched range. "No data found" errors
+(symbol not listed in that window) use ``nodata_ttl_hours``
+(default 90 days) instead — they are facts, not outages. Subsequent requests for
 those days raise :class:`_CachedFetchError` without hitting the
 network — and :class:`FallbackMarketDataAdapter` catches the raise
 to route to the secondary source.
@@ -99,6 +101,7 @@ class MongoDayCacheAdapter(MarketDataPort):
         *,
         bypass_today: bool = False,
         fail_ttl_hours: int = 24,
+        nodata_ttl_hours: int = 24 * 90,
         client: MongoClient | None = None,
     ) -> None:
         self._upstream = upstream
@@ -115,6 +118,9 @@ class MongoDayCacheAdapter(MarketDataPort):
         )
         self._bypass_today = bypass_today
         self._fail_ttl = timedelta(hours=fail_ttl_hours)
+        # "No data found" (상장 전·폐지 구간)는 일시 장애가 아니라 사실에
+        # 가깝다 → 훨씬 긴 TTL. 24h 마다 수백 종목을 재조회하던 원인.
+        self._nodata_ttl = timedelta(hours=nodata_ttl_hours)
 
     # ---- public API ------------------------------------------------
 
@@ -278,13 +284,18 @@ class MongoDayCacheAdapter(MarketDataPort):
             < datetime.now(timezone.utc).date()
         )
 
+    @staticmethod
+    def _is_nodata_error(doc: dict[str, Any]) -> bool:
+        return "No data found" in str(doc.get("error_msg", ""))
+
     def _is_fresh_fail(self, doc: dict[str, Any]) -> bool:
         fetched_at = doc.get("fetched_at")
         if not isinstance(fetched_at, datetime):
             return False
         if fetched_at.tzinfo is None:
             fetched_at = fetched_at.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) - fetched_at < self._fail_ttl
+        ttl = self._nodata_ttl if self._is_nodata_error(doc) else self._fail_ttl
+        return datetime.now(timezone.utc) - fetched_at < ttl
 
     def _write_success_days(
         self,

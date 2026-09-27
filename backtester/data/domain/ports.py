@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from data.domain.models import EarningsEvent, NewsEvent
+    from data.domain.models import (
+        EarningsEvent,
+        GrowthSnapshot,
+        NewsEvent,
+        QuarterlyBalance,
+    )
 
 
 @dataclass(frozen=True)
@@ -53,6 +58,41 @@ class FundamentalsPort(ABC):
         strategy decides whether missing float disqualifies the ticker
         via ``require_float_filter``.
         """
+        ...
+
+
+class GrowthFundamentalsPort(ABC):
+    """Port: 분기 실적(EPS·매출·마진) + 섹터/산업군 fetcher.
+
+    :class:`FundamentalsPort`(float/분할)와 분리 — 소스 엔드포인트와
+    캐시 프로필이 다르다 (EODHD ``/fundamentals`` 전체 payload를 파싱,
+    과거 분기는 불변이라 며칠~몇 주 TTL 디스크 캐시가 적절).
+
+    Failure contract: 소스 장애 시 raise 대신 ``quarters=[]`` 반환 —
+    스크리너가 '펀더멘털 미확인'으로 구분 처리한다.
+    """
+
+    @abstractmethod
+    def fetch(self, symbol: str) -> "GrowthSnapshot":
+        """Return quarterly financial history for ``symbol``.
+
+        ``quarters``는 fiscal_date 오름차순 정렬. point-in-time 필터
+        (``effective_report_date <= 기준일``)는 소비자 책임이다.
+        """
+        ...
+
+
+class BalanceSheetPort(ABC):
+    """Port: 분기 재무상태표(재고·매출채권) fetcher — 미너비니 2-9 판정용.
+
+    :class:`GrowthFundamentalsPort`와 분리한 이유: 호출 비용이 따로 들고
+    (Alpha Vantage 1콜) 스크리너 전체가 아니라 최종 후보 상세 패널에서만
+    필요하다. 실패 시 빈 리스트 (raise 금지).
+    """
+
+    @abstractmethod
+    def fetch_balance_sheet(self, symbol: str) -> "list[QuarterlyBalance]":
+        """fiscal_date 오름차순 분기 리스트. 데이터 없음/실패 = []."""
         ...
 
 

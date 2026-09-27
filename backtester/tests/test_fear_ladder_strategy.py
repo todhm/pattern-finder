@@ -121,3 +121,34 @@ class TestCosts:
         assert liq.total_fees > 0
         assert liq.final_value_after_tax < liq.final_value_pre_tax
         assert set(r.benchmark_after_tax) == {b.name for b in r.benchmarks}
+
+
+class TestP2pLockup:
+    def test_book_compounds_monthly_when_idle(self):
+        # 가격 고정 3개월 — 사다리 미발동, 북이 월복리(9%/12)로 증식.
+        idx = pd.bdate_range("2024-01-02", periods=66)
+        prices = pd.Series(100.0, index=idx)
+        cfg = _config(cash_annual_rate=0.09, p2p_lockup=True)
+        r = FearLadderStrategy().execute(prices, cfg)
+        # 월 경계 횟수만큼 (1+0.0075) 복리.
+        boundaries = sum(
+            1 for a, b in zip(idx[:-1], idx[1:]) if a.month != b.month
+        )
+        expected = 50_000_000 * (1 + 0.09 / 12) ** boundaries + 50_000_000
+        assert r.equity_curve[-1].equity == pytest.approx(expected, rel=1e-6)
+        assert r.liquidation.total_interest > 0
+
+    def test_inflow_becomes_ammo_during_fear_cycle(self):
+        # 1단 발동 후 월 경계 → 유입이 재투자 대신 현금(실탄)으로.
+        idx = pd.bdate_range("2024-01-02", periods=45)
+        vals = [100.0, 100.0, 79.0] + [79.0] * 42  # -21% 즉시 발동
+        prices = pd.Series(vals, index=idx)
+        cfg = _config(cash_annual_rate=0.09, p2p_lockup=True)
+        r = FearLadderStrategy().execute(prices, cfg)
+        # 발동 직후엔 현금 0(락업이라 초기 실탄 없음) → 첫 월 경계에서
+        # 이자+만기 유입 → 2단 아닌 잔여 현금이 양수로 관측되거나
+        # 사다리 소액 매수 발생. 최소한 fear_buy가 1회 이상 있어야 함.
+        fear = [e for e in r.events if e.kind == "fear_buy"]
+        assert fear, "월 유입 실탄으로 사다리 매수가 발생해야 함"
+        # 매수 금액이 초기 예비대(5천만)보다 훨씬 작아야 함 (분할 유입).
+        assert max(e.notional for e in fear) < 10_000_000

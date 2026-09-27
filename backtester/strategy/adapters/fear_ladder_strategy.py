@@ -69,6 +69,9 @@ class FearLadderStrategy:
 
         levels_hit: set[int] = set()
         in_cycle = False
+        # P2P 락업 모드: 예비대를 12개 월 코호트로 분할.
+        lockup = config.p2p_lockup
+        p2p: list[float] = []
         cycle_start = None
         cycle_invested = 0.0
         cycle_min_dd = 0.0
@@ -81,7 +84,7 @@ class FearLadderStrategy:
         prev_year = prices.index[0].year
 
         def record(ts, kind, price, notional, level=0, dd=0.0):
-            total = shares * price + cash
+            total = shares * price + cash + sum(p2p)
             events.append(
                 FearLadderEvent(
                     date=ts.date(),
@@ -129,13 +132,43 @@ class FearLadderStrategy:
         # --- Day 0: 평시 비중 매수 ---
         p0 = float(prices.iloc[0])
         buy(prices.index[0], "base_buy", config.initial_capital * config.base_stock_weight, p0)
+        if lockup:
+            p2p = [cash / 12.0] * 12
+            cash = 0.0
+        prev_month = prices.index[0].month
 
         for i, ts in enumerate(prices.index):
             p = float(prices.loc[ts])
 
             if i > 0:
-                # 현금 이자 (P2P 등).
-                if daily_rate > 0 and cash > 0:
+                if lockup:
+                    # 월 경계: 이자 + 만기 유입. 사이클 중엔 실탄으로
+                    # 적립, 평시엔 잉여현금까지 묶어 재투자.
+                    if ts.month != prev_month:
+                        book = sum(p2p)
+                        interest = book * config.cash_annual_rate / 12.0
+                        total_interest += interest
+                        matured = p2p.pop(0) if p2p else 0.0
+                        inflow = interest + matured
+                        if in_cycle:
+                            # 위기 중 월 유입 = 실탄. 현재 도달한 가장
+                            # 깊은 사다리 단계의 비율로 즉시 투입 —
+                            # 락업 구조가 만드는 자연스러운 월 분할매수.
+                            cash += inflow
+                            p2p.append(0.0)
+                            if levels_hit:
+                                j = max(levels_hit)
+                                buy(
+                                    ts, "fear_buy",
+                                    cash * config.deploy_fractions[j], p,
+                                    level=j + 1, dd=p / ath - 1.0,
+                                )
+                        else:
+                            p2p.append(inflow + cash)
+                            cash = 0.0
+                        prev_month = ts.month
+                elif daily_rate > 0 and cash > 0:
+                    # 즉시 인출 가정: 현금이 일할 이자로 증식.
                     interest = cash * daily_rate
                     cash += interest
                     total_interest += interest
@@ -175,7 +208,7 @@ class FearLadderStrategy:
                     elif p > ath:  # 신고점 = 완전 회복
                         recovered = True
                 if recovered:
-                    total = shares * p + cash
+                    total = shares * p + cash + sum(p2p)
                     target = total * config.base_stock_weight
                     harvested = 0.0
                     if shares * p > target:
@@ -221,7 +254,7 @@ class FearLadderStrategy:
                 if not use_ma:
                     ath = max(ath, p)
 
-            equity.append(shares * p + cash)
+            equity.append(shares * p + cash + sum(p2p))
 
         if in_cycle:
             cycles.append(
@@ -296,6 +329,8 @@ class FearLadderStrategy:
         )
         if config.cash_annual_rate > 0:
             name += f" P2P {config.cash_annual_rate:.0%}"
+        if lockup:
+            name += " (12개월 락업)"
         return FearLadderResult(
             config=config,
             summary=_summarize(name, values, capital),

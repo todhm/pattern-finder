@@ -22,8 +22,16 @@ class WikipediaUniverseAdapter(UniverseProviderPort):
     out.
     """
 
-    SP500_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    NASDAQ100_URL = "https://en.wikipedia.org/wiki/Nasdaq-100"
+    SP500_URLS = (
+        "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+    )
+    # 2026-09: 구성종목 테이블이 Nasdaq-100 본문에서 별도 리스트 문서로
+    # 분리됐다. 리스트 문서를 우선 시도하고, 위키 구조가 또 바뀔 때를
+    # 대비해 본문 문서를 폴백으로 유지한다.
+    NASDAQ100_URLS = (
+        "https://en.wikipedia.org/wiki/List_of_NASDAQ-100_companies",
+        "https://en.wikipedia.org/wiki/Nasdaq-100",
+    )
 
     SP500_ALIASES = {"sp500", "s&p500", "sp_500", "s&p 500"}
     NASDAQ_ALIASES = {"nasdaq", "nasdaq100", "nasdaq_100", "nasdaq-100"}
@@ -40,13 +48,26 @@ class WikipediaUniverseAdapter(UniverseProviderPort):
     def get_tickers(self, universe: str) -> list[str]:
         key = universe.strip().lower()
         if key in self.SP500_ALIASES:
-            return self._fetch_table(self.SP500_URL, ["Symbol", "Ticker"])
+            return self._fetch_first(self.SP500_URLS, ["Symbol", "Ticker"])
         if key in self.NASDAQ_ALIASES:
-            return self._fetch_table(self.NASDAQ100_URL, ["Ticker", "Symbol"])
+            return self._fetch_first(self.NASDAQ100_URLS, ["Ticker", "Symbol"])
         raise ValueError(
             f"Unknown universe: {universe!r}. Expected one of "
             f"{sorted(self.SP500_ALIASES | self.NASDAQ_ALIASES)}"
         )
+
+    def _fetch_first(
+        self, urls: tuple[str, ...], header_candidates: list[str]
+    ) -> list[str]:
+        """URL 후보를 순서대로 시도 — 전부 실패하면 마지막 에러를 raise."""
+        last_error: Exception | None = None
+        for url in urls:
+            try:
+                return self._fetch_table(url, header_candidates)
+            except Exception as e:  # 테이블 없음(RuntimeError)·HTTP 오류 모두
+                last_error = e
+        assert last_error is not None
+        raise last_error
 
     # ---- internals ----
 
@@ -470,6 +491,8 @@ def default_universe_provider() -> UniverseProviderPort:
     + Wikipedia.
 
     Resolution order:
+    - ``<name>@YYYY-MM-DD`` (nasdaq_full/nyse_full/us_all) → Alpha Vantage
+      LISTING_STATUS point-in-time (Mongo 캐시)
     - ``nasdaq_full`` / ``nasdaq_all`` → NasdaqTrader
     - ``kospi_full`` / ``kosdaq_full`` / ``krx_all`` → KRX EODHD
     - ``kospi200`` → KRX Wikipedia
@@ -479,7 +502,17 @@ def default_universe_provider() -> UniverseProviderPort:
     set so dev / CI environments without secrets still resolve the
     other universes.
     """
-    adapters: list[UniverseProviderPort] = [NasdaqTraderUniverseAdapter()]
+    adapters: list[UniverseProviderPort] = []
+    # ``nasdaq_full@2020-01-02`` 같은 기준일 유니버스 (생존 편향 제거) —
+    # 이름에 '@'가 없으면 ValueError 로 다음 어댑터에 넘어간다.
+    try:
+        from data.adapters.alphavantage_listing_universe import (
+            AlphaVantageListingUniverseAdapter,
+        )
+        adapters.append(AlphaVantageListingUniverseAdapter())
+    except Exception:
+        pass  # 키/Mongo 없음
+    adapters.append(NasdaqTraderUniverseAdapter())
     try:
         adapters.append(KrxEodhdUniverseAdapter())
     except ValueError:

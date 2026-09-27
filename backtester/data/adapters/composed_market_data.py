@@ -9,7 +9,7 @@ hand-wiring the adapters. The factory:
    if the primary source has only a fail marker.
 
 2. Routes by interval:
-     - daily       → yfinance primary + Massive fallback
+     - daily       → yfinance primary → EODHD → Massive fallback
      - sub-daily   → **AlphaVantage** primary (month 단위 장기 15m
        히스토리) → EODHD → Massive fallback
 
@@ -136,6 +136,7 @@ def build_default_market_data(
         ))
     except ValueError:
         pass
+    eodhd_cached = next((s for n, s in paid_sources if n == "EODHD"), None)
     massive_cached = None
     try:
         massive_cached = MongoDayCacheAdapter(
@@ -181,18 +182,18 @@ def build_default_market_data(
         fallback_label="YFinance",
     )
 
-    # Daily leg: yfinance primary (free, fast on hits) + Massive
-    # fallback (paid, separate quota) so a yfinance 429 doesn't kill
-    # the page.
-    if massive_cached is not None:
-        daily: MarketDataPort = FallbackMarketDataAdapter(
-            primary=yf_cached,
-            fallback=massive_cached,
-            primary_label="YFinance",
-            fallback_label="Massive",
+    # Daily leg: yfinance primary (free, fast on hits) → EODHD (폐지
+    # 종목 히스토리 보유 — point-in-time 유니버스에 필수) → Massive.
+    daily: MarketDataPort = yf_cached
+    daily_label = "YFinance"
+    for next_label, next_source in (("EODHD", eodhd_cached), ("Massive", massive_cached)):
+        if next_source is None:
+            continue
+        daily = FallbackMarketDataAdapter(
+            primary=daily, fallback=next_source,
+            primary_label=daily_label, fallback_label=next_label,
         )
-    else:
-        daily = yf_cached
+        daily_label = f"{daily_label}/{next_label}"
 
     return IntervalRoutingMarketData(
         sub_daily=sub_daily,

@@ -116,3 +116,37 @@ class TestHistoryLimitGuard:
         # 일봉은 기존 동작: 미반환 날도 빈 성공 문서 (휴장 처리).
         coll = client[db_name]["bars_stub"]
         assert coll.count_documents({"date": "2024-06-18"}) == 1
+
+
+class TestNoDataTTL:
+    """'No data found' 실패는 90일 TTL — 24h 마다 재조회하지 않는다."""
+
+    def test_nodata_fail_marker_stays_fresh_after_one_day(self, mongo_db):
+        from datetime import datetime, timedelta, timezone
+
+        client, db_name = mongo_db
+
+        class _NoData(MarketDataPort):
+            def __init__(self): self.calls = 0
+            def fetch_ohlcv(self, symbol, start, end, interval="1d"):
+                self.calls += 1
+                raise ValueError(f"No data found for {symbol} between {start} and {end} ({interval})")
+
+        up = _NoData()
+        cache = MongoDayCacheAdapter(up, source_name=f"t_{uuid.uuid4().hex[:6]}",
+                                     client=client, mongo_db=db_name)
+        with pytest.raises(Exception):
+            cache.fetch_ohlcv("ARM", date(2019, 1, 2), date(2019, 1, 10))
+        assert up.calls == 1
+        # 마커를 2일 전으로 되돌려도 (24h TTL 이면 만료) nodata 는 아직 fresh
+        cache._bars_coll.update_many({"symbol": "ARM"}, {"$set": {
+            "fetched_at": datetime.now(timezone.utc) - timedelta(days=2)}})
+        with pytest.raises(Exception):
+            cache.fetch_ohlcv("ARM", date(2019, 1, 2), date(2019, 1, 10))
+        assert up.calls == 1                                    # 네트워크 재호출 없음
+        # 91일 전이면 만료 → 재조회
+        cache._bars_coll.update_many({"symbol": "ARM"}, {"$set": {
+            "fetched_at": datetime.now(timezone.utc) - timedelta(days=91)}})
+        with pytest.raises(Exception):
+            cache.fetch_ohlcv("ARM", date(2019, 1, 2), date(2019, 1, 10))
+        assert up.calls == 2

@@ -697,6 +697,12 @@ class FearLadderConfig(BaseModel):
     cash_annual_rate: float = 0.0
     trigger_mode: str = "ath"  # "ath" | "ma"
     ma_days: int = 200
+    # P2P 12개월 락업 현실 모드: 예비대를 월 코호트 12개의 P2P 사다리로
+    # 운용 — 매달 이자(연이율/12)+만기(1/12)만 유동화되고, 공포 사이클
+    # 중엔 그 유입이 현금(실탄)으로 쌓이며 평시엔 재투자된다. 검증
+    # 결과(2026-08) 즉시 인출 가정 대비 MDD -60%→-40% 개선 (락업이
+    # 강제 분할매수로 작동). False면 기존 즉시 인출 가정.
+    p2p_lockup: bool = False
     levels: list[float] = Field(default_factory=lambda: [-0.20, -0.35, -0.50])
     deploy_fractions: list[float] = Field(
         default_factory=lambda: [1 / 3, 1 / 2, 1.0]
@@ -752,6 +758,67 @@ class FearLadderResult(BaseModel):
     benchmark_after_tax: dict[str, float]
 
 
+class VolBreakoutConfig(BaseModel):
+    """래리 윌리엄스 계열 변동성 돌파 데이트레이드.
+
+    - 매일 **시가 + k × 전일 레인지(고가−저가)**에 매수 스톱. 당일
+      고가가 트리거에 닿으면 체결(시가가 이미 위면 시가 체결).
+    - 청산: ``exit_mode`` "close"(당일 종가 — 오버나이트 없음) 또는
+      "next_open"(익일 시가).
+    - 사이징: 매 트레이드 **평가액 × leverage** 노셔널 투입.
+      leverage > 1은 데이트레이드 마진 가정(당일 청산이라 이자 0).
+      윌리엄스의 1년 113배는 선물 레버리지 + 켈리 사이징의 산물 —
+      그 재현 가능성을 leverage 그리드로 검증한다.
+    - ``trend_filter_days`` > 0이면 종가가 N일선 위일 때만 진입.
+    - 수수료(양방향) + 슬리피지(bp, 양방향) + 양도세(연 정산) 반영.
+      파산(평가액 ≤ 초기의 ``ruin_floor_pct``) 시 시뮬레이션 중단.
+    """
+
+    ticker: str = "TQQQ"
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    k: float = 0.5
+    leverage: float = 1.0
+    exit_mode: str = "close"  # "close" | "next_open"
+    trend_filter_days: int = 0
+    slippage_bp: float = 5.0
+    # 레버리지 자금조달 비용 (연율) — 빌린 부분((leverage−1)×평가액)에
+    # 트레이드당 1일치 부과. 크립토 무기한 선물이면 펀딩비(8시간당
+    # ~0.01% ≈ 연 11%) 근사로 0.10 권장. 미국주식 데이트레이드 마진은
+    # 장중 이자 0이 표준이라 기본값 0.
+    financing_annual_rate: float = 0.0
+    ruin_floor_pct: float = 0.1
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class VolBreakoutTrade(BaseModel):
+    date: date
+    entry: float
+    exit: float
+    ret_pct: float  # 노셔널 기준 수익률 (비용 차감 후)
+    pnl: float
+    equity_after: float
+
+
+class VolBreakoutResult(BaseModel):
+    config: VolBreakoutConfig
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    trades: list[VolBreakoutTrade]
+    equity_curve: list[EquityPoint]
+    yearly_returns: dict[int, float]
+    win_rate: float
+    avg_win_pct: float
+    avg_loss_pct: float
+    kelly_fraction: float  # 트레이드 통계로 추정한 켈리 f* (노셔널 비율)
+    total_financing: float = 0.0  # 레버리지 자금조달 비용 누계
+    ruined: bool
+    benchmark_after_tax: float
+
+
 class MultiStrategyResult(BaseModel):
     config: MultiStrategyConfig
     tickers_scanned: int
@@ -766,3 +833,64 @@ class MultiStrategyResult(BaseModel):
     trades: list[MultiTrade]
     equity_curve: list[EquityPoint]
     failed_tickers: list[str]
+
+
+class LeaderRotationConfig(BaseModel):
+    """리더 종목 로테이션 — '갈아타기 100배' 방법론의 공통 규칙 검증.
+
+    다바스/잰저/미너비니/쿨라매기가 공유하는 뼈대를 일봉으로 근사:
+
+    - **유니버스**: 랭킹일 20일 평균 거래대금 ≥ ``min_dollar_volume``
+      (유동성 없는 종목의 백테스트 숫자는 판타지 — 35번 교훈).
+    - **추세 템플릿**: 종가 > ``trend_ma_days``일선, 52주 고점 대비
+      ``near_high_pct`` 이내 (미너비니 트렌드 템플릿 근사).
+    - **랭킹**: ``lookback_days`` 수익률(모멘텀) 상위 ``top_n`` 균등 매수.
+    - **로테이션**: ``rebalance_days`` 거래일마다 재랭킹 후 갈아타기.
+    - **시장 필터**: 시장 지수 < 200일선이면 전량 현금 (미너비니의 M).
+    - 조건 충족 종목이 부족하면 그 슬롯은 현금 (자동 위험 축소).
+    - 수수료 + 슬리피지(bp) + 양도세 22% (연 정산 + 최종 청산).
+    """
+
+    start_date: date
+    end_date: date
+    initial_capital: float = 100_000_000.0
+    lookback_days: int = 126
+    # 랭킹에서 최근 N일 제외 (학계 12-1 모멘텀의 '-1' — 단기 과열/
+    # 반전 구간을 빼고 그 이전까지의 추세로 줄 세운다).
+    skip_days: int = 0
+    top_n: int = 8
+    rebalance_days: int = 21
+    near_high_pct: float = 0.25
+    trend_ma_days: int = 200
+    min_dollar_volume: float = 20_000_000.0
+    market_filter: bool = True
+    slippage_bp: float = 20.0
+    # "raw" = 룩백 수익률 그대로. "vol_adj" = 수익률/연변동성 —
+    # 포물선 과열주 대신 꾸준히 강한 종목을 고른다 (과열 회피).
+    rank_mode: str = "raw"
+    # >0이면 보유 종목이 N일선을 종가로 하향 이탈하는 즉시 매도
+    # (월말까지 기다리지 않는 빠른 손절 — 미너비니/쿨라매기의 실제 규칙).
+    stop_ma_days: int = 0
+    min_price: float = 5.0  # 동전주 제외
+    fee_schedule: TossFeeSchedule = Field(default_factory=TossFeeSchedule)
+    capital_gains_tax_pct: float = 0.22
+    tax_deduction: float = 2_500_000.0
+
+
+class LeaderRebalance(BaseModel):
+    date: date
+    picks: list[str]
+    momentum: dict[str, float]  # 픽별 랭킹 시점 모멘텀
+    regime: str  # "risk_on" | "risk_off"
+    turnover: float  # 매매대금 / 평가액
+
+
+class LeaderRotationResult(BaseModel):
+    config: LeaderRotationConfig
+    summary: PortfolioSummary
+    liquidation: LiquidationSummary
+    equity_curve: list[EquityPoint]
+    rebalances: list[LeaderRebalance]
+    yearly_returns: dict[int, float]
+    avg_holdings: float
+    total_turnover: float
