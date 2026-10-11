@@ -9,7 +9,8 @@ hand-wiring the adapters. The factory:
    if the primary source has only a fail marker.
 
 2. Routes by interval:
-     - daily       → yfinance primary → EODHD → Massive fallback
+     - daily       → **AlphaVantage** primary (1콜 = 전체 히스토리,
+       폐지 종목 포함) → yfinance → EODHD → Massive fallback
      - sub-daily   → **AlphaVantage** primary (month 단위 장기 15m
        히스토리) → EODHD → Massive fallback
 
@@ -86,10 +87,10 @@ def build_default_market_data(
                 ),
                 fallback = MongoDayCache(YFinance, "bars_yfinance"),
             ),
-            daily     = FallbackMarketDataAdapter(
-                primary  = MongoDayCache(YFinance, "bars_yfinance"),
-                fallback = MongoDayCache(Massive,  "bars_massive"),
-            ),
+            daily     = FallbackMarketDataAdapter(      # 키 있는 소스만
+                primary  = MongoDayCache(AlphaVantage, "bars_alphavantage"),
+                fallback = MongoDayCache(YFinance, "bars_yfinance"),
+            ) → EODHD → Massive,
         )
 
     Each leg degrades gracefully:
@@ -182,10 +183,19 @@ def build_default_market_data(
         fallback_label="YFinance",
     )
 
-    # Daily leg: yfinance primary (free, fast on hits) → EODHD (폐지
-    # 종목 히스토리 보유 — point-in-time 유니버스에 필수) → Massive.
+    # Daily leg (2026-10): AlphaVantage primary — TIME_SERIES_DAILY_ADJUSTED
+    # 1콜에 ~20년 + 상장폐지 종목까지 준다. 수천 종목 스캔에서 yfinance 가
+    # 429 로 막히던 문제 해소. → yfinance(키 없는 종목·AV 장애) → EODHD
+    # (폐지 종목 히스토리) → Massive.
+    av_cached = next((s for n, s in paid_sources if n == "AlphaVantage"), None)
     daily: MarketDataPort = yf_cached
     daily_label = "YFinance"
+    if av_cached is not None:
+        daily = FallbackMarketDataAdapter(
+            primary=av_cached, fallback=yf_cached,
+            primary_label="AlphaVantage", fallback_label="YFinance",
+        )
+        daily_label = "AlphaVantage/YFinance"
     for next_label, next_source in (("EODHD", eodhd_cached), ("Massive", massive_cached)):
         if next_source is None:
             continue

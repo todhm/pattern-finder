@@ -484,16 +484,20 @@ def annual_evidence(
 
 
 # ---------------------------------------------------------------------------
-# STAGE 0 — 시장 환경 (지수 하나에 대한 0-1·0-2 판정)
+# STAGE 0 — 시장 환경 (지수 하나에 대한 0-1·0-1b·0-2 판정)
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class MarketVerdict:
-    """지수 하나(SPY·QQQ 등)의 0-1 추세 + 0-2 분산일 판정.
+    """지수 하나(SPY·QQQ 등)의 0-1 장기 추세 + 0-1b 단기 추세 + 0-2 분산일 판정.
 
     미너비니는 S&P 500만 보지 않는다 — 나스닥 종합을 가장 자주 보고,
     IBD식 분산일은 S&P 500·나스닥 중 **어느 한쪽**이라도 쌓이면 경고다.
     페이지는 이 결과를 지수별로 만들어 합친다 (``combine_market``).
+
+    - 0-1·0-1b 실패 = 신규 매수 중단 (``ok`` False)
+    - 0-2 분산일 = 경고만 (``ok`` 에 영향 없음 — 진입 수 제한에 사용).
+      자체 검증(오닐 TQQQ 노트)에서 상시 카운터는 오경보가 58%였다.
     """
 
     symbol: str
@@ -501,12 +505,15 @@ class MarketVerdict:
     sma200: float
     sma200_prev21: float
     trend_ok: bool                 # 0-1: 종가 > 200일선 & 200일선 상승
-    dist_days: int | None          # 0-2: 최근 25거래일 분산일 (None = 봉 부족)
+    dist_days: int | None          # 0-2: 최근 25거래일 유효 분산일 (None = 봉 부족)
     dist_ok: bool | None           # 분산일 < 5
+    sma50: float | None = None
+    sma50_prev: float | None = None
+    short_ok: bool = True          # 0-1b: NOT(종가 < 50일선 & 50일선 하락)
 
     @property
     def ok(self) -> bool:
-        return self.trend_ok and (self.dist_ok is not False)
+        return self.trend_ok and self.short_ok
 
     @property
     def note(self) -> str:
@@ -518,26 +525,42 @@ class MarketVerdict:
 
 def evaluate_market(
     df: pd.DataFrame, symbol: str = "SPY", max_dist_days: int = 5,
+    short_slope_days: int = 20,
 ) -> MarketVerdict | None:
-    """기준일까지의 지수 일봉으로 0-1·0-2 판정. 봉이 222개 미만이면 None."""
+    """기준일까지의 지수 일봉으로 0-1·0-1b·0-2 판정. 봉이 222개 미만이면 None.
+
+    0-1b 는 미너비니의 "조정 중엔 사지 않는다" — 지수가 50일선 아래인데
+    50일선마저 꺾였으면(``short_slope_days``거래일 전 대비 하락) 주도주 돌파도 실패하기
+    쉬운 조정 국면으로 본다. 50일선 아래 일시 이탈(50일선은 아직 상승)은
+    눌림으로 보고 통과시킨다.
+
+    기울기 기간 20일 (2026-10 검증): 10/15/20일 비교에서 샘플 13개 날짜는 판정이
+    같았고, out-of-sample 26개 날짜 중 2019-10-01 하나만 달랐다 — 10일은 막고
+    20일은 통과, 이후 QQQ 3개월 +14%. 짧은 조정 오경보를 줄이는 쪽으로 20일.
+    """
     if len(df) < 222:
         return None
     c = df["Close"]
     sma = c.rolling(200).mean()
+    sma50 = c.rolling(50).mean()
     close, s200, s200_prev = float(c.iloc[-1]), float(sma.iloc[-1]), float(sma.iloc[-22])
+    s50, s50_prev = float(sma50.iloc[-1]), float(sma50.iloc[-1 - short_slope_days])
     dd = distribution_days(df)
     return MarketVerdict(
         symbol=symbol, close=close, sma200=s200, sma200_prev21=s200_prev,
         trend_ok=close > s200 and s200 > s200_prev,
         dist_days=dd, dist_ok=None if dd is None else dd < max_dist_days,
+        sma50=s50, sma50_prev=s50_prev,
+        short_ok=not (close < s50 and s50 < s50_prev),
     )
 
 
 def combine_market(verdicts: list[MarketVerdict]) -> tuple[bool | None, list[str]]:
-    """여러 지수 판정 합산 → (all_ok, 실패 항목 목록).
+    """여러 지수 판정 합산 → (all_ok, 신규 매수 중단 사유 목록).
 
-    - 0-1 은 **모든** 지수가 200일선 위·상승이어야 통과 (하나라도 아래면 경고).
-    - 0-2 는 **어느 한 지수**라도 분산일 5회↑면 경고 (IBD 규칙).
+    - 0-1 은 **모든** 지수가 200일선 위·상승이어야 통과.
+    - 0-1b 는 **모든** 지수가 조정 국면(50일선 아래 & 50일선 하락)이 아니어야 통과.
+    - 0-2 분산일은 여기서 실패로 치지 않는다 → :func:`market_warnings`.
     비어 있으면 (None, []) — 판정 불가.
     """
     if not verdicts:
@@ -546,31 +569,44 @@ def combine_market(verdicts: list[MarketVerdict]) -> tuple[bool | None, list[str
     bad_trend = [v.symbol for v in verdicts if not v.trend_ok]
     if bad_trend:
         failed.append(f"0-1 지수 추세 ({'·'.join(bad_trend)} 200일선 아래/하락)")
-    bad_dist = [v.symbol for v in verdicts if v.dist_ok is False]
-    if bad_dist:
-        failed.append(f"0-2 분산일 ({'·'.join(bad_dist)} 5회↑)")
+    bad_short = [v.symbol for v in verdicts if not v.short_ok]
+    if bad_short:
+        failed.append(f"0-1b 지수 조정 ({'·'.join(bad_short)} 50일선 아래 & 50일선 하락)")
     return not failed, failed
+
+
+def market_warnings(verdicts: list[MarketVerdict]) -> list[str]:
+    """0-2 경고 — 어느 한 지수라도 유효 분산일 5회↑ (IBD). 진입 수 제한용."""
+    bad = [v.symbol for v in verdicts if v.dist_ok is False]
+    return [f"0-2 분산일 ({'·'.join(bad)} 5회↑)"] if bad else []
 
 
 def distribution_days(
     df: pd.DataFrame,
     window: int = 25,
     min_drop: float = 0.002,
+    expire_gain: float = 0.05,
 ) -> int | None:
     """0-2 랠리의 질 — IBD식 **분산일** 카운트.
 
     분산일 = 지수가 전일 대비 ``min_drop``(-0.2%) 이상 하락했는데
     거래량은 전일보다 **늘어난** 날 (기관 매도 흔적). 최근
-    ``window``(25)거래일 안에서 센다. **4~5회 이상이면 조정 경고**
+    ``window``(25)거래일 안에서 세되, 이후 종가가 그날 종가 대비
+    ``expire_gain``(+5%) 이상 오른 적 있으면 소멸 (IBD 관행 —
+    ``oneil_market_timing`` 과 동일). **5회 이상이면 경고**
     (매뉴얼 STAGE 0-2). 봉이 부족하면 None.
     """
     if len(df) < window + 1:
         return None
     tail = df.tail(window + 1)
-    ret = tail["Close"].pct_change()
+    close = tail["Close"]
+    ret = close.pct_change()
     vol_up = tail["Volume"].diff() > 0
-    mask = (ret <= -min_drop) & vol_up
-    return int(mask.tail(window).sum())
+    mask = ((ret <= -min_drop) & vol_up).tail(window)
+    # 각 날 이후(당일 제외) 최고 종가 — 마지막 날은 NaN → 소멸 없음
+    later_max = close[::-1].cummax()[::-1].shift(-1).tail(window)
+    expired = later_max >= close.tail(window) * (1 + expire_gain)
+    return int((mask & ~expired).sum())
 
 
 def split_factor(splits: "pd.Series | None", as_of: date) -> float:

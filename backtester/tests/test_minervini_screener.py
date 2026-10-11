@@ -188,6 +188,21 @@ def test_distribution_days_ignores_low_volume_declines_and_short_data():
     assert distribution_days(df.head(10)) is None  # 봉 부족
 
 
+def test_distribution_days_expire_after_5pct_rally():
+    n = 30
+    closes = np.full(n, 100.0)
+    vols = np.full(n, 1e6)
+    for i in (10, 15):                            # 분산일 2개
+        closes[i:] *= 0.995
+        vols[i] = vols[i - 1] * 1.5
+    assert distribution_days(pd.DataFrame(
+        {"Close": closes, "Volume": vols}, index=pd.bdate_range("2020-01-01", periods=n))) == 2
+    closes[20:] *= 1.06                           # 이후 +6% 랠리 → 둘 다 소멸
+    df = pd.DataFrame({"Close": closes, "Volume": vols},
+                      index=pd.bdate_range("2020-01-01", periods=n))
+    assert distribution_days(df) == 0
+
+
 # ---- 분할 환산 (당시 실제 가격 복원) ---------------------------------------
 
 def test_split_factor_counts_only_future_splits():
@@ -587,7 +602,12 @@ def test_composite_includes_code33_when_available():
 
 # ---- STAGE 0 시장 환경 — SPY + QQQ 이중 판정 -------------------------------
 
-from strategy.adapters.minervini_screener import MarketVerdict, combine_market, evaluate_market
+from strategy.adapters.minervini_screener import (
+    MarketVerdict,
+    combine_market,
+    evaluate_market,
+    market_warnings,
+)
 
 
 def _index(closes: np.ndarray, vols=None) -> pd.DataFrame:
@@ -615,12 +635,25 @@ def test_evaluate_market_distribution_days_flag():
     for i in (280, 284, 288, 292, 296):        # 마지막 25일 안에 분산일 5개
         closes[i:] *= 0.99; vols[i] = vols[i - 1] * 1.5
     v = evaluate_market(_index(closes, vols), symbol="SPY")
-    assert v is not None and v.trend_ok and v.dist_days == 5 and v.dist_ok is False and not v.ok
+    assert v is not None and v.trend_ok and v.dist_days == 5 and v.dist_ok is False
+    assert v.ok  # 0-2 는 경고만 — 매수 중단 사유 아님
 
 
-def _mv(sym, trend_ok, dist_days):
+def test_evaluate_market_short_term_correction_fails_short_ok():
+    # 200일선 위·상승 유지, 그러나 최근 30일 하락으로 50일선 아래 & 50일선 하락
+    up = np.linspace(100, 200, 270); down = np.linspace(200, 175, 30)
+    v = evaluate_market(_index(np.concatenate([up, down])), symbol="QQQ")
+    assert v is not None and v.trend_ok and not v.short_ok and not v.ok
+    # 50일선이 아직 상승 중인 얕은 눌림은 통과
+    dip = np.linspace(200, 188, 5)
+    v = evaluate_market(_index(np.concatenate([np.linspace(100, 200, 295), dip])), symbol="QQQ")
+    assert v is not None and v.close < v.sma50 and v.short_ok and v.ok
+
+
+def _mv(sym, trend_ok, dist_days, short_ok=True):
     return MarketVerdict(symbol=sym, close=100, sma200=90, sma200_prev21=85, trend_ok=trend_ok,
-                         dist_days=dist_days, dist_ok=None if dist_days is None else dist_days < 5)
+                         dist_days=dist_days, dist_ok=None if dist_days is None else dist_days < 5,
+                         short_ok=short_ok)
 
 
 def test_combine_market_rules():
@@ -629,9 +662,14 @@ def test_combine_market_rules():
     # 0-1: 한 지수라도 추세 실패면 실패
     ok, failed = combine_market([_mv("SPY", True, 2), _mv("QQQ", False, 3)])
     assert ok is False and failed[0].startswith("0-1") and "QQQ" in failed[0] and "SPY" not in failed[0]
-    # 0-2: 한 지수라도 분산일 5회↑면 경고 (IBD)
-    ok, failed = combine_market([_mv("SPY", True, 6), _mv("QQQ", True, 1)])
-    assert ok is False and failed == ["0-2 분산일 (SPY 5회↑)"]
+    # 0-1b: 한 지수라도 조정 국면이면 실패
+    ok, failed = combine_market([_mv("SPY", True, 2), _mv("QQQ", True, 3, short_ok=False)])
+    assert ok is False and failed == ["0-1b 지수 조정 (QQQ 50일선 아래 & 50일선 하락)"]
+    # 0-2: 분산일 5회↑는 매수 중단이 아니라 경고 (IBD)
+    vs = [_mv("SPY", True, 6), _mv("QQQ", True, 1)]
+    ok, failed = combine_market(vs)
+    assert ok is True and failed == []
+    assert market_warnings(vs) == ["0-2 분산일 (SPY 5회↑)"]
     # 분산일 측정 불가(None)는 실패로 치지 않는다
     ok, failed = combine_market([_mv("SPY", True, None)])
     assert ok is True

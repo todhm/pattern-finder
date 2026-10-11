@@ -1,0 +1,663 @@
+{
+ "dates": [
+  {
+   "as_of": "2018-11-20",
+   "regime": "blocked",
+   "failed": [
+    "0-1 지수 추세 (SPY·QQQ 200일선 아래/하락)",
+    "0-1b 지수 조정 (SPY·QQQ 50일선 아래 & 50일선 하락)"
+   ],
+   "warns": [
+    "0-2 분산일 (SPY·QQQ 5회↑)"
+   ],
+   "nh": null,
+   "nl": null,
+   "candidates": 0,
+   "stage_pass": {}
+  },
+  {
+   "as_of": "2020-01-02",
+   "regime": "normal",
+   "failed": [],
+   "warns": [],
+   "nh": 693,
+   "nl": 38,
+   "candidates": 93,
+   "stage_pass": {
+    "s2": 11,
+    "s3": 15,
+    "s23": 11,
+    "entry": 1
+   }
+  },
+  {
+   "as_of": "2020-06-01",
+   "regime": "normal",
+   "failed": [],
+   "warns": [],
+   "nh": 212,
+   "nl": 20,
+   "candidates": 76,
+   "stage_pass": {
+    "s2": 1,
+    "s3": 3,
+    "s23": 1,
+    "entry": 0
+   }
+  },
+  {
+   "as_of": "2022-02-15",
+   "regime": "blocked",
+   "failed": [
+    "0-1 지수 추세 (QQQ 200일선 아래/하락)",
+    "0-1b 지수 조정 (SPY·QQQ 50일선 아래 & 50일선 하락)"
+   ],
+   "warns": [
+    "0-2 분산일 (SPY·QQQ 5회↑)"
+   ],
+   "nh": null,
+   "nl": null,
+   "candidates": 0,
+   "stage_pass": {}
+  },
+  {
+   "as_of": "2022-06-16",
+   "regime": "blocked",
+   "failed": [
+    "0-1 지수 추세 (SPY·QQQ 200일선 아래/하락)",
+    "0-1b 지수 조정 (SPY·QQQ 50일선 아래 & 50일선 하락)"
+   ],
+   "warns": [
+    "0-2 분산일 (SPY·QQQ 5회↑)"
+   ],
+   "nh": null,
+   "nl": null,
+   "candidates": 0,
+   "stage_pass": {}
+  },
+  {
+   "as_of": "2023-06-01",
+   "regime": "caution",
+   "failed": [],
+   "warns": [
+    "0-2 분산일 (SPY 5회↑)"
+   ],
+   "nh": 453,
+   "nl": 233,
+   "candidates": 88,
+   "stage_pass": {
+    "s2": 11,
+    "s3": 14,
+    "s23": 11,
+    "entry": 2
+   }
+  },
+  {
+   "as_of": "2024-02-01",
+   "regime": "normal",
+   "failed": [],
+   "warns": [],
+   "nh": 524,
+   "nl": 152,
+   "candidates": 125,
+   "stage_pass": {
+    "s2": 17,
+    "s3": 26,
+    "s23": 17,
+    "entry": 2
+   }
+  },
+  {
+   "as_of": "2025-04-04",
+   "regime": "blocked",
+   "failed": [
+    "0-1 지수 추세 (SPY·QQQ 200일선 아래/하락)",
+    "0-1b 지수 조정 (SPY·QQQ 50일선 아래 & 50일선 하락)"
+   ],
+   "warns": [
+    "0-2 분산일 (SPY·QQQ 5회↑)"
+   ],
+   "nh": null,
+   "nl": null,
+   "candidates": 0,
+   "stage_pass": {}
+  },
+  {
+   "as_of": "2026-05-01",
+   "regime": "normal",
+   "failed": [],
+   "warns": [],
+   "nh": 554,
+   "nl": 136,
+   "candidates": 145,
+   "stage_pass": {
+    "s2": 30,
+    "s3": 38,
+    "s23": 30,
+    "entry": 1
+   }
+  },
+  {
+   "as_of": "2026-07-01",
+   "regime": "caution",
+   "failed": [],
+   "warns": [
+    "0-2 분산일 (SPY 5회↑)"
+   ],
+   "nh": 634,
+   "nl": 170,
+   "candidates": 151,
+   "stage_pass": {
+    "s2": 27,
+    "s3": 33,
+    "s23": 27,
+    "entry": 1
+   }
+  },
+  {
+   "as_of": "2026-08-14",
+   "regime": "normal",
+   "failed": [],
+   "warns": [],
+   "nh": 586,
+   "nl": 193,
+   "candidates": 120,
+   "stage_pass": {
+    "s2": 21,
+    "s3": 26,
+    "s23": 21,
+    "entry": 0
+   }
+  },
+  {
+   "as_of": "2026-09-15",
+   "regime": "blocked",
+   "failed": [
+    "0-1b 지수 조정 (QQQ 50일선 아래 & 50일선 하락)"
+   ],
+   "warns": [
+    "0-2 분산일 (SPY·QQQ 5회↑)"
+   ],
+   "nh": null,
+   "nl": null,
+   "candidates": 0,
+   "stage_pass": {}
+  },
+  {
+   "as_of": "2026-10-08",
+   "regime": "no_breadth",
+   "failed": [],
+   "warns": [
+    "0-2 분산일 (SPY 5회↑)"
+   ],
+   "nh": 335,
+   "nl": 480,
+   "candidates": 70,
+   "stage_pass": {}
+  }
+ ],
+ "entries": {
+  "S001": {
+   "as_of": "2020-01-02",
+   "ticker": "CDLX",
+   "industry": "ADVERTISING AGENCIES",
+   "rs": 98.9152269987947,
+   "entry": {
+    "setup_date": "2020-02-05",
+    "entry_date": "2020-02-06",
+    "entry_price": 871.7700000000001,
+    "pivot": 871.7700000000001,
+    "breakout_volume_ratio": 2.065407719051685,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": false,
+      "s4_6": true,
+      "s4_7": true,
+      "s4_9": false,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $260.70 → 천장 $905.00 = +247%",
+      "s4_3": "깊이 10%",
+      "s4_4": "−10% → −4% → −7% → −6% → −4%",
+      "s4_6": "마지막 축소 4.2%",
+      "s4_7": "10일/50일 거래량 0.70",
+      "s4_9": "피봇이 베이스 레인지의 65% 높이",
+      "s4_10": "10일 수익률 -2%, 피봇 대비 -1.9%",
+      "s4_11": "피봇 871.77 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": true,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": null
+    },
+    "notes": {
+     "s2_8": "헤드라인 0건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  },
+  "S002": {
+   "as_of": "2023-06-01",
+   "ticker": "TCMD",
+   "industry": "MEDICAL DEVICES",
+   "rs": 97.12021136063407,
+   "entry": {
+    "setup_date": "2023-06-02",
+    "entry_date": "2023-06-05",
+    "entry_price": 23.45,
+    "pivot": 23.23,
+    "breakout_volume_ratio": 2.3248953563996335,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": false,
+      "s4_6": true,
+      "s4_7": false,
+      "s4_9": true,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $7.99 → 천장 $22.47 = +181%",
+      "s4_3": "깊이 13%",
+      "s4_4": "−7% → −10% → −4% → −10% → −7% → −4%",
+      "s4_6": "마지막 축소 4.3%",
+      "s4_7": "10일/50일 거래량 0.87",
+      "s4_9": "피봇이 베이스 레인지의 127% 높이",
+      "s4_10": "10일 수익률 +12%, 피봇 대비 -0.1%",
+      "s4_11": "피봇 23.23 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 0건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": false,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  },
+  "S003": {
+   "as_of": "2023-06-01",
+   "ticker": "RXST",
+   "industry": "MEDICAL DEVICES",
+   "rs": 96.96169088507266,
+   "entry": {
+    "setup_date": "2023-06-21",
+    "entry_date": "2023-06-22",
+    "entry_price": 26.48,
+    "pivot": 26.48,
+    "breakout_volume_ratio": 1.5164601113641993,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": false,
+      "s4_6": true,
+      "s4_7": false,
+      "s4_9": true,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $10.29 → 천장 $27.53 = +168%",
+      "s4_3": "깊이 13%",
+      "s4_4": "−8% → −11% → −9% → −8% → −7% → −6%",
+      "s4_6": "마지막 축소 5.6%",
+      "s4_7": "10일/50일 거래량 1.39",
+      "s4_9": "피봇이 베이스 레인지의 72% 높이",
+      "s4_10": "10일 수익률 -0%, 피봇 대비 -1.4%",
+      "s4_11": "피봇 26.48 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": null
+    },
+    "notes": {
+     "s2_8": "헤드라인 2건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": false,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  },
+  "S004": {
+   "as_of": "2024-02-01",
+   "ticker": "MANH",
+   "industry": "SOFTWARE - APPLICATION",
+   "rs": 87.66124509254067,
+   "entry": {
+    "setup_date": "2024-02-28",
+    "entry_date": "2024-02-29",
+    "entry_price": 255.0,
+    "pivot": 249.935,
+    "breakout_volume_ratio": 1.7417346548124217,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": true,
+      "s4_6": true,
+      "s4_7": true,
+      "s4_9": false,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $182.97 → 천장 $258.91 = +42%",
+      "s4_3": "깊이 10%",
+      "s4_4": "−10% → −5% → −4%",
+      "s4_6": "마지막 축소 4.3%",
+      "s4_7": "10일/50일 거래량 0.75",
+      "s4_9": "피봇이 베이스 레인지의 67% 높이",
+      "s4_10": "10일 수익률 +3%, 피봇 대비 +1.6%",
+      "s4_11": "피봇 249.94 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 0건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": false,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  },
+  "S005": {
+   "as_of": "2024-02-01",
+   "ticker": "ROAD",
+   "industry": "ENGINEERING & CONSTRUCTION",
+   "rs": 88.33426808749299,
+   "entry": {
+    "setup_date": "2024-02-06",
+    "entry_date": "2024-02-07",
+    "entry_price": 49.15,
+    "pivot": 49.15,
+    "breakout_volume_ratio": 1.4706709034344791,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": false,
+      "s4_6": true,
+      "s4_7": false,
+      "s4_9": true,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $27.96 → 천장 $45.22 = +62%",
+      "s4_3": "깊이 12%",
+      "s4_4": "−10% → −6% → −6% → −6%",
+      "s4_6": "마지막 축소 5.6%",
+      "s4_7": "10일/50일 거래량 1.03",
+      "s4_9": "피봇이 베이스 레인지의 172% 높이",
+      "s4_10": "10일 수익률 +15%, 피봇 대비 -2.5%",
+      "s4_11": "피봇 49.15 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": true,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 0건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  },
+  "S006": {
+   "as_of": "2026-05-01",
+   "ticker": "ANDE",
+   "industry": "FOOD DISTRIBUTION",
+   "rs": 90.32258064516128,
+   "entry": {
+    "setup_date": "2026-06-08",
+    "entry_date": "2026-06-09",
+    "entry_price": 73.58615423194132,
+    "pivot": 72.32376849812307,
+    "breakout_volume_ratio": 1.8728247846180177,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": true,
+      "s4_6": true,
+      "s4_7": false,
+      "s4_9": false,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $44.07 → 천장 $81.62 = +85%",
+      "s4_3": "깊이 20%",
+      "s4_4": "−20% → −10% → −6% → −5%",
+      "s4_6": "마지막 축소 4.7%",
+      "s4_7": "10일/50일 거래량 0.81",
+      "s4_9": "피봇이 베이스 레인지의 44% 높이",
+      "s4_10": "10일 수익률 +4%, 피봇 대비 +1.0%",
+      "s4_11": "피봇 72.32 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": true,
+     "s2_3": false,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 192건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  },
+  "S007": {
+   "as_of": "2026-07-01",
+   "ticker": "UFCS",
+   "industry": "INSURANCE - PROPERTY & CASUALTY",
+   "rs": 87.35056991937726,
+   "entry": {
+    "setup_date": "2026-08-03",
+    "entry_date": "2026-08-04",
+    "entry_price": 53.349398362406546,
+    "pivot": 52.93089355642577,
+    "breakout_volume_ratio": 1.5773516979484705,
+    "stage4": {
+     "ok": true,
+     "items": {
+      "s4_1": true,
+      "s4_2": true,
+      "s4_3": true,
+      "s4_4": true,
+      "s4_5": false,
+      "s4_6": true,
+      "s4_7": false,
+      "s4_9": true,
+      "s4_10": true,
+      "s4_11": true
+     },
+     "notes": {
+      "s4_1": "베이스 이전 6개월 저점 $33.80 → 천장 $54.23 = +60%",
+      "s4_3": "깊이 11%",
+      "s4_4": "−11% → −5% → −8% → −4%",
+      "s4_6": "마지막 축소 4.3%",
+      "s4_7": "10일/50일 거래량 0.99",
+      "s4_9": "피봇이 베이스 레인지의 79% 높이",
+      "s4_10": "10일 수익률 +1%, 피봇 대비 -1.9%",
+      "s4_11": "피봇 52.93 [contraction-high]"
+     }
+    }
+   },
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 116건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   }
+  }
+ }
+}

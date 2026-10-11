@@ -1,7 +1,7 @@
-"""Alpha Vantage market-data adapter (sub-daily 전용).
+"""Alpha Vantage market-data adapter (sub-daily + 일봉).
 
 REST endpoint: ``GET https://www.alphavantage.co/query`` with
-``function=TIME_SERIES_INTRADAY``. Auth via ``apikey`` query param;
+``function=TIME_SERIES_INTRADAY`` (분봉) / ``TIME_SERIES_DAILY_ADJUSTED`` (일봉). Auth via ``apikey`` query param;
 key loaded from the ``ALPHAVANTAGE_API_KEY`` env var
 (``secrets/alphafolio.env`` — alphafolio_data 파이프라인과 공유).
 
@@ -19,8 +19,15 @@ key loaded from the ``ALPHAVANTAGE_API_KEY`` env var
 월별 1콜이므로 긴 구간은 콜 수 = 개월 수. 분당 한도 응답
 (JSON "Note"/"Information")은 짧게 대기 후 재시도하고, 재시도
 소진 시 raise — 상위 :class:`FallbackMarketDataAdapter`가 다음
-소스로 라우팅한다. 일봉(1d+)은 지원하지 않는다 (라우팅 레이어가
-일봉을 이 체인으로 보내지 않음).
+소스로 라우팅한다.
+
+일봉(``1d``, 2026-10 추가): ``TIME_SERIES_DAILY_ADJUSTED`` +
+``outputsize=full`` **1콜에 전체 히스토리**(~20년)를 받는다 — 상장폐지
+종목(ATVI 등)도 폐지일까지 제공해 point-in-time 유니버스에 유리하고,
+yfinance 요청 제한(429)을 피한다. yfinance ``auto_adjust`` 관례에
+맞춰 OHLC 는 ``adjusted close / close`` 비율로 분할·배당 조정, 거래량은
+이후 분할 배수를 곱해 분할 조정한다 (거래대금 불변). 인덱스는 yfinance
+일봉처럼 ``America/New_York`` 자정 tz-aware.
 """
 
 from __future__ import annotations
@@ -44,6 +51,8 @@ _INTRADAY_INTERVALS: dict[str, str] = {
     "60m": "60min",
     "1h": "60min",
 }
+
+_DAILY_KEY = "Time Series (Daily)"
 
 _RATE_LIMIT_MARKERS = ("rate limit", "calls per minute", "premium")
 
@@ -80,9 +89,11 @@ class AlphaVantageAdapter(MarketDataPort):
         end: date,
         interval: str = "1d",
     ) -> pd.DataFrame:
+        if interval == "1d":
+            return self._fetch_daily(symbol, start, end)
         if interval not in _INTRADAY_INTERVALS:
             raise ValueError(
-                f"AlphaVantageAdapter supports only sub-daily intervals "
+                f"AlphaVantageAdapter supports 1d and sub-daily intervals "
                 f"{sorted(_INTRADAY_INTERVALS)} (got {interval!r})."
             )
         av_interval = _INTRADAY_INTERVALS[interval]
@@ -104,42 +115,83 @@ class AlphaVantageAdapter(MarketDataPort):
 
     # ---- internals -------------------------------------------------
 
+    def _fetch_daily(self, symbol: str, start: date, end: date) -> pd.DataFrame:
+        payload = self._query(
+            {"function": "TIME_SERIES_DAILY_ADJUSTED", "symbol": symbol,
+             "outputsize": "full", "apikey": self._api_key},
+            series_key=_DAILY_KEY, label=f"{symbol} 1d", any_note_is_limit=True,
+        )
+        series = payload.get(_DAILY_KEY)
+        if not series:
+            raise ValueError(f"Alpha Vantage {symbol} 1d: no data")
+        df = self._to_daily_frame(series)
+        lo, hi = pd.Timestamp(start, tz=NY_TZ), pd.Timestamp(end, tz=NY_TZ)
+        df = df[(df.index >= lo) & (df.index <= hi)]
+        if df.empty:
+            # yfinance 와 같은 계약 — 구간에 봉이 없으면 raise (캐시가 nodata 로 기록)
+            raise ValueError(f"No data found for {symbol} between {start} and {end} (1d)")
+        return df
+
+    @staticmethod
+    def _to_daily_frame(series: dict) -> pd.DataFrame:
+        raw = pd.DataFrame.from_dict(series, orient="index").astype(float)
+        raw.index = pd.DatetimeIndex(pd.to_datetime(raw.index))
+        raw = raw.sort_index()
+        ratio = raw["5. adjusted close"] / raw["4. close"]
+        # 분할 계수는 발효일에 찍힌다 → 그 이전 날들의 거래량에 곱한다
+        split = raw["8. split coefficient"].replace(0.0, 1.0)
+        later_splits = split[::-1].cumprod()[::-1].shift(-1).fillna(1.0)
+        df = pd.DataFrame({
+            "Open": raw["1. open"] * ratio,
+            "High": raw["2. high"] * ratio,
+            "Low": raw["3. low"] * ratio,
+            "Close": raw["5. adjusted close"],
+            "Volume": raw["6. volume"] * later_splits,
+        }, index=raw.index)
+        df.index = df.index.tz_localize(NY_TZ)
+        return df
+
     def _fetch_month(self, symbol: str, av_interval: str, month: str) -> dict:
-        params = {
-            "function": "TIME_SERIES_INTRADAY",
-            "symbol": symbol,
-            "interval": av_interval,
-            "month": month,
-            "outputsize": "full",
-            "apikey": self._api_key,
-        }
+        return self._query(
+            {"function": "TIME_SERIES_INTRADAY", "symbol": symbol,
+             "interval": av_interval, "month": month, "outputsize": "full",
+             "apikey": self._api_key},
+            series_key=f"Time Series ({av_interval})", label=f"{symbol} {month}",
+        )
+
+    def _query(self, params: dict, series_key: str, label: str,
+               any_note_is_limit: bool = False) -> dict:
+        """``any_note_is_limit``: 시계열 없이 Note/Information 만 오면 문구와
+        무관하게 제한으로 보고 재시도 (일봉은 '빈 달' 같은 정상 빈 응답이 없다 —
+        동시 요청 폭주 시 AV 가 마커 문구 없는 안내문을 돌려준 사례가 있었다)."""
         for attempt in range(self._max_rate_retries + 1):
             resp = self._client.get(self._base_url, params=params)
             if resp.status_code != 200:
                 raise ValueError(
-                    f"Alpha Vantage {symbol} {av_interval} {month}: "
+                    f"Alpha Vantage {label}: "
                     f"HTTP {resp.status_code} {resp.text[:200]}"
                 )
             payload = resp.json()
-            if f"Time Series ({av_interval})" in payload:
+            if series_key in payload:
                 return payload
             if "Error Message" in payload:
                 raise ValueError(
-                    f"Alpha Vantage {symbol} {month}: {payload['Error Message'][:200]}"
+                    f"Alpha Vantage {label}: {payload['Error Message'][:200]}"
                 )
             note = str(
                 payload.get("Note") or payload.get("Information") or ""
             )
-            if any(m in note.lower() for m in _RATE_LIMIT_MARKERS):
+            if note and (any_note_is_limit
+                         or any(m in note.lower() for m in _RATE_LIMIT_MARKERS)):
                 if attempt < self._max_rate_retries:
                     time.sleep(self._rate_retry_sleep)
                     continue
                 raise RuntimeError(
-                    f"Alpha Vantage rate limit for {symbol} {month}: {note[:200]}"
+                    f"Alpha Vantage rate limit for {label}: {note[:200]}"
                 )
             # 데이터 없는 달 (상장 이전 등) — 마커 없이 빈 응답.
             return payload
-        raise RuntimeError(f"Alpha Vantage {symbol} {month}: retries exhausted")
+        raise RuntimeError(f"Alpha Vantage {label}: retries exhausted")
 
     @staticmethod
     def _to_frame(series: dict) -> pd.DataFrame:

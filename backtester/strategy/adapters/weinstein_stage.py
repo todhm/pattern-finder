@@ -342,8 +342,16 @@ def checks_to_frame(checks: Iterable[Check]) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 # 시장 폭 지표 (유니버스 일봉 dict → 주간 시계열)
 # --------------------------------------------------------------------------- #
-def breadth_from_universe(dailies: dict[str, pd.DataFrame], p: StageParams = StageParams()) -> pd.DataFrame:
-    """0-3 1·2단계 비율, 0-4 A/D 라인, 0-5 MI(200일), 0-6 주간 신고−신저."""
+def breadth_from_universe(
+    dailies: dict[str, pd.DataFrame],
+    p: StageParams = StageParams(),
+    stages: dict[str, pd.Series] | None = None,
+) -> pd.DataFrame:
+    """0-3 1·2단계 비율, 0-4 A/D 라인, 0-5 MI(200일), 0-6 주간 신고−신저.
+
+    ``stages``: 종목별로 이미 계산한 :func:`classify_stages` 결과(주봉 index)를 넘기면
+    재계산하지 않는다 — 스크리너처럼 종목마다 단계를 따로 쓰는 호출자용.
+    """
     closes = pd.DataFrame({t: d["Close"] for t, d in dailies.items()}).sort_index()
     closes.index = pd.to_datetime(closes.index)
     if getattr(closes.index, "tz", None) is not None:
@@ -361,8 +369,10 @@ def breadth_from_universe(dailies: dict[str, pd.DataFrame], p: StageParams = Sta
     new_high = (weekly_close >= hi52).sum(axis=1)
     new_low = (weekly_close <= lo52).sum(axis=1)
 
-    stage_cols = {}
+    stage_cols = dict(stages) if stages else {}
     for t, d in dailies.items():
+        if t in stage_cols:
+            continue
         try:
             w = add_ma(to_weekly(d), p)
             stage_cols[t] = classify_stages(w, p)

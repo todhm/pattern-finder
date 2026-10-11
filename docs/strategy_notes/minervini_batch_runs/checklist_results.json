@@ -1,0 +1,324 @@
+[
+ {
+  "as_of": "2018-11-20",
+  "regime": "blocked",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.1247
+ },
+ {
+  "as_of": "2018-11-20",
+  "regime": "blocked",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.1247
+ },
+ {
+  "as_of": "2020-01-02",
+  "regime": "normal",
+  "mode": "auto",
+  "signals": 1,
+  "trades": [
+   {
+    "id": "S001",
+    "ticker": "CDLX",
+    "entry_date": "2020-02-06",
+    "exit": "target",
+    "pnl": 0.22,
+    "days": 7
+   }
+  ],
+  "account_return": 0.044,
+  "qqq_6m": 0.1712
+ },
+ {
+  "as_of": "2020-01-02",
+  "regime": "normal",
+  "mode": "manual",
+  "signals": 1,
+  "trades": [
+   {
+    "id": "S001",
+    "ticker": "CDLX",
+    "entry_date": "2020-02-06",
+    "exit": "target",
+    "pnl": 0.22,
+    "days": 7
+   }
+  ],
+  "account_return": 0.044,
+  "qqq_6m": 0.1712
+ },
+ {
+  "as_of": "2020-06-01",
+  "regime": "normal",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.2815
+ },
+ {
+  "as_of": "2020-06-01",
+  "regime": "normal",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.2815
+ },
+ {
+  "as_of": "2022-02-15",
+  "regime": "blocked",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": -0.0747
+ },
+ {
+  "as_of": "2022-02-15",
+  "regime": "blocked",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": -0.0747
+ },
+ {
+  "as_of": "2022-06-16",
+  "regime": "blocked",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.024
+ },
+ {
+  "as_of": "2022-06-16",
+  "regime": "blocked",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.024
+ },
+ {
+  "as_of": "2023-06-01",
+  "regime": "caution",
+  "mode": "auto",
+  "signals": 2,
+  "trades": [
+   {
+    "id": "S002",
+    "ticker": "TCMD",
+    "entry_date": "2023-06-05",
+    "exit": "stop",
+    "pnl": -0.08,
+    "days": 42
+   },
+   {
+    "id": "S003",
+    "ticker": "RXST",
+    "entry_date": "2023-06-22",
+    "exit": "target",
+    "pnl": 0.22,
+    "days": 15
+   }
+  ],
+  "account_return": 0.028,
+  "qqq_6m": 0.1077
+ },
+ {
+  "as_of": "2023-06-01",
+  "regime": "caution",
+  "mode": "manual",
+  "signals": 2,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.1077
+ },
+ {
+  "as_of": "2024-02-01",
+  "regime": "normal",
+  "mode": "auto",
+  "signals": 2,
+  "trades": [
+   {
+    "id": "S005",
+    "ticker": "ROAD",
+    "entry_date": "2024-02-07",
+    "exit": "stop",
+    "pnl": -0.08,
+    "days": 2
+   },
+   {
+    "id": "S004",
+    "ticker": "MANH",
+    "entry_date": "2024-02-29",
+    "exit": "stop",
+    "pnl": -0.08,
+    "days": 31
+   }
+  ],
+  "account_return": -0.032,
+  "qqq_6m": 0.0668
+ },
+ {
+  "as_of": "2024-02-01",
+  "regime": "normal",
+  "mode": "manual",
+  "signals": 2,
+  "trades": [
+   {
+    "id": "S004",
+    "ticker": "MANH",
+    "entry_date": "2024-02-29",
+    "exit": "stop",
+    "pnl": -0.08,
+    "days": 31
+   }
+  ],
+  "account_return": -0.016,
+  "qqq_6m": 0.0668
+ },
+ {
+  "as_of": "2025-04-04",
+  "regime": "blocked",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.441
+ },
+ {
+  "as_of": "2025-04-04",
+  "regime": "blocked",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.441
+ },
+ {
+  "as_of": "2026-05-01",
+  "regime": "normal",
+  "mode": "auto",
+  "signals": 1,
+  "trades": [
+   {
+    "id": "S006",
+    "ticker": "ANDE",
+    "entry_date": "2026-06-09",
+    "exit": "stop",
+    "pnl": -0.08,
+    "days": 6
+   }
+  ],
+  "account_return": -0.016,
+  "qqq_6m": 0.1113
+ },
+ {
+  "as_of": "2026-05-01",
+  "regime": "normal",
+  "mode": "manual",
+  "signals": 1,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.1113
+ },
+ {
+  "as_of": "2026-07-01",
+  "regime": "caution",
+  "mode": "auto",
+  "signals": 1,
+  "trades": [
+   {
+    "id": "S007",
+    "ticker": "UFCS",
+    "entry_date": "2026-08-04",
+    "exit": "open",
+    "pnl": 0.0572,
+    "days": 46
+   }
+  ],
+  "account_return": 0.0114,
+  "qqq_6m": 0.0319
+ },
+ {
+  "as_of": "2026-07-01",
+  "regime": "caution",
+  "mode": "manual",
+  "signals": 1,
+  "trades": [
+   {
+    "id": "S007",
+    "ticker": "UFCS",
+    "entry_date": "2026-08-04",
+    "exit": "open",
+    "pnl": 0.0572,
+    "days": 46
+   }
+  ],
+  "account_return": 0.0114,
+  "qqq_6m": 0.0319
+ },
+ {
+  "as_of": "2026-08-14",
+  "regime": "normal",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.0236
+ },
+ {
+  "as_of": "2026-08-14",
+  "regime": "normal",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.0236
+ },
+ {
+  "as_of": "2026-09-15",
+  "regime": "blocked",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.0622
+ },
+ {
+  "as_of": "2026-09-15",
+  "regime": "blocked",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": 0.0622
+ },
+ {
+  "as_of": "2026-10-08",
+  "regime": "no_breadth",
+  "mode": "auto",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": null
+ },
+ {
+  "as_of": "2026-10-08",
+  "regime": "no_breadth",
+  "mode": "manual",
+  "signals": 0,
+  "trades": [],
+  "account_return": 0.0,
+  "qqq_6m": null
+ }
+]

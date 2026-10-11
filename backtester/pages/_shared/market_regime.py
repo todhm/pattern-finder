@@ -1,7 +1,7 @@
 """STAGE 0 시장 환경 — SPY + QQQ 이중 판정 (44 스크리너 · 45 리플레이 공용).
 
-지수 일봉을 받아 :func:`evaluate_market` 로 지수별 0-1·0-2 를 판정하고
-:func:`combine_market` 로 합친다. 순수 로직은 어댑터에, 여기는 fetch 와
+지수 일봉을 받아 :func:`evaluate_market` 로 지수별 0-1·0-1b·0-2 를 판정하고
+:func:`combine_market`(중단 사유) · :func:`market_warnings`(경고) 로 합친다. 순수 로직은 어댑터에, 여기는 fetch 와
 Streamlit 표시 문자열만.
 """
 
@@ -15,6 +15,7 @@ from strategy.adapters.minervini_screener import (
     MarketVerdict,
     combine_market,
     evaluate_market,
+    market_warnings,
 )
 
 INDEX_SYMBOLS = ("SPY", "QQQ")
@@ -48,15 +49,16 @@ def verdicts_to_state(verdicts: list[MarketVerdict]) -> list[dict]:
     return [
         {"symbol": v.symbol, "close": v.close, "sma200": v.sma200,
          "sma200_prev21": v.sma200_prev21, "trend_ok": v.trend_ok,
-         "dist_days": v.dist_days, "dist_ok": v.dist_ok, "note": v.note}
+         "dist_days": v.dist_days, "dist_ok": v.dist_ok, "sma50": v.sma50,
+         "sma50_prev": v.sma50_prev, "short_ok": v.short_ok, "note": v.note}
         for v in verdicts
     ]
 
 
 def stage0_lines(rows: list[dict]) -> tuple[list[str], bool, bool]:
-    """표시용 — (지수별 0-1/0-2 줄, 0-1 전부 통과, 0-2 전부 통과)."""
+    """표시용 — (지수별 0-1/0-1b/0-2 줄, 0-1·0-1b 전부 통과, 0-2 전부 통과)."""
     lines: list[str] = []
-    trend_all = all(r["trend_ok"] for r in rows) if rows else False
+    trend_all = all(r["trend_ok"] and r.get("short_ok", True) for r in rows) if rows else False
     dist_all = all(r["dist_ok"] is not False for r in rows) if rows else False
     for r in rows:
         arrow = "상승" if r["sma200"] > r["sma200_prev21"] else "하락"
@@ -65,21 +67,41 @@ def stage0_lines(rows: list[dict]) -> tuple[list[str], bool, bool]:
             f"{r['close']:,.0f} vs 200일선 {r['sma200']:,.0f} ({arrow} 중)"
         )
     for r in rows:
-        dd = r["dist_days"]
-        mark = "ℹ️" if dd is None else ("✅" if r["dist_ok"] else "❌")
+        if r.get("sma50") is None:
+            continue
+        arrow = "상승" if r["sma50"] > r["sma50_prev"] else "하락"
         lines.append(
-            f"{mark} **0-2 {r['symbol']} 분산일** — 최근 25거래일 중 "
-            f"{'?' if dd is None else dd}회 (하락 −0.2%↑ + 거래량 증가일. 5회↑ = 기관 매도 경고)"
+            f"{'✅' if r['short_ok'] else '❌'} **0-1b {r['symbol']} 조정 여부** — "
+            f"{r['close']:,.0f} vs 50일선 {r['sma50']:,.0f} ({arrow} 중). "
+            "50일선 아래 + 50일선 하락 = 조정 국면 → 신규 매수 중단"
+        )
+    for r in rows:
+        dd = r["dist_days"]
+        mark = "ℹ️" if dd is None else ("✅" if r["dist_ok"] else "⚠️")
+        lines.append(
+            f"{mark} **0-2 {r['symbol']} 분산일** — 최근 25거래일 중 유효 "
+            f"{'?' if dd is None else dd}회 (하락 −0.2%↑ + 거래량 증가일, 이후 +5% 상승 시 소멸. "
+            "5회↑ = 경고 → 진입 후보 수 제한)"
         )
     return lines, trend_all, dist_all
 
 
-def combine_rows(rows: list[dict]) -> tuple[bool | None, list[str]]:
-    """state dict 리스트에 대해 combine_market 과 같은 규칙."""
-    vs = [
+def _rows_to_verdicts(rows: list[dict]) -> list[MarketVerdict]:
+    return [
         MarketVerdict(symbol=r["symbol"], close=r["close"], sma200=r["sma200"],
                       sma200_prev21=r["sma200_prev21"], trend_ok=r["trend_ok"],
-                      dist_days=r["dist_days"], dist_ok=r["dist_ok"])
+                      dist_days=r["dist_days"], dist_ok=r["dist_ok"],
+                      sma50=r.get("sma50"), sma50_prev=r.get("sma50_prev"),
+                      short_ok=r.get("short_ok", True))
         for r in rows
     ]
-    return combine_market(vs)
+
+
+def combine_rows(rows: list[dict]) -> tuple[bool | None, list[str]]:
+    """state dict 리스트에 대해 combine_market 과 같은 규칙 (중단 사유)."""
+    return combine_market(_rows_to_verdicts(rows))
+
+
+def warning_rows(rows: list[dict]) -> list[str]:
+    """state dict 리스트에 대해 market_warnings 와 같은 규칙 (0-2 경고)."""
+    return market_warnings(_rows_to_verdicts(rows))

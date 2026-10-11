@@ -26,6 +26,7 @@ from pages._shared.market_regime import (
     fetch_market_verdicts,
     stage0_lines,
     verdicts_to_state,
+    warning_rows,
 )
 from pages._shared.minervini_manual_checks import render_manual_checklist
 from strategy.adapters.minervini_screener import (
@@ -316,11 +317,13 @@ def _market_rows(d: date) -> tuple[list[dict], list[str]]:
 _mrows, _merrs = _market_rows(as_of)
 if _mrows:
     _mok, _mfail = combine_rows(_mrows)
+    _mwarn = warning_rows(_mrows)
     _mlines, _, _ = stage0_lines(_mrows)
-    _box = st.success if _mok else st.error
+    _box = st.error if not _mok else st.warning if _mwarn else st.success
     _box(
         f"STAGE 0 시장 환경 @ {as_of} — "
-        + ("통과 (신규 매수 허용 구간)" if _mok else
+        + (f"통과, 단 **{' · '.join(_mwarn)} 경고** (진입 수를 줄였어야 할 구간)" if _mok and _mwarn
+           else "통과 (신규 매수 허용 구간)" if _mok else
            f"**{' · '.join(_mfail)} → 매뉴얼상 신규 매수 중단 구간이었다. "
            "이 리플레이는 '규칙을 어기고 진입한 케이스'로 읽을 것.**")
         + "\n\n" + "\n\n".join(_mlines)

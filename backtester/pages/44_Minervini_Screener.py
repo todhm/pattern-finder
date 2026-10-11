@@ -26,8 +26,11 @@ from pages._shared.market_regime import (
     fetch_market_verdicts,
     stage0_lines,
     verdicts_to_state,
+    warning_rows,
 )
 from pages._shared.minervini_manual_checks import render_manual_checklist
+from strategy.adapters.minervini_manual_auto import industry_rank
+from strategy.adapters.minervini_scan import EntryInput, breadth_ok, entry_permissions, is_flat_box
 from strategy.adapters.minervini_screener import (
     MIN_BARS,
     COMPOSITE_WEIGHTS,
@@ -78,12 +81,24 @@ with st.sidebar:
         help="스모크 테스트용. 처음엔 100 정도로 돌려보길.",
     )
     stage0_gate = st.toggle(
-        "시장 조건(0-1·0-2) 미충족 시 스캔 생략", value=True,
-        help="SPY와 QQQ 둘 다 보고 판정한다: 0-1은 두 지수 모두 200일선 위·상승이어야 "
-        "통과, 0-2는 어느 한 지수라도 분산일 5회↑면 경고(IBD 규칙). 하나라도 "
-        "실패하면 유니버스를 돌리지 않고 즉시 '후보 없음'으로 끝낸다 — 매뉴얼상 "
-        "신규 매수 중단 구간이라 수천 종목을 조회할 이유가 없다. 약세장에서 "
-        "관찰용 워치리스트를 뽑고 싶으면 끈다.",
+        "시장 조건(0-1·0-1b) 미충족 시 스캔 생략", value=True,
+        help="SPY와 QQQ 둘 다 보고 판정한다: 0-1은 두 지수 모두 200일선 위·상승, "
+        "0-1b는 두 지수 모두 '50일선 아래 + 50일선 하락'(조정 국면)이 아니어야 "
+        "통과. 하나라도 실패하면 유니버스를 돌리지 않고 즉시 '후보 없음'으로 "
+        "끝낸다 — 신규 매수 중단 구간. 0-2 분산일은 스캔을 막지 않고 진입 "
+        "후보 수만 제한한다. 약세장 관찰용 워치리스트를 뽑고 싶으면 끈다.",
+    )
+    entry_rs_min = st.number_input(
+        "진입 품질 필터 — RS 하한", value=90, min_value=70, max_value=99, step=5,
+        help="'진입 가능' = RS ≥ 이 값 · 분기 성장 4/4 · 3-4 산업군 내 RS 1~2위. "
+        "펀더멘털 미확인 종목은 진입 불가. 2026-10 샘플 7개 날짜에서 이 필터는 "
+        "거래당 +3.2%(승률 34%), 종합점수 상위 3은 −1.3%였다.",
+    )
+    caution_max_entries = st.number_input(
+        "시장 경고 시 진입 후보 최대 수", value=3, min_value=0, step=1,
+        help="0-2 분산일 경고(SPY·QQQ 중 하나라도 유효 분산일 5회↑) 상태면 "
+        "품질 필터 통과 종목 중 RS 상위 N개만 '진입 가능' — 미너비니의 점진적 "
+        "노출(시장이 불확실할수록 적게·작게). 0-3 신고가 ≤ 신저가면 전부 '관찰'.",
     )
 
     st.header("프리필터 / RS")
@@ -414,6 +429,7 @@ if run_btn:
     market_verdicts, market_errors = fetch_market_verdicts(market_data, as_of)
     market_rows = verdicts_to_state(market_verdicts)
     market_ok, stage0_failed = combine_rows(market_rows)
+    market_warns = warning_rows(market_rows)
     market_note = " · ".join(market_errors)
 
     # 0-1·0-2 실패 = 신규 매수 중단 구간 → 유니버스 스캔 생략 (토글)
@@ -426,6 +442,7 @@ if run_btn:
             "stage0": {"indexes": market_rows, "nh": None, "nl": None,
                        "scanned": 0, "skipped": stage0_failed},
             "market_ok": market_ok, "market_note": market_note,
+            "market_warns": market_warns,
             "growth_skipped": "", "show_forward": show_forward,
         }
         st.rerun()
@@ -600,6 +617,18 @@ if run_btn:
             result_df.sort_values(["종합점수", "RS"], ascending=[False, False])
             .reset_index(drop=True)
         )
+        # 진입 허용 — 0-3 시장 폭 · 펀더멘털 확인 · 품질 필터(RS·성장 4/4·3-4) · 0-2 경고 시 RS 상위 N
+        ranks = industry_rank(list(zip(result_df["티커"], result_df["산업군"], result_df["RS"])))
+        inputs = [
+            EntryInput(rs=r["RS"], growth_full=r["성장통과"] == "4/4",
+                       verified=r["성장통과"] not in ("미확인", "미사용"),
+                       industry_top=ranks.get(r["티커"], (None, ""))[0],
+                       flat_box=is_flat_box(pls[r["티커"]].tightness_10d, pls[r["티커"]].base_depth))
+            for _, r in result_df.iterrows()
+        ]
+        perms = entry_permissions(inputs, breadth_ok(nh_count, nl_count), market_warns,
+                                  int(caution_max_entries), float(entry_rs_min))
+        result_df.insert(1, "진입", [note for _, note in perms])
 
     # --- 최종 후보별 상세 근거 (이미 계산된 값 재사용 — 추가 조회 없음) ---
     details: dict[str, dict] = {}
@@ -670,6 +699,7 @@ if run_btn:
         "stage0": {"indexes": market_rows, "nh": nh_count, "nl": nl_count,
                    "scanned": len(tickers) - fetch_failed},
         "market_ok": market_ok, "market_note": market_note,
+        "market_warns": market_warns,
         "growth_skipped": growth_skipped_reason,
         "show_forward": show_forward,
     }
@@ -701,19 +731,27 @@ if _state["market_ok"] is not None:
             f"{s0.get('scanned', 0):,}종목 중 52주 신고가 근접(−5% 이내) "
             f"{nh:,} vs 신저가 근접(+5% 이내) {nl:,}"
         )
+    warns = _state.get("market_warns") or []
     stage0_all_ok = bool(_state["market_ok"]) and nhnl_ok
-    box = st.success if stage0_all_ok else st.error
+    box = (st.error if not stage0_all_ok else st.warning if warns else st.success)
     if skipped:
         tail = (f" — **{' · '.join(skipped)} 실패 → 신규 매수 중단 구간. "
                 f"유니버스 {_state['funnel'].get('유니버스', 0):,}종목 스캔을 생략했다.**")
-    elif stage0_all_ok:
-        tail = ""
+    elif not _state["market_ok"]:
+        tail = (f" — **{' · '.join(combine_rows(s0.get('indexes') or [])[1])} 실패 → "
+                "신규 매수 중단이 원칙** (아래 후보는 관찰/검증용)")
+    elif not nhnl_ok:
+        tail = " — **0-3 실패 → 신규 매수 보류** (아래 후보는 전부 관찰용)"
+    elif warns:
+        tail = (f" — **{' · '.join(warns)} 경고 → 진입 후보를 종합점수 상위 "
+                "N개로 제한** ('진입' 열 참고)")
     else:
-        tail = " — **신규 매수 보류가 원칙** (아래 후보는 관찰/검증용)"
+        tail = ""
     box("STAGE 0 시장 환경" + tail + "\n\n" + "\n\n".join(checks_s0))
     st.caption(
-        "0-1·0-2는 SPY(S&P 500)와 QQQ(나스닥 100) 이중 판정 — 0-1은 둘 다 통과해야, "
-        "0-2는 한쪽이라도 5회↑면 경고(IBD 규칙). 미너비니는 나스닥 종합을 가장 자주 본다. "
+        "0-1·0-1b·0-2는 SPY(S&P 500)와 QQQ(나스닥 100) 이중 판정 — 0-1·0-1b는 둘 다 "
+        "통과해야 매수 허용, 0-2는 한쪽이라도 유효 분산일 5회↑면 경고(진입 수 제한만). "
+        "미너비니는 나스닥 종합을 가장 자주 본다. "
         "0-3의 분모는 선택한 유니버스라 IBD의 전체 시장 NH/NL과는 다름 — "
         "유니버스가 클수록(nasdaq_full) 정확. 0-4(강세장 초입 여부)는 "
         "저점 정의가 주관적이라 자동화하지 않음 → 43번 페이지에서 수동 판단."
