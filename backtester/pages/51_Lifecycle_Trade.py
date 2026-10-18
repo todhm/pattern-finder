@@ -378,6 +378,9 @@ with tab_port:
 
 with tab_detail:
     by = {r.symbol: r for r in results}
+    if not by:
+        st.warning("분석된 종목 없음 — 기준일까지 일봉이 있는 종목이 없거나 전부 조회 실패. 좌측 설정(기준일·코호트·티커)을 바꾸고 다시 Run.")
+        st.stop()
     sel = st.selectbox("종목", sorted(by))
     r = by[sel]
     lc = r.lifecycle
