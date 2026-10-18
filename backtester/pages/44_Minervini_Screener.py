@@ -17,7 +17,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from data.adapters.composed_market_data import build_default_market_data
+from data.adapters.cache_frontier_fill import fill_recent_days
+from data.adapters.composed_market_data import build_daily_cache_filler, build_default_market_data
 from data.adapters.wikipedia_universe import default_universe_provider
 from pages._shared.growth_sources import build_growth_adapters
 from pages._shared.manual_evidence import load_manual_evidence
@@ -423,6 +424,23 @@ if run_btn:
     if max_tickers:
         tickers = tickers[: int(max_tickers)]
 
+    # --- 캐시 앞단 채우기: 최근 거래일을 전 종목 1콜/일로 (Massive grouped daily) ---
+    # 날짜 단위 캐시는 기준일이 하루만 앞으로 가도 전 종목이 미스가 되어 종목당
+    # AV 1콜(분당 75콜 상한 → 5,000종목 64분)을 다시 했다. 먼저 채우면 아래
+    # 종목별 루프가 전부 캐시 적중(종목당 0.02초)이 된다.
+    cache_fill_note = ""
+    with st.spinner("최근 거래일 캐시 채우기 (전 종목 1콜/일)..."):
+        try:
+            _filler = build_daily_cache_filler()
+            if _filler is None:
+                cache_fill_note = "캐시 채우기 생략 (ALPHAVANTAGE/MASSIVE 키 없음)"
+            else:
+                _rep = fill_recent_days(_filler[0], _filler[1], tickers + ["SPY", "QQQ"], as_of,
+                                        marker_caches=_filler[2])
+                cache_fill_note = "캐시 채우기: " + _rep.summary()
+        except Exception as e:  # noqa: BLE001
+            cache_fill_note = f"캐시 채우기 실패 ({type(e).__name__}: {e}) — 종목별 조회로 진행"
+
     # --- STAGE 0: 시장 확인 — SPY + QQQ 이중 판정 ---
     # 미너비니는 S&P 500만 보지 않는다(나스닥 종합을 가장 자주 봄). 0-1은
     # 두 지수 모두 통과해야, 0-2는 한 지수라도 분산일 5회↑면 경고 (IBD).
@@ -444,6 +462,7 @@ if run_btn:
             "market_ok": market_ok, "market_note": market_note,
             "market_warns": market_warns,
             "growth_skipped": "", "show_forward": show_forward,
+            "cache_fill": cache_fill_note,
         }
         st.rerun()
 
@@ -458,7 +477,8 @@ if run_btn:
     nh_count = 0  # 0-3: 52주 신고가 −5% 이내 종목 수 (프리필터와 무관)
     nl_count = 0  # 0-3: 52주 신저가 +5% 이내 종목 수
     for i, t in enumerate(tickers):
-        prog.progress((i + 1) / len(tickers), text=f"가격 수집 {i + 1}/{len(tickers)} — {t}")
+        if i % 25 == 0 or i + 1 == len(tickers):  # 5,000번 갱신은 그 자체로 수십 초
+            prog.progress((i + 1) / len(tickers), text=f"가격 수집 {i + 1}/{len(tickers)} — {t}")
         try:
             df = market_data.fetch_ohlcv(t, fetch_start, as_of)
         except Exception:
@@ -702,6 +722,7 @@ if run_btn:
         "market_warns": market_warns,
         "growth_skipped": growth_skipped_reason,
         "show_forward": show_forward,
+        "cache_fill": cache_fill_note,
     }
 
 _state = st.session_state.get("minervini_screen")
@@ -713,6 +734,8 @@ if _state is None:
 
 result_df = _state["df"]
 st.subheader(f"{_state['as_of']} 기준 — {_state['universe']}")
+if _state.get("cache_fill"):
+    st.caption(_state["cache_fill"])
 
 s0 = _state.get("stage0") or {}
 if _state["market_ok"] is not None:

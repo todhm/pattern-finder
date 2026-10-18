@@ -56,6 +56,7 @@ docker compose down
   - `main.py` — FastAPI (uvicorn)
   - `minervini_trades_check_cli.py` — 거래 로그 CSV(Ticker, Entry Date…)의 각 진입을 진입 전날 기준 미너비니 STAGE 0~4 로 재판정 + 눈판독용 차트 PNG. 결과 예: `docs/strategy_notes/미너비니_WedgePop거래28건_*.md`
   - `minervini_watchlist_check_cli.py` — 44 스크리너 내보내기 CSV(티커, 산업군, RS…)의 후보 전부를 기준일 종가 기준 STAGE 0~4 재판정 + 차트 PNG + 종목별 도시에(주봉·일봉·실적·헤드라인). 0-3 은 `minervini_checklist_backtest_cli.py live` 결과(`live_json`)를 넘긴다. 결과 예: `docs/strategy_notes/미너비니_2026-10-13_스크리너_*.md`
+  - `cache_fill_cli.py` — **캐시 앞단 채우기**. 날짜 단위 Mongo 캐시는 기준일이 거래일 하루만 앞으로 가도 전 종목이 미스가 되어 종목당 Alpha Vantage 1콜(분당 75콜 → 5,000종목 64분)을 다시 했다. `data/adapters/cache_frontier_fill.py` 가 Massive(Polygon) grouped-daily(`BulkDailyBarsPort`, 날짜당 1콜로 전 종목)로 최근 15거래일을 먼저 채우고, 분할 종목은 캐시를 비워 재조회시키며, grouped 에도 없고 최근 어느 소스가 'No data found' 를 기록한 폐지 심볼(SPAC 유닛·워런트 등 약 1,000개)에는 네 캐시 전부에 nodata 마커를 써서 거래일마다 네 소스를 두드리는 비용을 없앤다. 44 스크리너 페이지는 Run 시 자동 호출. 장 마감 후 크론으로 돌려 두면 첫 실행도 빠르다: `python cache_fill_cli.py '{"universe": "nasdaq_full@기준일", "as_of": "YYYY-MM-DD"}'`
   - `scan_cli.py` — 배치 스캔 CLI. JSON config(single or list) → JSON 결과. progress 로그 stderr + `/tmp/batch_partial.json` incremental dump
   - `tests/` — pytest 테스트
 - `docker-compose.yaml` — backtester + PostgreSQL(db) 서비스. 컨테이너 기동 시 순서: `alembic upgrade head` → uvicorn + streamlit

@@ -211,6 +211,121 @@ class MongoDayCacheAdapter(MarketDataPort):
                 return None
         return self._concat_slice(cached, start, end)
 
+    # ---- bulk fill (BulkDailyBarsPort 연동) ---------------------------
+
+    def coverage(self, day: date, symbols: list[str], interval: str = "1d") -> int:
+        """``symbols`` 중 ``day`` 에 **확정**(partial 아님) success 문서가 있는 수."""
+        if not symbols:
+            return 0
+        return self._bars_coll.count_documents({
+            "symbol": {"$in": symbols}, "interval": interval,
+            "date": day.isoformat(), "status": "success", "is_partial": False,
+        })
+
+    def fill_day(
+        self,
+        day: date,
+        frame: pd.DataFrame,
+        symbols: list[str],
+        interval: str = "1d",
+    ) -> int:
+        """``day`` 하루를 전 종목 프레임(index=심볼)으로 채운다.
+
+        - ``frame`` 에 있는 심볼 → 봉 1개짜리 success 문서
+        - 빈 프레임(휴장) → ``symbols`` 전부 빈 봉 success 문서
+        - 거래일인데 프레임에 없는 심볼(폐지·미거래) → 건드리지 않음 (종목별
+          소스가 판단하도록 남긴다)
+        오늘 날짜는 부분 봉일 수 있어 호출자가 걸러야 한다. 반환 = 쓴 문서 수.
+        """
+        date_iso = day.isoformat()
+        now = datetime.now(timezone.utc)
+        ts = pd.Timestamp(day, tz=NY_TZ).isoformat()
+        ops = []
+        holiday = frame is None or frame.empty
+        for sym in symbols:
+            if holiday:
+                bars: list[dict[str, Any]] = []
+            else:
+                if sym not in frame.index:
+                    continue
+                r = frame.loc[sym]
+                if pd.isna(r["Close"]):
+                    continue
+                bars = [{"ts": ts, "open": float(r["Open"]), "high": float(r["High"]),
+                         "low": float(r["Low"]), "close": float(r["Close"]),
+                         "volume": float(r["Volume"])}]
+            ops.append(UpdateOne(
+                {"symbol": sym, "interval": interval, "date": date_iso},
+                {"$set": {"symbol": sym, "interval": interval, "date": date_iso,
+                          "status": "success", "bars": bars, "is_partial": False,
+                          "fetched_at": now},
+                 "$unset": {"error_type": "", "error_msg": ""}},
+                upsert=True,
+            ))
+        if ops:
+            self._bars_coll.bulk_write(ops, ordered=False)
+        return len(ops)
+
+    def recent_nodata_symbols(
+        self, days: list[date], symbols: list[str], interval: str = "1d",
+    ) -> set[str]:
+        """``days`` 안에 'No data found' 실패 마커가 하나라도 있는 심볼."""
+        if not days or not symbols:
+            return set()
+        cursor = self._bars_coll.find({
+            "symbol": {"$in": symbols}, "interval": interval,
+            "date": {"$gte": min(days).isoformat(), "$lte": max(days).isoformat()},
+            "status": "fail", "error_msg": {"$regex": "No data found"},
+        }, {"symbol": 1})
+        return {d["symbol"] for d in cursor}
+
+    def mark_nodata_days(
+        self, days: list[date], symbols: list[str], interval: str = "1d",
+        reason: str = "bulk fill: absent from grouped daily",
+    ) -> int:
+        """``symbols`` × ``days`` 에 'No data found' 실패 마커를 쓴다 (nodata TTL).
+
+        폐지·비상장 심볼이 거래일마다 네 소스를 차례로 두드리는 비용을 막는다.
+        이미 success 문서가 있는 (심볼, 날짜)는 건드리지 않는다. 반환 = 쓴 수.
+        """
+        if not days or not symbols:
+            return 0
+        day_isos = [d.isoformat() for d in days]
+        have = {(d["symbol"], d["date"]) for d in self._bars_coll.find({
+            "symbol": {"$in": symbols}, "interval": interval,
+            "date": {"$in": day_isos}, "status": "success",
+        }, {"symbol": 1, "date": 1})}
+        now = datetime.now(timezone.utc)
+        ops = [UpdateOne(
+            {"symbol": sym, "interval": interval, "date": di},
+            {"$set": {"symbol": sym, "interval": interval, "date": di,
+                      "status": "fail", "error_type": "ValueError",
+                      "error_msg": f"No data found for {sym} on {di} ({reason})",
+                      "fetched_at": now},
+             "$unset": {"bars": "", "is_partial": ""}},
+            upsert=True,
+        ) for sym in symbols for di in day_isos if (sym, di) not in have]
+        if ops:
+            self._bars_coll.bulk_write(ops, ordered=False)
+        return len(ops)
+
+    def drop_symbol_if_fetched_before(
+        self, symbol: str, before: datetime, interval: str = "1d",
+    ) -> int:
+        """분할 등으로 과거 문서가 무효가 된 종목의 캐시를 비운다.
+
+        ``before`` 이전에 받은 문서가 하나라도 있으면 그 종목의 ``interval``
+        문서를 전부 지운다 (다음 요청이 종목별 소스에서 조정가로 다시 받는다).
+        반환 = 지운 문서 수.
+        """
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=timezone.utc)
+        q = {"symbol": symbol, "interval": interval}
+        stale = self._bars_coll.find_one({**q, "fetched_at": {"$lt": before}}, {"_id": 1})
+        if stale is None:
+            return 0
+        return int(self._bars_coll.delete_many(q).deleted_count)
+
     # ---- internals -------------------------------------------------
 
     @staticmethod

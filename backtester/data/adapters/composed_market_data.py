@@ -58,9 +58,10 @@ from data.adapters.interval_routing_market_data import (
     IntervalRoutingMarketData,
 )
 from data.adapters.massive_adapter import MassiveAdapter
+from data.adapters.massive_grouped_daily import MassiveGroupedDailyAdapter
 from data.adapters.mongo_day_cache import MongoDayCacheAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
-from data.domain.ports import MarketDataPort
+from data.domain.ports import BulkDailyBarsPort, MarketDataPort
 
 
 def build_default_market_data(
@@ -219,3 +220,32 @@ def is_eodhd_configured() -> bool:
         return True
     except ValueError:
         return False
+
+
+def build_daily_cache_filler() -> (
+    tuple[MongoDayCacheAdapter, BulkDailyBarsPort, list[MongoDayCacheAdapter]] | None
+):
+    """일봉 **1차 캐시**(Alpha Vantage 컬렉션), 날짜 단위 벌크 소스(Massive
+    grouped daily), 그리고 일봉 폴백 체인의 캐시 전부를 돌려준다.
+    ``cache_frontier_fill.fill_recent_days`` 에 넘겨 스캔 전에 최근 거래일을
+    전 종목 1콜/일로 채우는 용도.
+
+    ``build_default_market_data`` 의 일봉 체인은 AV 캐시를 먼저 peek 하므로
+    여기서 채운 문서가 그대로 적중한다. 체인 순서(AV → yfinance → EODHD →
+    Massive)와 같은 컬렉션에 폐지 마커를 써야 종목별 경로가 네 소스를 전부
+    두드리지 않는다. AV 키나 Massive 키가 없으면 None.
+    """
+    try:
+        cache = MongoDayCacheAdapter(AlphaVantageAdapter(), source_name="alphavantage")
+        bulk = MassiveGroupedDailyAdapter()
+    except ValueError:
+        return None
+    chain: list[MongoDayCacheAdapter] = [
+        cache, MongoDayCacheAdapter(YFinanceAdapter(), source_name="yfinance"),
+    ]
+    for name, ctor in (("eodhd", EODHDAdapter), ("massive", MassiveAdapter)):
+        try:
+            chain.append(MongoDayCacheAdapter(ctor(), source_name=name))
+        except ValueError:
+            pass
+    return cache, bulk, chain

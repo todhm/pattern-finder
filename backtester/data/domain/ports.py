@@ -278,3 +278,23 @@ class IpoCalendarPort(ABC):
     def fetch_ipos(self, start: date, end: date) -> "list[IpoEvent]":
         """``[start, end]`` 에 첫 거래일이 있는 IPO. 취소/예정 건은 제외."""
         ...
+
+
+class BulkDailyBarsPort(ABC):
+    """Port: **하루치 전 종목** 일봉 + 그날 분할 이벤트.
+
+    :class:`MarketDataPort` 는 "종목 하나의 기간" 이고 이 포트는 "날짜 하나의
+    전 시장" 이다. 날짜 단위 캐시(``MongoDayCacheAdapter``)의 앞단을 채울 때
+    종목 수만큼 호출하는 대신 날짜당 1콜로 끝내기 위한 포트.
+    """
+
+    @abstractmethod
+    def fetch_day(self, day: date) -> pd.DataFrame:
+        """``day`` 의 전 종목 일봉. index = 심볼, 컬럼 Open/High/Low/Close/Volume
+        (분할 조정가). 휴장일·미공개일은 빈 프레임. 소스 장애는 raise."""
+        ...
+
+    @abstractmethod
+    def split_symbols(self, start: date, end: date) -> list[str]:
+        """``[start, end]`` 에 분할이 **발효**된 심볼 목록 (중복 없음)."""
+        ...
