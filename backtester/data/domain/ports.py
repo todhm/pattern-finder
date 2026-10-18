@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from data.domain.models import (
         EarningsEvent,
         GrowthSnapshot,
+        IpoEvent,
         NewsEvent,
         QuarterlyBalance,
     )
@@ -259,4 +260,21 @@ class UniverseProviderPort(ABC):
     @abstractmethod
     def get_tickers(self, universe: str) -> list[str]:
         """Return the list of tickers for the named universe."""
+        ...
+
+
+class IpoCalendarPort(ABC):
+    """Port: 기간별 IPO 목록(첫 거래일·공모가) fetcher.
+
+    :class:`UniverseProviderPort` 와 분리 — 유니버스는 "그날 상장돼 있던 종목"
+    이고, 이 포트는 "그 기간에 **처음** 상장한 종목 + 공모가" 다. 라이프사이클
+    트레이드(IPO 생애주기) 연구는 첫 거래일과 공모가가 핵심이라 전용 포트.
+
+    Failure contract: 소스 장애·미설정이면 raise 대신 ``[]`` — composite 가
+    다음 소스로 넘어간다. 반환은 ``ipo_date`` 오름차순, 심볼 중복 없음.
+    """
+
+    @abstractmethod
+    def fetch_ipos(self, start: date, end: date) -> "list[IpoEvent]":
+        """``[start, end]`` 에 첫 거래일이 있는 IPO. 취소/예정 건은 제외."""
         ...

@@ -138,3 +138,44 @@ class NewsEvent(BaseModel):
     @property
     def date(self) -> date:
         return self.published_at.date()
+
+
+class IpoEvent(BaseModel):
+    """IPO 한 건 — 라이프사이클 트레이드(IPO 생애주기) 연구용.
+
+    ``ipo_date`` 는 첫 거래일(가격 결정일). ``offer_price`` 는 공모가 —
+    책의 "IPO 공모가 아래로 붕괴" 판정에 쓴다 (소스가 없으면 None).
+    ``status`` 는 소스 원문("priced"/"expected"/"withdrawn"/"filed")이며
+    소비자는 ``priced`` 만 쓴다. ``exchange`` 는 소스 표기 그대로
+    (NASDAQ Global Select / New York Stock Exchange …) — 정규화는
+    :func:`IpoEvent.exchange_group` 로.
+    """
+
+    symbol: str
+    name: str | None = None
+    ipo_date: date
+    exchange: str | None = None
+    offer_price: float | None = None
+    shares: float | None = None
+    total_value: float | None = None
+    status: str = "priced"
+    source: str = ""
+
+    @property
+    def exchange_group(self) -> str:
+        """"NASDAQ" / "NYSE" / "AMEX" / "OTC" / "?" — 거래소 표기 정규화."""
+        e = (self.exchange or "").upper()
+        if "NASDAQ" in e:
+            return "NASDAQ"
+        if "NEW YORK" in e or e.startswith("NYSE"):
+            return "AMEX" if "MKT" in e or "AMERICAN" in e else "NYSE"
+        if "AMERICAN" in e or e == "AMEX":
+            return "AMEX"
+        if "OTC" in e:
+            return "OTC"
+        return "?"
+
+    @property
+    def looks_like_spac(self) -> bool:
+        n = (self.name or "").lower()
+        return "acquisition" in n or "spac" in n.split() or "blank check" in n

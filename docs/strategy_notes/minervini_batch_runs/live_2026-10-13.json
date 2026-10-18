@@ -1,0 +1,589 @@
+{
+ "as_of": "2026-10-13",
+ "market": {
+  "failed": [],
+  "warns": [
+   "0-2 분산일 (SPY 5회↑)"
+  ],
+  "nh": 342,
+  "nl": 531,
+  "breadth_ok": false,
+  "indexes": [
+   {
+    "symbol": "SPY",
+    "close": 778.1,
+    "sma200": 720.140897857905,
+    "sma200_prev21": 710.3006097226876,
+    "trend_ok": true,
+    "dist_days": 8,
+    "dist_ok": false,
+    "sma50": 766.9437785418887,
+    "sma50_prev": 757.0610448534251,
+    "short_ok": true
+   },
+   {
+    "symbol": "QQQ",
+    "close": 746.04,
+    "sma200": 671.5254097098102,
+    "sma200_prev21": 658.5917808145931,
+    "trend_ok": true,
+    "dist_days": 3,
+    "dist_ok": true,
+    "sma50": 725.1914761524953,
+    "sma50_prev": 709.6188490003583,
+    "short_ok": true
+   }
+  ]
+ },
+ "counts": {
+  "s3": 14,
+  "s2": 8
+ },
+ "candidates": 69,
+ "passed": [
+  {
+   "ticker": "CLMT",
+   "industry": "SPECIALTY CHEMICALS",
+   "rs": 98.15782238108332,
+   "score": 76.5,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 57.17,
+   "pivot": 58.23,
+   "dist": -0.018203675081572945,
+   "stop": 53.5716,
+   "vol50": 1371843.02,
+   "stage4_strict": false,
+   "stage4_core5": true,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": true,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": null
+    },
+    "notes": {
+     "s2_8": "헤드라인 119건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": true,
+    "items": {
+     "s4_1": true,
+     "s4_2": true,
+     "s4_3": true,
+     "s4_4": true,
+     "s4_5": false,
+     "s4_6": true,
+     "s4_7": false,
+     "s4_9": true,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $27.01 → 천장 $59.87 = +122%",
+     "s4_3": "깊이 14%",
+     "s4_4": "−7% → −11% → −8% → −5% → −4%",
+     "s4_6": "마지막 축소 4.4%",
+     "s4_7": "10일/50일 거래량 0.99",
+     "s4_9": "피봇이 베이스 레인지의 81% 높이",
+     "s4_10": "10일 수익률 +9%, 피봇 대비 -1.8%",
+     "s4_11": "피봇 58.23 [contraction-high]"
+    }
+   },
+   "surprise_streak": 1
+  },
+  {
+   "ticker": "UFCS",
+   "industry": "INSURANCE - PROPERTY & CASUALTY",
+   "rs": 91.20153973054715,
+   "score": 74.4,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 56.0,
+   "pivot": 56.48,
+   "dist": -0.008498583569405027,
+   "stop": 51.9616,
+   "vol50": 144497.86,
+   "stage4_strict": false,
+   "stage4_core5": true,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 114건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": true,
+    "items": {
+     "s4_1": true,
+     "s4_2": true,
+     "s4_3": true,
+     "s4_4": true,
+     "s4_5": false,
+     "s4_6": true,
+     "s4_7": false,
+     "s4_9": true,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $35.64 → 천장 $56.74 = +59%",
+     "s4_3": "깊이 10%",
+     "s4_4": "−5% → −6% → −7% → −5% → −6% → −4%",
+     "s4_6": "마지막 축소 4.4%",
+     "s4_7": "10일/50일 거래량 0.85",
+     "s4_9": "피봇이 베이스 레인지의 96% 높이",
+     "s4_10": "10일 수익률 +5%, 피봇 대비 -0.8%",
+     "s4_11": "피봇 56.48 [contraction-high]"
+    }
+   },
+   "surprise_streak": 4
+  },
+  {
+   "ticker": "CHRD",
+   "industry": "OIL & GAS E&P",
+   "rs": 89.02941985152599,
+   "score": 83.9,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 144.57,
+   "pivot": 140.77,
+   "dist": 0.0269943880088086,
+   "stop": 129.50840000000002,
+   "vol50": 708994.98,
+   "stage4_strict": false,
+   "stage4_core5": true,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": true,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": false,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 51건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": true,
+    "items": {
+     "s4_1": true,
+     "s4_2": true,
+     "s4_3": true,
+     "s4_4": true,
+     "s4_5": true,
+     "s4_6": true,
+     "s4_7": false,
+     "s4_9": false,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $110.29 → 천장 $157.06 = +42%",
+     "s4_3": "깊이 16%",
+     "s4_4": "−14% → −6% → −4%",
+     "s4_6": "마지막 축소 4.3%",
+     "s4_7": "10일/50일 거래량 0.90",
+     "s4_9": "피봇이 베이스 레인지의 33% 높이",
+     "s4_10": "10일 수익률 +7%, 피봇 대비 +2.7%",
+     "s4_11": "피봇 140.77 [contraction-high]"
+    }
+   },
+   "surprise_streak": 0
+  },
+  {
+   "ticker": "ALNT",
+   "industry": "ELECTRONIC COMPONENTS",
+   "rs": 94.36348638988177,
+   "score": 84.3,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 106.38,
+   "pivot": 112.0,
+   "dist": -0.05017857142857152,
+   "stop": 103.04,
+   "vol50": 235283.6,
+   "stage4_strict": false,
+   "stage4_core5": false,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 136건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": false,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": false,
+    "items": {
+     "s4_1": true,
+     "s4_2": false,
+     "s4_3": true,
+     "s4_4": true,
+     "s4_5": true,
+     "s4_6": true,
+     "s4_7": false,
+     "s4_9": false,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $57.95 → 천장 $121.42 = +110%",
+     "s4_3": "깊이 13%",
+     "s4_4": "−12% → −5%",
+     "s4_6": "마지막 축소 5.2%",
+     "s4_7": "10일/50일 거래량 0.89",
+     "s4_9": "피봇이 베이스 레인지의 38% 높이",
+     "s4_10": "10일 수익률 -7%, 피봇 대비 -5.0%",
+     "s4_11": "피봇 112.00 [contraction-high]"
+    }
+   },
+   "surprise_streak": 1
+  },
+  {
+   "ticker": "AVT",
+   "industry": "ELECTRONICS & COMPUTER DISTRIBUTION",
+   "rs": 92.90624140775364,
+   "score": 77.6,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 97.15,
+   "pivot": 108.63,
+   "dist": -0.10567983061769304,
+   "stop": 99.9396,
+   "vol50": 1307323.8,
+   "stage4_strict": false,
+   "stage4_core5": false,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": true,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 216건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": false,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": false,
+    "items": {
+     "s4_1": true,
+     "s4_2": false,
+     "s4_3": true,
+     "s4_4": false,
+     "s4_5": null,
+     "s4_6": false,
+     "s4_7": false,
+     "s4_9": true,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $60.63 → 천장 $108.63 = +79%",
+     "s4_3": "깊이 11%",
+     "s4_4": "−11%",
+     "s4_6": "마지막 축소 11.1%",
+     "s4_7": "10일/50일 거래량 1.00",
+     "s4_9": "피봇이 베이스 레인지의 100% 높이",
+     "s4_10": "10일 수익률 -4%, 피봇 대비 -10.6%",
+     "s4_11": "피봇 108.63 [contraction-high]"
+    }
+   },
+   "surprise_streak": 4
+  },
+  {
+   "ticker": "BTSG",
+   "industry": "HEALTH INFORMATION SERVICES",
+   "rs": 91.25653010723124,
+   "score": 73.6,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 63.01,
+   "pivot": 65.64,
+   "dist": -0.040067032297379734,
+   "stop": 60.3888,
+   "vol50": 2540617.52,
+   "stage4_strict": false,
+   "stage4_core5": false,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": null
+    },
+    "notes": {
+     "s2_8": "헤드라인 12건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": false,
+    "items": {
+     "s4_1": true,
+     "s4_2": true,
+     "s4_3": true,
+     "s4_4": false,
+     "s4_5": false,
+     "s4_6": true,
+     "s4_7": false,
+     "s4_9": false,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $36.87 → 천장 $73.75 = +100%",
+     "s4_3": "깊이 26%",
+     "s4_4": "−6% → −19% → −17% → −6% → −9% → −4% → −9% → −8% → −8% → −4% → −8% → −7% → −9% → −4% → −4% → −5%",
+     "s4_6": "마지막 축소 5.4%",
+     "s4_7": "10일/50일 거래량 0.93",
+     "s4_9": "피봇이 베이스 레인지의 57% 높이",
+     "s4_10": "10일 수익률 +11%, 피봇 대비 -4.0%",
+     "s4_11": "피봇 65.64 [contraction-high]"
+    }
+   },
+   "surprise_streak": 4
+  },
+  {
+   "ticker": "EZPW",
+   "industry": "CREDIT SERVICES",
+   "rs": 87.21473742095134,
+   "score": 75.1,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 32.64,
+   "pivot": 33.31,
+   "dist": -0.020114079855899192,
+   "stop": 30.645200000000003,
+   "vol50": 900765.9,
+   "stage4_strict": false,
+   "stage4_core5": false,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": true,
+     "s2_2": false,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 32건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": true,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": false,
+    "items": {
+     "s4_1": true,
+     "s4_2": true,
+     "s4_3": true,
+     "s4_4": false,
+     "s4_5": false,
+     "s4_6": true,
+     "s4_7": true,
+     "s4_9": false,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $16.50 → 천장 $37.12 = +125%",
+     "s4_3": "깊이 28%",
+     "s4_4": "−14% → −8% → −6% → −7% → −9% → −9% → −6% → −14% → −10% → −7% → −5% → −8% → −8% → −7% → −12% → −10% → −8% → −9% → −8% → −4% → −11% → −8% → −8% → −4% → −11% → −12% → −6% → −6% → −9% → −7% → −10% → −13% → −7% → −6% → −7% → −4%",
+     "s4_6": "마지막 축소 4.0%",
+     "s4_7": "10일/50일 거래량 0.68",
+     "s4_9": "피봇이 베이스 레인지의 64% 높이",
+     "s4_10": "10일 수익률 +6%, 피봇 대비 -2.0%",
+     "s4_11": "피봇 33.31 [contraction-high]"
+    }
+   },
+   "surprise_streak": 4
+  },
+  {
+   "ticker": "NWE",
+   "industry": "UTILITIES - REGULATED ELECTRIC",
+   "rs": 77.2614792411328,
+   "score": 63.9,
+   "entry_note": "👀 관찰 (0-3 시장 폭 실패)",
+   "close": 74.39,
+   "pivot": 76.0,
+   "dist": -0.021184210526315805,
+   "stop": 69.92,
+   "vol50": 473100.06,
+   "stage4_strict": false,
+   "stage4_core5": false,
+   "s2": {
+    "ok": true,
+    "items": {
+     "s2_1": false,
+     "s2_2": true,
+     "s2_3": true,
+     "s2_4": true,
+     "s2_7": true,
+     "s2_8": true,
+     "s2_9": true,
+     "s2_10": true
+    },
+    "notes": {
+     "s2_8": "헤드라인 131건"
+    }
+   },
+   "s3": {
+    "ok": true,
+    "items": {
+     "s3_1": true,
+     "s3_2": true,
+     "s3_3": true,
+     "s3_4": true,
+     "s3_5": false,
+     "s3_7": true
+    },
+    "notes": {}
+   },
+   "s4": {
+    "ok": false,
+    "items": {
+     "s4_1": false,
+     "s4_2": true,
+     "s4_3": true,
+     "s4_4": true,
+     "s4_5": false,
+     "s4_6": true,
+     "s4_7": false,
+     "s4_9": true,
+     "s4_10": true,
+     "s4_11": true
+    },
+    "notes": {
+     "s4_1": "베이스 이전 6개월 저점 $62.25 → 천장 $73.44 = +18%",
+     "s4_3": "깊이 10%",
+     "s4_4": "−8% → −4% → −4% → −7% → −8% → −6%",
+     "s4_6": "마지막 축소 5.9%",
+     "s4_7": "10일/50일 거래량 1.48",
+     "s4_9": "피봇이 베이스 레인지의 134% 높이",
+     "s4_10": "10일 수익률 +9%, 피봇 대비 -2.1%",
+     "s4_11": "피봇 76.00 [contraction-high]"
+    }
+   },
+   "surprise_streak": 2
+  }
+ ]
+}

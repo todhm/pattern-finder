@@ -25,6 +25,7 @@ docker compose down
     - `adapters/yfinance_adapter.py`: yfinance 구현체. `end`는 inclusive하게 동작(yfinance 원래 exclusive)
     - `adapters/cached_market_data.py`: 파퀘 기반 디스크 캐시 데코레이터. `end >= today` 요청은 **자동 우회** — 장중 intraday 업데이트 반영
     - `adapters/wikipedia_universe.py`: S&P 500 / Nasdaq-100 종목 리스트
+    - `domain/ports.py: IpoCalendarPort` — 기간별 IPO(첫 거래일·공모가). `adapters/finnhub_ipo_calendar.py`(Finnhub, 2010~, Mongo 월 캐시) → `adapters/alphavantage_listing_ipos.py`(LISTING_STATUS ipoDate 폴백). composition: `adapters/composed_ipo_calendar.py`
   - `pattern/` — 패턴 감지
     - `domain/ports.py`: `PatternDetector` — 패턴 감지 인터페이스 (EMA, 평균 거래량 헬퍼 포함)
     - `adapters/wedge_pop.py`, `adapters/exhaustion_extension_top.py` 등 — 개별 패턴 구현체
@@ -50,8 +51,11 @@ docker compose down
   - `streamlit_app.py` + `pages/` — Streamlit UI
     - `pages/1_Pattern_Detection.py`, `pages/2_Backtest_Results.py`, `pages/strategy.py`
     - `pages/3_Multi_Wedgepop.py`: universe 전체 백테스트
+    - `pages/51_Lifecycle_Trade.py`: **«The Lifecycle Trade» IPO 생애주기** — 7장 스크린(IPO Alert/Rare Jewels/Liquidity Matters) + 6장 통계 재현 + 4매수지점×5매도규칙 $100K 시뮬 + ⑤ 계좌 시뮬(책 8장 자금관리로 그대로 돌리면 얼마). 엔진 `strategy/adapters/lifecycle_trade.py`, 계좌 엔진 `strategy/adapters/lifecycle_portfolio.py`, 배치 `lifecycle_batch_cli.py` → `lifecycle_portfolio_cli.py`, 문서 `docs/strategy_notes/라이프사이클_트레이드_*.md`
     - `pages/4_Multi_Wedgepop_Signals.py`: **Multi Wedgepop 실매수 후보 + watchlist 관리** — `3_Multi_Wedgepop` 백테스트와 동일 설정으로 현재 시점 signal 스캔. DB 영속 (`buy_signals` 테이블, 전략 간 공유), 최신 데이터 자동 리프레시, 수동 추가. 향후 전략마다 별도 `<N>_<strategy>_Signals.py` 페이지 추가 (scanner만 `SignalScannerPort` 구현체로 추가하면 됨).
   - `main.py` — FastAPI (uvicorn)
+  - `minervini_trades_check_cli.py` — 거래 로그 CSV(Ticker, Entry Date…)의 각 진입을 진입 전날 기준 미너비니 STAGE 0~4 로 재판정 + 눈판독용 차트 PNG. 결과 예: `docs/strategy_notes/미너비니_WedgePop거래28건_*.md`
+  - `minervini_watchlist_check_cli.py` — 44 스크리너 내보내기 CSV(티커, 산업군, RS…)의 후보 전부를 기준일 종가 기준 STAGE 0~4 재판정 + 차트 PNG + 종목별 도시에(주봉·일봉·실적·헤드라인). 0-3 은 `minervini_checklist_backtest_cli.py live` 결과(`live_json`)를 넘긴다. 결과 예: `docs/strategy_notes/미너비니_2026-10-13_스크리너_*.md`
   - `scan_cli.py` — 배치 스캔 CLI. JSON config(single or list) → JSON 결과. progress 로그 stderr + `/tmp/batch_partial.json` incremental dump
   - `tests/` — pytest 테스트
 - `docker-compose.yaml` — backtester + PostgreSQL(db) 서비스. 컨테이너 기동 시 순서: `alembic upgrade head` → uvicorn + streamlit
