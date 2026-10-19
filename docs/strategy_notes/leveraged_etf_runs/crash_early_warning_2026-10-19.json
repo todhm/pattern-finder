@@ -1,0 +1,4604 @@
+{
+ "as_of": "2026-10-16",
+ "episodes": [
+  {
+   "exit": "1985-10-01",
+   "reentry": "1986-07-16",
+   "etf_ret": 0.9031837258778144,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1987-10-19",
+   "reentry": "1988-03-03",
+   "etf_ret": 0.09281391809159811,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1988-03-24",
+   "reentry": "1988-04-07",
+   "etf_ret": 0.0365920396729158,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1988-04-14",
+   "reentry": "1988-04-26",
+   "etf_ret": 0.05541660268270476,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1988-05-11",
+   "reentry": "1988-05-31",
+   "etf_ret": 0.03259214389951848,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1988-09-01",
+   "reentry": "1988-09-07",
+   "etf_ret": 0.0674251414252991,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1990-08-06",
+   "reentry": "1990-12-21",
+   "etf_ret": -0.12116729933412407,
+   "kind": "조정"
+  },
+  {
+   "exit": "1990-12-24",
+   "reentry": "1991-01-16",
+   "etf_ret": 0.00756264703255205,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1992-06-25",
+   "reentry": "1992-07-01",
+   "etf_ret": 0.15306264339331865,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1992-08-24",
+   "reentry": "1992-09-01",
+   "etf_ret": 0.11700587346057634,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1997-12-24",
+   "reentry": "1998-01-02",
+   "etf_ret": 0.22893649044364994,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1998-08-31",
+   "reentry": "1998-09-14",
+   "etf_ret": 0.45744575732318915,
+   "kind": "휩소"
+  },
+  {
+   "exit": "1998-10-06",
+   "reentry": "1998-10-15",
+   "etf_ret": 0.2787663240152751,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2000-05-10",
+   "reentry": "2000-05-16",
+   "etf_ret": 0.40045360361611904,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2000-05-19",
+   "reentry": "2000-05-30",
+   "etf_ret": 0.08458185044289901,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2000-05-31",
+   "reentry": "2000-06-01",
+   "etf_ret": 0.1753573283824983,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2000-07-28",
+   "reentry": "2000-08-14",
+   "etf_ret": 0.196965455044684,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2000-09-11",
+   "reentry": "2001-12-05",
+   "etf_ret": -0.9748392796098838,
+   "kind": "참사"
+  },
+  {
+   "exit": "2001-12-13",
+   "reentry": "2001-12-17",
+   "etf_ret": 0.0717893484289589,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2001-12-20",
+   "reentry": "2002-01-03",
+   "etf_ret": 0.21335667257050095,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2002-01-14",
+   "reentry": "2002-11-25",
+   "etf_ret": -0.8022056311214392,
+   "kind": "참사"
+  },
+  {
+   "exit": "2002-11-26",
+   "reentry": "2002-11-27",
+   "etf_ret": 0.10512985872628478,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2002-11-29",
+   "reentry": "2002-12-02",
+   "etf_ret": 0.01160481945300873,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2002-12-03",
+   "reentry": "2003-01-07",
+   "etf_ret": -0.0793892106875238,
+   "kind": "조정"
+  },
+  {
+   "exit": "2003-01-08",
+   "reentry": "2003-01-09",
+   "etf_ret": 0.09629442417831813,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2003-01-17",
+   "reentry": "2003-03-13",
+   "etf_ret": -0.010406809145280138,
+   "kind": "조정"
+  },
+  {
+   "exit": "2008-01-22",
+   "reentry": "2008-04-01",
+   "etf_ret": 0.04261159814011717,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-04-09",
+   "reentry": "2008-04-10",
+   "etf_ret": 0.04379566230113552,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-04-11",
+   "reentry": "2008-04-16",
+   "etf_ret": 0.07930417781792531,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-07-02",
+   "reentry": "2008-07-23",
+   "etf_ret": 0.03695919826360705,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-07-24",
+   "reentry": "2008-07-25",
+   "etf_ret": 0.048589155081308455,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-07-28",
+   "reentry": "2008-07-29",
+   "etf_ret": 0.07058286196033858,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-08-01",
+   "reentry": "2008-08-05",
+   "etf_ret": 0.06790341458948701,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2008-09-03",
+   "reentry": "2009-04-30",
+   "etf_ret": -0.7524701569977772,
+   "kind": "참사"
+  },
+  {
+   "exit": "2009-05-13",
+   "reentry": "2009-05-18",
+   "etf_ret": 0.11966207573735677,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2018-12-20",
+   "reentry": "2019-01-07",
+   "etf_ret": 0.08821660165254097,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2020-03-09",
+   "reentry": "2020-04-06",
+   "etf_ret": -0.16217540421362053,
+   "kind": "조정"
+  },
+  {
+   "exit": "2022-02-23",
+   "reentry": "2022-03-16",
+   "etf_ret": 0.07310589277802415,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2022-04-22",
+   "reentry": "2022-08-15",
+   "etf_ret": -0.06311732112743873,
+   "kind": "조정"
+  },
+  {
+   "exit": "2022-08-17",
+   "reentry": "2023-01-26",
+   "etf_ret": -0.3885626374949942,
+   "kind": "조정"
+  },
+  {
+   "exit": "2023-01-30",
+   "reentry": "2023-01-31",
+   "etf_ret": 0.044687642498860036,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2023-03-10",
+   "reentry": "2023-03-14",
+   "etf_ret": 0.09099616858237525,
+   "kind": "휩소"
+  },
+  {
+   "exit": "2025-04-04",
+   "reentry": "2025-04-23",
+   "etf_ret": 0.1693842784132389,
+   "kind": "휩소"
+  }
+ ],
+ "confusion": {
+  "기간스프레드 역전": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": 18,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": 22,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": 29,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": 36,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": 77,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": 107,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": 70,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "1989-03-27",
+     "1989-04-10"
+    ],
+    [
+     "1989-05-22",
+     "1989-09-12"
+    ],
+    [
+     "1989-10-27",
+     "1990-01-08"
+    ],
+    [
+     "2006-01-17",
+     "2006-03-30"
+    ],
+    [
+     "2006-07-17",
+     "2007-06-07"
+    ],
+    [
+     "2025-06-04",
+     "2025-10-31"
+    ]
+   ],
+   "n_false": 6,
+   "crash_caught": 1,
+   "crash_measurable": 3,
+   "crash_lead_mean": 107.0,
+   "coverage_start": "1985-10-01"
+  },
+  "신용스프레드 급등": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": 89,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": 108,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": 60,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": 8,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": 24,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": 43,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": 50,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": 57,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": 62,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": 67,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": 82,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": 96,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": 100,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": 108,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": 4,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": 40,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 1,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "1989-05-12",
+     "1990-01-04"
+    ],
+    [
+     "1995-06-05",
+     "1995-08-21"
+    ],
+    [
+     "2010-05-26",
+     "2010-11-23"
+    ],
+    [
+     "2011-08-10",
+     "2012-02-07"
+    ],
+    [
+     "2015-07-31",
+     "2016-03-10"
+    ],
+    [
+     "2023-05-15",
+     "2023-06-13"
+    ]
+   ],
+   "n_false": 6,
+   "crash_caught": 3,
+   "crash_measurable": 3,
+   "crash_lead_mean": 107.33333333333333,
+   "coverage_start": "1985-10-01"
+  },
+  "실업률 Sahm": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": 34,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": 87,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": 92,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": 107,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 22,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 24,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 81,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 96,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 102,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "2003-09-05",
+     "2003-11-05"
+    ],
+    [
+     "2020-05-06",
+     "2021-04-05"
+    ]
+   ],
+   "n_false": 2,
+   "crash_caught": 2,
+   "crash_measurable": 3,
+   "crash_lead_mean": 113.5,
+   "coverage_start": "1985-10-01"
+  },
+  "실업수당 청구 급증": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": 46,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 4,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 6,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 63,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 78,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 80,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 84,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 106,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "2005-09-29",
+     "2005-11-10"
+    ],
+    [
+     "2017-09-28",
+     "2017-10-26"
+    ],
+    [
+     "2023-06-15",
+     "2023-10-05"
+    ]
+   ],
+   "n_false": 3,
+   "crash_caught": 2,
+   "crash_measurable": 3,
+   "crash_lead_mean": 113.0,
+   "coverage_start": "1985-10-01"
+  },
+  "VIX > 30": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": 0,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": 41,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": 19,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": 44,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": 17,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": 24,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": 31,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": 72,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": 102,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": 64,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": 69,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": 84,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": 99,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": 101,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": 103,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": 109,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 101,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 103,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 113,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 91,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 93,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 97,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 119,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": 7,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": 57,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": 86,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": 114,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 1,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "1998-12-14",
+     "1998-12-21"
+    ],
+    [
+     "1999-01-13",
+     "1999-03-05"
+    ],
+    [
+     "2009-10-30",
+     "2009-11-06"
+    ],
+    [
+     "2010-05-06",
+     "2010-06-18"
+    ],
+    [
+     "2010-06-29",
+     "2010-07-09"
+    ],
+    [
+     "2011-08-04",
+     "2011-10-28"
+    ],
+    [
+     "2011-11-01",
+     "2011-12-16"
+    ],
+    [
+     "2015-08-24",
+     "2015-09-08"
+    ],
+    [
+     "2018-02-05",
+     "2018-02-13"
+    ],
+    [
+     "2020-06-11",
+     "2020-07-20"
+    ],
+    [
+     "2020-09-03",
+     "2020-11-06"
+    ],
+    [
+     "2021-01-27",
+     "2021-02-03"
+    ],
+    [
+     "2024-08-05",
+     "2024-08-08"
+    ],
+    [
+     "2026-03-27",
+     "2026-04-01"
+    ]
+   ],
+   "n_false": 14,
+   "crash_caught": 3,
+   "crash_measurable": 3,
+   "crash_lead_mean": 101.66666666666667,
+   "coverage_start": "1985-10-01"
+  },
+  "VIX 기간구조 역전": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": false
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 102,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 104,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 114,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": 47,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": 8,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": 73,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": 101,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 22,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "2007-03-01",
+     "2007-03-23"
+    ],
+    [
+     "2007-04-26",
+     "2007-05-08"
+    ],
+    [
+     "2010-02-08",
+     "2010-02-16"
+    ],
+    [
+     "2010-05-18",
+     "2010-06-15"
+    ],
+    [
+     "2011-03-17",
+     "2011-03-25"
+    ],
+    [
+     "2011-07-29",
+     "2011-09-20"
+    ],
+    [
+     "2011-09-23",
+     "2011-10-11"
+    ],
+    [
+     "2013-10-09",
+     "2013-10-22"
+    ],
+    [
+     "2014-02-04",
+     "2014-02-12"
+    ],
+    [
+     "2014-10-13",
+     "2014-10-24"
+    ],
+    [
+     "2015-08-24",
+     "2015-09-09"
+    ],
+    [
+     "2016-01-15",
+     "2016-01-25"
+    ],
+    [
+     "2016-11-04",
+     "2016-11-15"
+    ],
+    [
+     "2018-02-06",
+     "2018-02-27"
+    ],
+    [
+     "2018-03-26",
+     "2018-04-17"
+    ],
+    [
+     "2019-05-09",
+     "2019-05-20"
+    ],
+    [
+     "2020-10-28",
+     "2020-11-10"
+    ],
+    [
+     "2024-08-06",
+     "2024-08-14"
+    ],
+    [
+     "2026-03-30",
+     "2026-04-14"
+    ]
+   ],
+   "n_false": 19,
+   "crash_caught": 1,
+   "crash_measurable": 1,
+   "crash_lead_mean": 120.0,
+   "coverage_start": "2006-07-17"
+  },
+  "12개월 추세 하회": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": 100,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": 114,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": 79,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": 38,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": 0,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": 25,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 47,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 49,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 106,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": 13,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": 38,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": 118,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 4,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "1986-09-30",
+     "1986-11-28"
+    ],
+    [
+     "1986-12-31",
+     "1987-01-30"
+    ],
+    [
+     "1988-11-30",
+     "1988-12-30"
+    ],
+    [
+     "1994-04-29",
+     "1994-08-31"
+    ],
+    [
+     "2004-07-30",
+     "2004-10-29"
+    ],
+    [
+     "2005-04-29",
+     "2005-05-31"
+    ],
+    [
+     "2006-05-31",
+     "2006-09-29"
+    ],
+    [
+     "2010-06-30",
+     "2010-07-30"
+    ],
+    [
+     "2010-08-31",
+     "2010-09-30"
+    ],
+    [
+     "2011-08-31",
+     "2011-10-31"
+    ],
+    [
+     "2011-11-30",
+     "2012-01-31"
+    ],
+    [
+     "2015-08-31",
+     "2015-10-30"
+    ],
+    [
+     "2016-01-29",
+     "2016-03-31"
+    ],
+    [
+     "2016-04-29",
+     "2016-05-31"
+    ],
+    [
+     "2016-06-30",
+     "2016-07-29"
+    ],
+    [
+     "2019-05-31",
+     "2019-06-28"
+    ],
+    [
+     "2026-03-31",
+     "2026-04-30"
+    ]
+   ],
+   "n_false": 17,
+   "crash_caught": 2,
+   "crash_measurable": 3,
+   "crash_lead_mean": 120.0,
+   "coverage_start": "1985-10-01"
+  },
+  "신용 OR VIX기간 OR 청구": {
+   "rows": [
+    {
+     "exit": "1985-10-01",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1987-10-19",
+     "kind": "휩소",
+     "lead_bdays": 89,
+     "measurable": true
+    },
+    {
+     "exit": "1988-03-24",
+     "kind": "휩소",
+     "lead_bdays": 108,
+     "measurable": true
+    },
+    {
+     "exit": "1988-04-14",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1988-05-11",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1988-09-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1990-08-06",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1990-12-24",
+     "kind": "휩소",
+     "lead_bdays": 60,
+     "measurable": true
+    },
+    {
+     "exit": "1992-06-25",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "1992-08-24",
+     "kind": "휩소",
+     "lead_bdays": 8,
+     "measurable": true
+    },
+    {
+     "exit": "1997-12-24",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-08-31",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "1998-10-06",
+     "kind": "휩소",
+     "lead_bdays": 24,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-10",
+     "kind": "휩소",
+     "lead_bdays": 43,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-19",
+     "kind": "휩소",
+     "lead_bdays": 50,
+     "measurable": true
+    },
+    {
+     "exit": "2000-05-31",
+     "kind": "휩소",
+     "lead_bdays": 57,
+     "measurable": true
+    },
+    {
+     "exit": "2000-07-28",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2000-09-11",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2001-12-20",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-01-14",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-26",
+     "kind": "휩소",
+     "lead_bdays": 96,
+     "measurable": true
+    },
+    {
+     "exit": "2002-11-29",
+     "kind": "휩소",
+     "lead_bdays": 98,
+     "measurable": true
+    },
+    {
+     "exit": "2002-12-03",
+     "kind": "조정",
+     "lead_bdays": 100,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-08",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2003-01-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-01-22",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-09",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-04-11",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-02",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-24",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-07-28",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-08-01",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2008-09-03",
+     "kind": "참사",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2009-05-13",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2018-12-20",
+     "kind": "휩소",
+     "lead_bdays": 47,
+     "measurable": true
+    },
+    {
+     "exit": "2020-03-09",
+     "kind": "조정",
+     "lead_bdays": 8,
+     "measurable": true
+    },
+    {
+     "exit": "2022-02-23",
+     "kind": "휩소",
+     "lead_bdays": null,
+     "measurable": true
+    },
+    {
+     "exit": "2022-04-22",
+     "kind": "조정",
+     "lead_bdays": 40,
+     "measurable": true
+    },
+    {
+     "exit": "2022-08-17",
+     "kind": "조정",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2023-01-30",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2023-03-10",
+     "kind": "휩소",
+     "lead_bdays": 120,
+     "measurable": true
+    },
+    {
+     "exit": "2025-04-04",
+     "kind": "휩소",
+     "lead_bdays": 22,
+     "measurable": true
+    }
+   ],
+   "false_alarms": [
+    [
+     "1995-06-05",
+     "1995-08-21"
+    ],
+    [
+     "2005-09-29",
+     "2005-11-10"
+    ],
+    [
+     "2007-03-01",
+     "2007-03-23"
+    ],
+    [
+     "2007-04-26",
+     "2007-05-08"
+    ],
+    [
+     "2010-02-08",
+     "2010-02-16"
+    ],
+    [
+     "2010-05-18",
+     "2010-11-23"
+    ],
+    [
+     "2011-03-17",
+     "2011-03-25"
+    ],
+    [
+     "2011-07-29",
+     "2012-02-07"
+    ],
+    [
+     "2013-10-09",
+     "2013-10-22"
+    ],
+    [
+     "2014-02-04",
+     "2014-02-12"
+    ],
+    [
+     "2014-10-13",
+     "2014-10-24"
+    ],
+    [
+     "2015-07-31",
+     "2016-03-10"
+    ],
+    [
+     "2016-11-04",
+     "2016-11-15"
+    ],
+    [
+     "2017-09-28",
+     "2017-10-26"
+    ],
+    [
+     "2018-02-06",
+     "2018-02-27"
+    ],
+    [
+     "2018-03-26",
+     "2018-04-17"
+    ],
+    [
+     "2019-05-09",
+     "2019-05-20"
+    ],
+    [
+     "2023-05-15",
+     "2023-06-13"
+    ],
+    [
+     "2023-06-15",
+     "2023-10-05"
+    ],
+    [
+     "2024-08-06",
+     "2024-08-14"
+    ],
+    [
+     "2026-03-30",
+     "2026-04-14"
+    ]
+   ],
+   "n_false": 21,
+   "crash_caught": 3,
+   "crash_measurable": 3,
+   "crash_lead_mean": 120.0,
+   "coverage_start": "1985-10-01"
+  }
+ },
+ "strategies": {
+  "⑩ dd18 (기준)": {
+   "A_2010": {
+    "mult": 240.0685627604646,
+    "cagr": 0.38981266947425874,
+    "ratio": 0.9301850982496671,
+    "mdd": -0.6666642726345785,
+    "trades": 18,
+    "tax": 3170157067.6375003
+   },
+   "B_1999": {
+    "mult": 188.8207496482569,
+    "cagr": 0.21575712594863639,
+    "ratio": 292.23566144805045,
+    "mdd": -0.8926134705809758,
+    "trades": 62,
+    "tax": 2506573297.728542
+   },
+   "C_1986": {
+    "mult": 4360.523653785276,
+    "cagr": 0.2281299050721175,
+    "ratio": 41.85331770684669,
+    "mdd": -0.9106458313992756,
+    "trades": 87,
+    "tax": 58332555521.10703
+   },
+   "crash_mean": -0.445892216731225,
+   "whipsaw_mean": -0.19102014473033943,
+   "boom_capture": 0.8200204887939326
+  },
+  "⑩ + 기간스프레드 역전 @dd5": {
+   "A_2010": {
+    "mult": 232.59144123896118,
+    "cagr": 0.3871741484164324,
+    "ratio": 0.901213762156636,
+    "mdd": -0.6634400727390957,
+    "trades": 20,
+    "tax": 3825754739.598279
+   },
+   "B_1999": {
+    "mult": 140.38984483795855,
+    "cagr": 0.2023990064340191,
+    "ratio": 217.2797176329224,
+    "mdd": -0.8926134705809758,
+    "trades": 71,
+    "tax": 2319746414.70125
+   },
+   "C_1986": {
+    "mult": 2938.046042759471,
+    "cagr": 0.21629657268556413,
+    "ratio": 28.20004756956446,
+    "mdd": -0.91078596984205,
+    "trades": 99,
+    "tax": 48963675660.10735
+   },
+   "crash_mean": -0.4369651387590657,
+   "whipsaw_mean": -0.1313097702403049,
+   "boom_capture": 0.7966662963670027
+  },
+  "⑩ + 기간스프레드 역전 @dd8": {
+   "A_2010": {
+    "mult": 232.59144123896118,
+    "cagr": 0.3871741484164324,
+    "ratio": 0.901213762156636,
+    "mdd": -0.6634400727390957,
+    "trades": 20,
+    "tax": 3825754739.598279
+   },
+   "B_1999": {
+    "mult": 143.2009128275539,
+    "cagr": 0.2032879750818053,
+    "ratio": 221.6303746176296,
+    "mdd": -0.8926134705809758,
+    "trades": 67,
+    "tax": 2365624935.5273156
+   },
+   "C_1986": {
+    "mult": 2995.7730104690118,
+    "cagr": 0.21687702349247995,
+    "ratio": 28.754124398778067,
+    "mdd": -0.9106418290243613,
+    "trades": 95,
+    "tax": 49906071099.88116
+   },
+   "crash_mean": -0.4369845078129009,
+   "whipsaw_mean": -0.13130988599644214,
+   "boom_capture": 0.7966662770435402
+  },
+  "⑩ + 기간스프레드 역전 @dd12": {
+   "A_2010": {
+    "mult": 275.5804595543911,
+    "cagr": 0.4013753721138742,
+    "ratio": 1.067781778249996,
+    "mdd": -0.6666642726345785,
+    "trades": 20,
+    "tax": 3759284582.3106685
+   },
+   "B_1999": {
+    "mult": 184.95514821433082,
+    "cagr": 0.2148200290518798,
+    "ratio": 286.2529154095864,
+    "mdd": -0.8926134705809758,
+    "trades": 67,
+    "tax": 2534432255.7907314
+   },
+   "C_1986": {
+    "mult": 4668.302807095711,
+    "cagr": 0.23018554902245447,
+    "ratio": 44.80745342764794,
+    "mdd": -0.9106491853805448,
+    "trades": 92,
+    "tax": 64455008684.62214
+   },
+   "crash_mean": -0.43779507400442996,
+   "whipsaw_mean": -0.14235263285835223,
+   "boom_capture": 0.8289136294928817
+  },
+  "⑩ + 신용스프레드 급등 @dd5": {
+   "A_2010": {
+    "mult": 30.60747666321106,
+    "cagr": 0.22810256093419667,
+    "ratio": 0.11859369823257851,
+    "mdd": -0.7238427502517523,
+    "trades": 51,
+    "tax": 514127239.89978886
+   },
+   "B_1999": {
+    "mult": 28.537825035475212,
+    "cagr": 0.1330663298000001,
+    "ratio": 44.16765737381353,
+    "mdd": -0.8926134705809758,
+    "trades": 95,
+    "tax": 489454548.1775682
+   },
+   "C_1986": {
+    "mult": 462.9896823625887,
+    "cagr": 0.16241678704164486,
+    "ratio": 4.443882388779645,
+    "mdd": -0.9106300529859562,
+    "trades": 130,
+    "tax": 8273558492.905856
+   },
+   "crash_mean": -0.4396271846067643,
+   "whipsaw_mean": -0.36096735526682505,
+   "boom_capture": 0.787341663812451
+  },
+  "⑩ + 신용스프레드 급등 @dd8": {
+   "A_2010": {
+    "mult": 31.018786500478303,
+    "cagr": 0.22908750938367972,
+    "ratio": 0.12018738578995865,
+    "mdd": -0.7238452025961277,
+    "trades": 53,
+    "tax": 518516694.6533128
+   },
+   "B_1999": {
+    "mult": 28.921090187863463,
+    "cagr": 0.13362996164429886,
+    "ratio": 44.760832358696355,
+    "mdd": -0.8926134705809758,
+    "trades": 97,
+    "tax": 493544260.6980506
+   },
+   "C_1986": {
+    "mult": 469.2599602230637,
+    "cagr": 0.1628002812351319,
+    "ratio": 4.504065970441186,
+    "mdd": -0.9106300529859562,
+    "trades": 132,
+    "tax": 8340568731.817751
+   },
+   "crash_mean": -0.4396272244132839,
+   "whipsaw_mean": -0.37903772339370917,
+   "boom_capture": 0.7881458945216603
+  },
+  "⑩ + 신용스프레드 급등 @dd12": {
+   "A_2010": {
+    "mult": 42.462073284198354,
+    "cagr": 0.2524868909459299,
+    "ratio": 0.16452628097397526,
+    "mdd": -0.7126861264192841,
+    "trades": 47,
+    "tax": 597264558.4704511
+   },
+   "B_1999": {
+    "mult": 40.27319125419921,
+    "cagr": 0.14770945399277657,
+    "ratio": 62.33034614426125,
+    "mdd": -0.8926134705809758,
+    "trades": 91,
+    "tax": 574898236.3736163
+   },
+   "C_1986": {
+    "mult": 641.1292753513554,
+    "cagr": 0.17173251195338302,
+    "ratio": 6.153707532155499,
+    "mdd": -0.9106287823903205,
+    "trades": 126,
+    "tax": 9484851637.232082
+   },
+   "crash_mean": -0.42759921081802527,
+   "whipsaw_mean": -0.24922238162466273,
+   "boom_capture": 0.8116369289042273
+  },
+  "⑩ + 실업률 Sahm @dd5": {
+   "A_2010": {
+    "mult": 169.6544119637897,
+    "cagr": 0.36113573076335825,
+    "ratio": 0.6573538994295007,
+    "mdd": -0.6666481533273814,
+    "trades": 24,
+    "tax": 2238002800.467787
+   },
+   "B_1999": {
+    "mult": 136.8102690261528,
+    "cagr": 0.20124186700006486,
+    "ratio": 211.73965009789157,
+    "mdd": -0.8926134705809758,
+    "trades": 69,
+    "tax": 1812171341.0980084
+   },
+   "C_1986": {
+    "mult": 2659.2487702313665,
+    "cagr": 0.21332666614565943,
+    "ratio": 25.5240866645498,
+    "mdd": -0.9106386461109414,
+    "trades": 98,
+    "tax": 35613304404.68734
+   },
+   "crash_mean": -0.43960147729467025,
+   "whipsaw_mean": -0.19446570741085,
+   "boom_capture": 0.8160483828050668
+  },
+  "⑩ + 실업률 Sahm @dd8": {
+   "A_2010": {
+    "mult": 169.6544119637897,
+    "cagr": 0.36113573076335825,
+    "ratio": 0.6573538994295007,
+    "mdd": -0.6666481533273814,
+    "trades": 24,
+    "tax": 2238002800.467787
+   },
+   "B_1999": {
+    "mult": 136.8102690261528,
+    "cagr": 0.20124186700006486,
+    "ratio": 211.73965009789157,
+    "mdd": -0.8926134705809758,
+    "trades": 69,
+    "tax": 1812171341.0980084
+   },
+   "C_1986": {
+    "mult": 2659.2487702313665,
+    "cagr": 0.21332666614565943,
+    "ratio": 25.5240866645498,
+    "mdd": -0.9106386461109414,
+    "trades": 98,
+    "tax": 35613304404.68734
+   },
+   "crash_mean": -0.43960147729467025,
+   "whipsaw_mean": -0.19446570741085,
+   "boom_capture": 0.8160483828050668
+  },
+  "⑩ + 실업률 Sahm @dd12": {
+   "A_2010": {
+    "mult": 161.2758656823575,
+    "cagr": 0.3570018195255298,
+    "ratio": 0.6248898449678606,
+    "mdd": -0.6666452979632957,
+    "trades": 24,
+    "tax": 2127304305.5098298
+   },
+   "B_1999": {
+    "mult": 136.0925615902187,
+    "cagr": 0.20100635549333568,
+    "ratio": 210.6288627100801,
+    "mdd": -0.8926134705809758,
+    "trades": 68,
+    "tax": 1802777272.770378
+   },
+   "C_1986": {
+    "mult": 2463.5916632256562,
+    "cagr": 0.2110550697879956,
+    "ratio": 23.64612435743013,
+    "mdd": -0.9106372662504324,
+    "trades": 98,
+    "tax": 32998961009.017178
+   },
+   "crash_mean": -0.43959899826469917,
+   "whipsaw_mean": -0.1946017754284358,
+   "boom_capture": 0.816000501516768
+  },
+  "⑩ + 실업수당 청구 급증 @dd5": {
+   "A_2010": {
+    "mult": 225.6088522028143,
+    "cagr": 0.38463713163803015,
+    "ratio": 0.8741585734474587,
+    "mdd": -0.6652062214583117,
+    "trades": 18,
+    "tax": 2977568217.4094687
+   },
+   "B_1999": {
+    "mult": 185.81510338051766,
+    "cagr": 0.21503011888768198,
+    "ratio": 287.5838579425147,
+    "mdd": -0.8926134705809758,
+    "trades": 67,
+    "tax": 2469695973.26873
+   },
+   "C_1986": {
+    "mult": 2783.6684028072655,
+    "cagr": 0.2146878546386617,
+    "ratio": 26.718295164404587,
+    "mdd": -0.9106247306240733,
+    "trades": 99,
+    "tax": 37293324192.983154
+   },
+   "crash_mean": -0.42690291559969185,
+   "whipsaw_mean": -0.19101818320070915,
+   "boom_capture": 0.8039190002309938
+  },
+  "⑩ + 실업수당 청구 급증 @dd8": {
+   "A_2010": {
+    "mult": 225.6088522028143,
+    "cagr": 0.38463713163803015,
+    "ratio": 0.8741585734474587,
+    "mdd": -0.6652062214583117,
+    "trades": 18,
+    "tax": 2977568217.4094687
+   },
+   "B_1999": {
+    "mult": 193.67513982394505,
+    "cagr": 0.2169081049151791,
+    "ratio": 299.74874423456527,
+    "mdd": -0.8926134705809758,
+    "trades": 64,
+    "tax": 2571618916.655558
+   },
+   "C_1986": {
+    "mult": 2906.4534755208515,
+    "cagr": 0.21597417796578644,
+    "ratio": 27.896814779469388,
+    "mdd": -0.9106247306240733,
+    "trades": 96,
+    "tax": 38882437361.91942
+   },
+   "crash_mean": -0.4372043683233727,
+   "whipsaw_mean": -0.1910184375702092,
+   "boom_capture": 0.8039190098578348
+  },
+  "⑩ + 실업수당 청구 급증 @dd12": {
+   "A_2010": {
+    "mult": 225.6088522028143,
+    "cagr": 0.38463713163803015,
+    "ratio": 0.8741585734474587,
+    "mdd": -0.6652062214583117,
+    "trades": 18,
+    "tax": 2977568217.4094687
+   },
+   "B_1999": {
+    "mult": 193.67513982394505,
+    "cagr": 0.2169081049151791,
+    "ratio": 299.74874423456527,
+    "mdd": -0.8926134705809758,
+    "trades": 64,
+    "tax": 2571618916.655558
+   },
+   "C_1986": {
+    "mult": 3837.1496844242956,
+    "cagr": 0.22428539967670136,
+    "ratio": 36.829852921798825,
+    "mdd": -0.9106393214042368,
+    "trades": 95,
+    "tax": 51331984356.875946
+   },
+   "crash_mean": -0.43723005190688174,
+   "whipsaw_mean": -0.19101983629077526,
+   "boom_capture": 0.8160165048082303
+  },
+  "⑩ + VIX > 30 @dd5": {
+   "A_2010": {
+    "mult": 60.875295347893875,
+    "cagr": 0.2798778708077907,
+    "ratio": 0.23587133580941919,
+    "mdd": -0.6998713038420732,
+    "trades": 41,
+    "tax": 1324815578.054232
+   },
+   "B_1999": {
+    "mult": 46.75821530429573,
+    "cagr": 0.15411514897259848,
+    "ratio": 72.36714186886697,
+    "mdd": -0.8926134705809758,
+    "trades": 85,
+    "tax": 1022890935.3900467
+   },
+   "C_1986": {
+    "mult": 1041.6344808826564,
+    "cagr": 0.18575978638370305,
+    "ratio": 9.997849415389254,
+    "mdd": -0.9106449312387742,
+    "trades": 112,
+    "tax": 23273137515.844177
+   },
+   "crash_mean": -0.4540812985067945,
+   "whipsaw_mean": -0.2636907385743264,
+   "boom_capture": 0.826410706534459
+  },
+  "⑩ + VIX > 30 @dd8": {
+   "A_2010": {
+    "mult": 52.56466024429719,
+    "cagr": 0.2686448207519554,
+    "ratio": 0.20367041436653338,
+    "mdd": -0.6998551219786279,
+    "trades": 43,
+    "tax": 1142208196.3352609
+   },
+   "B_1999": {
+    "mult": 40.39530255537693,
+    "cagr": 0.14783899060935246,
+    "ratio": 62.51933637407671,
+    "mdd": -0.8926134705809758,
+    "trades": 87,
+    "tax": 882987809.6261353
+   },
+   "C_1986": {
+    "mult": 901.2442224827204,
+    "cagr": 0.18155794988894436,
+    "ratio": 8.650351143557115,
+    "mdd": -0.9106449312387742,
+    "trades": 114,
+    "tax": 20170488843.128334
+   },
+   "crash_mean": -0.4540810713721998,
+   "whipsaw_mean": -0.2888063287852393,
+   "boom_capture": 0.825078584919875
+  },
+  "⑩ + VIX > 30 @dd12": {
+   "A_2010": {
+    "mult": 74.38072773907948,
+    "cagr": 0.295372484886568,
+    "ratio": 0.28820035303369385,
+    "mdd": -0.699882502192765,
+    "trades": 35,
+    "tax": 1610233312.8540795
+   },
+   "B_1999": {
+    "mult": 57.00952590119237,
+    "cagr": 0.162675163281101,
+    "ratio": 88.23297514499893,
+    "mdd": -0.8926134705809758,
+    "trades": 79,
+    "tax": 1239432661.715962
+   },
+   "C_1986": {
+    "mult": 1270.5338322185999,
+    "cagr": 0.1915496588058343,
+    "ratio": 12.194878496068132,
+    "mdd": -0.9106449312387742,
+    "trades": 106,
+    "tax": 28108647906.10001
+   },
+   "crash_mean": -0.4540814558093695,
+   "whipsaw_mean": -0.24079188984468988,
+   "boom_capture": 0.8273150659660714
+  },
+  "⑩ + VIX 기간구조 역전 @dd5": {
+   "A_2010": {
+    "mult": 87.98644817268612,
+    "cagr": 0.30850733834075283,
+    "ratio": 0.34091795275923403,
+    "mdd": -0.6649947356701127,
+    "trades": 42,
+    "tax": 1969028079.2859612
+   },
+   "B_1999": {
+    "mult": 64.33822461165352,
+    "cagr": 0.16792862479645443,
+    "ratio": 99.57551625446253,
+    "mdd": -0.8926134705809758,
+    "trades": 85,
+    "tax": 1447147904.5151792
+   },
+   "C_1986": {
+    "mult": 1465.2165488694177,
+    "cagr": 0.19572239859232599,
+    "ratio": 14.063488378494865,
+    "mdd": -0.9106458313992756,
+    "trades": 110,
+    "tax": 33465139024.82927
+   },
+   "crash_mean": -0.44803642170145286,
+   "whipsaw_mean": -0.228218445812873,
+   "boom_capture": 0.802819237445558
+  },
+  "⑩ + VIX 기간구조 역전 @dd8": {
+   "A_2010": {
+    "mult": 85.58058553549475,
+    "cagr": 0.3063304251426815,
+    "ratio": 0.3315960426023261,
+    "mdd": -0.6649909828384863,
+    "trades": 45,
+    "tax": 1881113409.250359
+   },
+   "B_1999": {
+    "mult": 62.73144474186278,
+    "cagr": 0.16682801578917483,
+    "ratio": 97.08872187977425,
+    "mdd": -0.8926134705809758,
+    "trades": 88,
+    "tax": 1386266484.372378
+   },
+   "C_1986": {
+    "mult": 1385.6173656470348,
+    "cagr": 0.19408578274595056,
+    "ratio": 13.299476950252778,
+    "mdd": -0.9106458313992756,
+    "trades": 114,
+    "tax": 31118187267.640945
+   },
+   "crash_mean": -0.44803633117296265,
+   "whipsaw_mean": -0.24373952355489528,
+   "boom_capture": 0.802772574094041
+  },
+  "⑩ + VIX 기간구조 역전 @dd12": {
+   "A_2010": {
+    "mult": 68.9831519773021,
+    "cagr": 0.28952496150013496,
+    "ratio": 0.26728655873032015,
+    "mdd": -0.6649757769838014,
+    "trades": 41,
+    "tax": 1517023010.649312
+   },
+   "B_1999": {
+    "mult": 50.542287871711245,
+    "cagr": 0.157468094865437,
+    "ratio": 78.22370663606603,
+    "mdd": -0.8926134705809758,
+    "trades": 84,
+    "tax": 1119064501.2886357
+   },
+   "C_1986": {
+    "mult": 1160.2379107300567,
+    "cagr": 0.18889928903038444,
+    "ratio": 11.136232652048424,
+    "mdd": -0.9106458313992756,
+    "trades": 109,
+    "tax": 26183343264.30158
+   },
+   "crash_mean": -0.44803615881181774,
+   "whipsaw_mean": -0.3048764296161028,
+   "boom_capture": 0.8205683209499954
+  },
+  "⑩ + 12개월 추세 하회 @dd5": {
+   "A_2010": {
+    "mult": 67.50129035777194,
+    "cagr": 0.2878442885556718,
+    "ratio": 0.26154484236269054,
+    "mdd": -0.6415485856245244,
+    "trades": 53,
+    "tax": 1517197680.6828473
+   },
+   "B_1999": {
+    "mult": 35.56276885449555,
+    "cagr": 0.14239995662341642,
+    "ratio": 55.0400805974852,
+    "mdd": -0.9018307359751135,
+    "trades": 113,
+    "tax": 804912177.3083669
+   },
+   "C_1986": {
+    "mult": 268.93868560204163,
+    "cagr": 0.14703581961179113,
+    "ratio": 2.5813359004240084,
+    "mdd": -0.919769357103696,
+    "trades": 153,
+    "tax": 6249845881.255771
+   },
+   "crash_mean": -0.43501833303093146,
+   "whipsaw_mean": -0.1316865340083091,
+   "boom_capture": 0.7832546827388678
+  },
+  "⑩ + 12개월 추세 하회 @dd8": {
+   "A_2010": {
+    "mult": 96.4270479821656,
+    "cagr": 0.3157258979625792,
+    "ratio": 0.37362244381290305,
+    "mdd": -0.6390639960390678,
+    "trades": 51,
+    "tax": 2114040510.7644572
+   },
+   "B_1999": {
+    "mult": 55.302223601082886,
+    "cagr": 0.161358075190831,
+    "ratio": 85.59060338292454,
+    "mdd": -0.8926134705809758,
+    "trades": 109,
+    "tax": 1218461593.806475
+   },
+   "C_1986": {
+    "mult": 420.54079136792177,
+    "cagr": 0.15967903929952598,
+    "ratio": 4.036448084516475,
+    "mdd": -0.911802682432157,
+    "trades": 149,
+    "tax": 9425768284.643959
+   },
+   "crash_mean": -0.43462913087348437,
+   "whipsaw_mean": -0.13115456158091945,
+   "boom_capture": 0.7844818089277228
+  },
+  "⑩ + 12개월 추세 하회 @dd12": {
+   "A_2010": {
+    "mult": 147.2660034159455,
+    "cagr": 0.3496158180736313,
+    "ratio": 0.5706063312961869,
+    "mdd": -0.6234791808452946,
+    "trades": 39,
+    "tax": 2013153144.6058166
+   },
+   "B_1999": {
+    "mult": 75.24448362301874,
+    "cagr": 0.17476614540635604,
+    "ratio": 116.45500551635413,
+    "mdd": -0.9042353933536723,
+    "trades": 95,
+    "tax": 1032333947.1031775
+   },
+   "C_1986": {
+    "mult": 614.483097605167,
+    "cagr": 0.1705134909335697,
+    "ratio": 5.897951336012354,
+    "mdd": -0.9211958606443085,
+    "trades": 145,
+    "tax": 8602416587.752415
+   },
+   "crash_mean": -0.42440716026248315,
+   "whipsaw_mean": -0.07593680152187694,
+   "boom_capture": 0.8035286733955747
+  },
+  "⑩ + 신용 OR VIX기간 OR 청구 @dd5": {
+   "A_2010": {
+    "mult": 30.81766947555715,
+    "cagr": 0.2286074457477374,
+    "ratio": 0.11940812482619545,
+    "mdd": -0.7238680227505437,
+    "trades": 61,
+    "tax": 693364413.1035455
+   },
+   "B_1999": {
+    "mult": 32.10903321000857,
+    "cagr": 0.1380575134107367,
+    "ratio": 49.69477441469789,
+    "mdd": -0.8926134705809758,
+    "trades": 108,
+    "tax": 733154031.2576394
+   },
+   "C_1986": {
+    "mult": 411.6977220175949,
+    "cagr": 0.15907486757021094,
+    "ratio": 3.951570253226276,
+    "mdd": -0.9106163237548656,
+    "trades": 148,
+    "tax": 9692482581.246405
+   },
+   "crash_mean": -0.41017572169043337,
+   "whipsaw_mean": -0.2959478075863418,
+   "boom_capture": 0.7719686161914948
+  },
+  "⑩ + 신용 OR VIX기간 OR 청구 @dd8": {
+   "A_2010": {
+    "mult": 31.50244986586338,
+    "cagr": 0.23023013499722533,
+    "ratio": 0.1220614189822987,
+    "mdd": -0.7238688248057694,
+    "trades": 63,
+    "tax": 695314649.7605398
+   },
+   "B_1999": {
+    "mult": 33.19839581695759,
+    "cagr": 0.1394738560085218,
+    "ratio": 51.38076815527756,
+    "mdd": -0.8926134705809758,
+    "trades": 107,
+    "tax": 744537884.9873292
+   },
+   "C_1986": {
+    "mult": 433.5559293407946,
+    "cagr": 0.16054608028996076,
+    "ratio": 4.161370398400549,
+    "mdd": -0.9106163237548656,
+    "trades": 147,
+    "tax": 9997259812.737747
+   },
+   "crash_mean": -0.42644195602992474,
+   "whipsaw_mean": -0.3128173000302186,
+   "boom_capture": 0.7724913898216638
+  },
+  "⑩ + 신용 OR VIX기간 OR 청구 @dd12": {
+   "A_2010": {
+    "mult": 27.455406351050406,
+    "cagr": 0.22011272966601614,
+    "ratio": 0.1063804838104448,
+    "mdd": -0.7126616285302194,
+    "trades": 57,
+    "tax": 612664684.1023449
+   },
+   "B_1999": {
+    "mult": 29.396773769487012,
+    "cagr": 0.1343195872938885,
+    "ratio": 45.4970422634589,
+    "mdd": -0.8926134705809758,
+    "trades": 101,
+    "tax": 666024034.284883
+   },
+   "C_1986": {
+    "mult": 407.9306375558108,
+    "cagr": 0.15881364050965874,
+    "ratio": 3.915412902567093,
+    "mdd": -0.9106204373021926,
+    "trades": 144,
+    "tax": 9532534547.803566
+   },
+   "crash_mean": -0.41442250303812606,
+   "whipsaw_mean": -0.3059314120130108,
+   "boom_capture": 0.8116402241811388
+  }
+ },
+ "yearly": {
+  "⑩ dd18 (기준)": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.096477046118609,
+   "1992": -0.24272732110368078,
+   "1993": 0.17430759993409417,
+   "1994": -0.1191018259689357,
+   "1995": 1.2884232187260287,
+   "1996": 1.0821501933302629,
+   "1997": -0.08177875780788035,
+   "1998": 1.1690800463729576,
+   "1999": 4.082445251929064,
+   "2000": -0.7452614516249458,
+   "2001": -0.28878365357622304,
+   "2002": -0.05361840469240686,
+   "2003": 1.1077868056407443,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5522319566839899,
+   "2009": 0.9874546707853111,
+   "2010": 0.45897398373345966,
+   "2011": -0.12021222981641067,
+   "2012": 0.4408572023259485,
+   "2013": 1.1927562612281353,
+   "2014": 0.6084774136340123,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573426,
+   "2017": 1.1290768494985324,
+   "2018": -0.46955968684251426,
+   "2019": 1.1304034884051806,
+   "2020": 1.687412359631446,
+   "2021": 0.9394723712175055,
+   "2022": -0.589565617078559,
+   "2023": 0.9147196626861793,
+   "2024": 0.6667862524162529,
+   "2025": 0.016711482467906658,
+   "2026": 0.30487952105466465
+  },
+  "⑩ + 기간스프레드 역전 @dd5": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.37711519230845325,
+   "1990": -0.3985559177387362,
+   "1991": 2.0964770461186073,
+   "1992": -0.2418379975313132,
+   "1993": 0.17430741125145177,
+   "1994": -0.11910163509244387,
+   "1995": 1.2884214180436944,
+   "1996": 1.082149531289811,
+   "1997": -0.08152321671089957,
+   "1998": 1.373231338266375,
+   "1999": 4.082445251929064,
+   "2000": -0.7452500413103325,
+   "2001": -0.28878365357622215,
+   "2002": -0.053618404692408084,
+   "2003": 1.1077868056407425,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429096,
+   "2006": -0.3349920610325411,
+   "2007": 0.33960743846674357,
+   "2008": -0.5114517032418018,
+   "2009": 0.98745467078531,
+   "2010": 0.45897398373345966,
+   "2011": -0.12021222981641067,
+   "2012": 0.44085720232594827,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340123,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573448,
+   "2017": 1.1290768494985328,
+   "2018": -0.4695549844464052,
+   "2019": 0.6829097476256725,
+   "2020": 1.7138747293400218,
+   "2021": 0.9244033633880993,
+   "2022": -0.5857218909745638,
+   "2023": 0.9147196626861793,
+   "2024": 0.6667862524162527,
+   "2025": 0.19583790354190111,
+   "2026": 0.3027248298605305
+  },
+  "⑩ + 기간스프레드 역전 @dd8": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.37711519230845325,
+   "1990": -0.3985559177387362,
+   "1991": 2.0964770461186073,
+   "1992": -0.2418379975313132,
+   "1993": 0.17430741125145177,
+   "1994": -0.11910163509244387,
+   "1995": 1.2884214180436944,
+   "1996": 1.082149531289811,
+   "1997": -0.08152321671089957,
+   "1998": 1.373231338266375,
+   "1999": 4.082445251929064,
+   "2000": -0.7452500413103325,
+   "2001": -0.28878365357622215,
+   "2002": -0.053618404692408084,
+   "2003": 1.1077868056407425,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429096,
+   "2006": -0.3215154293806274,
+   "2007": 0.3391277952771705,
+   "2008": -0.511548456481848,
+   "2009": 0.9874546707853111,
+   "2010": 0.45897398373345943,
+   "2011": -0.12021222981641044,
+   "2012": 0.44085720232594827,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340121,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573448,
+   "2017": 1.1290768494985324,
+   "2018": -0.46955528217606957,
+   "2019": 0.6829091864115737,
+   "2020": 1.7138741444914265,
+   "2021": 0.924403481012545,
+   "2022": -0.5857219830036935,
+   "2023": 0.9147196626861791,
+   "2024": 0.6667862524162527,
+   "2025": 0.19583785400315357,
+   "2026": 0.3027247846315444
+  },
+  "⑩ + 기간스프레드 역전 @dd12": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.096477046118609,
+   "1992": -0.24272732110368078,
+   "1993": 0.17430759993409417,
+   "1994": -0.1191018259689357,
+   "1995": 1.2884232187260287,
+   "1996": 1.0821501933302629,
+   "1997": -0.08177875780788035,
+   "1998": 1.3732313382663768,
+   "1999": 4.082445251929064,
+   "2000": -0.7452710134431928,
+   "2001": -0.2887836535762227,
+   "2002": -0.053618404692408306,
+   "2003": 1.1077868056407447,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429096,
+   "2006": -0.2596630953837862,
+   "2007": 0.3382169804582562,
+   "2008": -0.5117368695826201,
+   "2009": 0.9874546707853107,
+   "2010": 0.45897398373345966,
+   "2011": -0.12021222981641055,
+   "2012": 0.44085720232594827,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340123,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573426,
+   "2017": 1.1290768494985328,
+   "2018": -0.469558910301881,
+   "2019": 1.1304034884051806,
+   "2020": 1.6874130142759909,
+   "2021": 0.9394721316892529,
+   "2022": -0.5895654287277063,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": 0.16271324154323485,
+   "2026": 0.3035567592487127
+  },
+  "⑩ + 신용스프레드 급등 @dd5": {
+   "1986": -0.29263525652560507,
+   "1987": -0.2546741238386653,
+   "1988": -0.3538517645763588,
+   "1989": 0.3793070583903082,
+   "1990": -0.39073800093110767,
+   "1991": 2.0027557868531503,
+   "1992": -0.3056494087230184,
+   "1993": 0.17430892437746648,
+   "1994": -0.11910316581040858,
+   "1995": 1.2884358584931168,
+   "1996": 1.0821548404476333,
+   "1997": -0.07651547498791755,
+   "1998": 1.3732313382663746,
+   "1999": 4.082445251929063,
+   "2000": -0.7452164691672991,
+   "2001": -0.2887836535762226,
+   "2002": -0.053618404692407196,
+   "2003": 1.107786805640743,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.45031129756375265,
+   "2009": 0.9874546707853109,
+   "2010": -0.07292428696036635,
+   "2011": -0.43322738695961927,
+   "2012": 0.42239553163396804,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340121,
+   "2015": -0.22661290547266333,
+   "2016": 0.17477516448098895,
+   "2017": 1.1290768494985324,
+   "2018": -0.40255204307585124,
+   "2019": 0.5736186204229172,
+   "2020": 1.5423904802063944,
+   "2021": 0.9296094199022849,
+   "2022": -0.66020609803414,
+   "2023": 0.9147196626861789,
+   "2024": 0.6667862524162529,
+   "2025": -0.2471226357650047,
+   "2026": 0.3054203962017339
+  },
+  "⑩ + 신용스프레드 급등 @dd8": {
+   "1986": -0.29263525652560507,
+   "1987": -0.2546741238386653,
+   "1988": -0.3538517645763588,
+   "1989": 0.3793070583903082,
+   "1990": -0.39073800093110767,
+   "1991": 2.0027557868531503,
+   "1992": -0.3056494087230184,
+   "1993": 0.17430892437746648,
+   "1994": -0.11910316581040858,
+   "1995": 1.2884358584931168,
+   "1996": 1.0821548404476333,
+   "1997": -0.07651547498791755,
+   "1998": 1.3732313382663746,
+   "1999": 4.082445251929063,
+   "2000": -0.7452164691672991,
+   "2001": -0.2887836535762226,
+   "2002": -0.053618404692407196,
+   "2003": 1.107786805640743,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.45031129756375265,
+   "2009": 0.9874546707853109,
+   "2010": -0.07292428696036635,
+   "2011": -0.4874376833722789,
+   "2012": 0.44085720232594827,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340121,
+   "2015": -0.17154528930683044,
+   "2016": 0.14702515672743477,
+   "2017": 1.1290768494985328,
+   "2018": -0.4025527134354836,
+   "2019": 0.5736186204229179,
+   "2020": 1.5423898009691328,
+   "2021": 0.929609679723655,
+   "2022": -0.6602062970667378,
+   "2023": 0.9147196626861784,
+   "2024": 0.6667862524162527,
+   "2025": -0.24712277337336497,
+   "2026": 0.30542019720098557
+  },
+  "⑩ + 신용스프레드 급등 @dd12": {
+   "1986": -0.4095089911250632,
+   "1987": -0.2546741238386657,
+   "1988": -0.3538517645763588,
+   "1989": 0.6548204148578394,
+   "1990": -0.3861881957646984,
+   "1991": 2.002755786853151,
+   "1992": -0.32598823156875945,
+   "1993": 0.17430817653360808,
+   "1994": -0.11910240927236293,
+   "1995": 1.288428721474868,
+   "1996": 1.082152216469023,
+   "1997": -0.07665675040941489,
+   "1998": 1.3732313382663746,
+   "1999": 4.082445251929064,
+   "2000": -0.7452128468439884,
+   "2001": -0.2887836535762228,
+   "2002": -0.053618404692408084,
+   "2003": 1.1077868056407452,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730955,
+   "2007": 0.34146372638026223,
+   "2008": -0.4503038202935503,
+   "2009": 0.9874546707853098,
+   "2010": -0.15036674067948474,
+   "2011": -0.29997781786932787,
+   "2012": 0.4556182662578572,
+   "2013": 1.217855549813235,
+   "2014": 0.6143931948592454,
+   "2015": -0.29960411767357087,
+   "2016": -0.10134996426481369,
+   "2017": 1.1290768494985328,
+   "2018": -0.40834302800044153,
+   "2019": 0.7859566622984264,
+   "2020": 1.5277273832091307,
+   "2021": 0.9352523963180588,
+   "2022": -0.6000773286839569,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": -0.03934629900421882,
+   "2026": 0.3049169233055171
+  },
+  "⑩ + 실업률 Sahm @dd5": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3861881957646982,
+   "1991": 2.0027557868531503,
+   "1992": -0.35226084263744095,
+   "1993": 0.17430782731490568,
+   "1994": -0.11910205599347934,
+   "1995": 1.288425388722915,
+   "1996": 1.082150991151786,
+   "1997": -0.07695411860701606,
+   "1998": 1.169080046372958,
+   "1999": 4.082445251929063,
+   "2000": -0.7452409671870224,
+   "2001": -0.2887836535762225,
+   "2002": -0.05361840469240764,
+   "2003": 1.1077868056407456,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5208004117190822,
+   "2009": 0.98745467078531,
+   "2010": -0.010108745865924251,
+   "2011": -0.13467434818783364,
+   "2012": 0.4415857655977593,
+   "2013": 1.194009486780176,
+   "2014": 0.6087759388182952,
+   "2015": 0.1820759790731803,
+   "2016": 0.18634456696210955,
+   "2017": 1.1293332316602296,
+   "2018": -0.46543517193440587,
+   "2019": 1.1304034884051806,
+   "2020": 1.6874181562822974,
+   "2021": 0.9394702502819849,
+   "2022": -0.5895639492986162,
+   "2023": 0.9147196626861782,
+   "2024": 0.6667862524162527,
+   "2025": 0.01671239788968948,
+   "2026": 0.3048805339360665
+  },
+  "⑩ + 실업률 Sahm @dd8": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3861881957646982,
+   "1991": 2.0027557868531503,
+   "1992": -0.35226084263744095,
+   "1993": 0.17430782731490568,
+   "1994": -0.11910205599347934,
+   "1995": 1.288425388722915,
+   "1996": 1.082150991151786,
+   "1997": -0.07695411860701606,
+   "1998": 1.169080046372958,
+   "1999": 4.082445251929063,
+   "2000": -0.7452409671870224,
+   "2001": -0.2887836535762225,
+   "2002": -0.05361840469240764,
+   "2003": 1.1077868056407456,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5208004117190822,
+   "2009": 0.98745467078531,
+   "2010": -0.010108745865924251,
+   "2011": -0.13467434818783364,
+   "2012": 0.4415857655977593,
+   "2013": 1.194009486780176,
+   "2014": 0.6087759388182952,
+   "2015": 0.1820759790731803,
+   "2016": 0.18634456696210955,
+   "2017": 1.1293332316602296,
+   "2018": -0.46543517193440587,
+   "2019": 1.1304034884051806,
+   "2020": 1.6874181562822974,
+   "2021": 0.9394702502819849,
+   "2022": -0.5895639492986162,
+   "2023": 0.9147196626861782,
+   "2024": 0.6667862524162527,
+   "2025": 0.01671239788968948,
+   "2026": 0.3048805339360665
+  },
+  "⑩ + 실업률 Sahm @dd12": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3861881957646982,
+   "1991": 2.0027557868531503,
+   "1992": -0.37106813182000664,
+   "1993": 0.17430704253244134,
+   "1994": -0.11910126208611627,
+   "1995": 1.28841789919582,
+   "1996": 1.0821482375439753,
+   "1997": -0.07709566846337512,
+   "1998": 1.169080046372958,
+   "1999": 4.082445251929064,
+   "2000": -0.7452370333620135,
+   "2001": -0.28878365357622326,
+   "2002": -0.053618404692408306,
+   "2003": 1.1077868056407425,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429118,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5207922898891677,
+   "2009": 0.9874546707853109,
+   "2010": -0.054256125962635626,
+   "2011": -0.1351056034892173,
+   "2012": 0.4412730379479508,
+   "2013": 1.1934717390167653,
+   "2014": 0.6086478853022694,
+   "2015": 0.18205201423819828,
+   "2016": 0.18632276473996812,
+   "2017": 1.1292232719929753,
+   "2018": -0.46541230702903036,
+   "2019": 1.1304034884051806,
+   "2020": 1.687419336255878,
+   "2021": 0.9394698185428407,
+   "2022": -0.5895636098036832,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": 0.01671258423294031,
+   "2026": 0.30488074011797184
+  },
+  "⑩ + 실업수당 청구 급증 @dd5": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.37711519230845325,
+   "1990": -0.5143570894380041,
+   "1991": 2.0027557868531507,
+   "1992": -0.23821801348272487,
+   "1993": 0.1676016850738562,
+   "1994": -0.11910090461800438,
+   "1995": 1.288414526935254,
+   "1996": 1.0821469976888038,
+   "1997": -0.08110842274320595,
+   "1998": 1.1690800463729571,
+   "1999": 4.082445251929064,
+   "2000": -0.7452012957203153,
+   "2001": -0.28878365357622293,
+   "2002": -0.05361840469240875,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316234,
+   "2005": -0.19309380315797764,
+   "2006": -0.05891332913510794,
+   "2007": 0.3426664002369284,
+   "2008": -0.45915308998323223,
+   "2009": 0.9874546707853109,
+   "2010": 0.45897398373345966,
+   "2011": -0.12021222981641044,
+   "2012": 0.44085720232594827,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340123,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573448,
+   "2017": 1.1290768494985324,
+   "2018": -0.4695546128038244,
+   "2019": 1.1304034884051801,
+   "2020": 1.5122469677921244,
+   "2021": 0.9412847617416822,
+   "2022": -0.5877581340262799,
+   "2023": 0.9147196626861782,
+   "2024": 0.6667862524162527,
+   "2025": 0.016712293018107394,
+   "2026": 0.30488041789951215
+  },
+  "⑩ + 실업수당 청구 급증 @dd8": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.37711519230845325,
+   "1990": -0.5143570894380041,
+   "1991": 2.0027557868531507,
+   "1992": -0.23821801348272487,
+   "1993": 0.1676016850738562,
+   "1994": -0.11910090461800438,
+   "1995": 1.288414526935254,
+   "1996": 1.0821469976888038,
+   "1997": -0.08110842274320595,
+   "1998": 1.1690800463729571,
+   "1999": 4.082445251929064,
+   "2000": -0.7452012957203153,
+   "2001": -0.28878365357622293,
+   "2002": -0.05361840469240875,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730955,
+   "2007": 0.34146372638026246,
+   "2008": -0.5106601805392283,
+   "2009": 0.9874546707853116,
+   "2010": 0.45897398373345966,
+   "2011": -0.12021222981641067,
+   "2012": 0.4408572023259485,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340123,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573448,
+   "2017": 1.1290768494985324,
+   "2018": -0.4695552812210806,
+   "2019": 1.130403488405181,
+   "2020": 1.5122464043077266,
+   "2021": 0.9412849827355638,
+   "2022": -0.587758307088688,
+   "2023": 0.9147196626861793,
+   "2024": 0.6667862524162527,
+   "2025": 0.01671219832686366,
+   "2026": 0.30488031312710717
+  },
+  "⑩ + 실업수당 청구 급증 @dd12": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.4666592250966065,
+   "1991": 2.0027557868531503,
+   "1992": -0.2398030797449261,
+   "1993": 0.1743069812354836,
+   "1994": -0.11910120007640268,
+   "1995": 1.288417314212162,
+   "1996": 1.0821480224674476,
+   "1997": -0.0815719707209468,
+   "1998": 1.1690800463729576,
+   "1999": 4.082445251929064,
+   "2000": -0.7452428923712244,
+   "2001": -0.2887836535762225,
+   "2002": -0.05361840469240753,
+   "2003": 1.1077868056407447,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026223,
+   "2008": -0.5107460501675369,
+   "2009": 0.98745467078531,
+   "2010": 0.45897398373345966,
+   "2011": -0.12021222981641055,
+   "2012": 0.4408572023259485,
+   "2013": 1.1927562612281344,
+   "2014": 0.6084774136340123,
+   "2015": 0.18202010513159883,
+   "2016": 0.18629373426573448,
+   "2017": 1.1290768494985328,
+   "2018": -0.46955895669163805,
+   "2019": 1.1304034884051806,
+   "2020": 1.512243305813103,
+   "2021": 0.9412861979411686,
+   "2022": -0.5877592587270173,
+   "2023": 0.9147196626861782,
+   "2024": 0.6667862524162527,
+   "2025": 0.016711677635722788,
+   "2026": 0.30487973700101456
+  },
+  "⑩ + VIX > 30 @dd5": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.0027557868531516,
+   "1992": -0.240403913065525,
+   "1993": 0.1743071079543581,
+   "1994": -0.1191013282687472,
+   "1995": 1.288418523545828,
+   "1996": 1.0821484670939068,
+   "1997": -0.15678073526904435,
+   "1998": 1.373231338266376,
+   "1999": 4.082445251929063,
+   "2000": -0.7452588853699738,
+   "2001": -0.2887836535762234,
+   "2002": -0.053618404692406973,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.3414637263802627,
+   "2008": -0.5522266574776342,
+   "2009": 0.9874546707853109,
+   "2010": -0.054284958989100685,
+   "2011": -0.3697409447435406,
+   "2012": 0.4506740082147229,
+   "2013": 1.2095163178329282,
+   "2014": 0.6124422902058895,
+   "2015": -0.1690132188425948,
+   "2016": 0.1822825161503907,
+   "2017": 1.1329975932298533,
+   "2018": -0.40159416740322695,
+   "2019": 1.1304034884051801,
+   "2020": 1.512258604560973,
+   "2021": 0.9412801979211973,
+   "2022": -0.6305188914177342,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": -0.019737103576211612,
+   "2026": -0.019400264344523355
+  },
+  "⑩ + VIX > 30 @dd8": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.0027557868531516,
+   "1992": -0.240403913065525,
+   "1993": 0.1743071079543581,
+   "1994": -0.1191013282687472,
+   "1995": 1.288418523545828,
+   "1996": 1.0821484670939068,
+   "1997": -0.15678073526904435,
+   "1998": 1.373231338266376,
+   "1999": 4.082445251929063,
+   "2000": -0.7452588853699738,
+   "2001": -0.2887836535762234,
+   "2002": -0.053618404692406973,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.3414637263802627,
+   "2008": -0.5522266574776342,
+   "2009": 0.9874546707853109,
+   "2010": -0.054284958989100685,
+   "2011": -0.44509987746717217,
+   "2012": 0.4408572023259485,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340123,
+   "2015": -0.1675756954472063,
+   "2016": 0.1823209697343271,
+   "2017": 1.1329606572075712,
+   "2018": -0.4015827347640447,
+   "2019": 1.1304034884051801,
+   "2020": 1.5122624951651455,
+   "2021": 0.9412786720763215,
+   "2022": -0.6305177557447603,
+   "2023": 0.9147196626861782,
+   "2024": 0.6667862524162527,
+   "2025": -0.019736374124501133,
+   "2026": -0.01939942927233962
+  },
+  "⑩ + VIX > 30 @dd12": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.0027557868531516,
+   "1992": -0.240403913065525,
+   "1993": 0.1743071079543581,
+   "1994": -0.1191013282687472,
+   "1995": 1.288418523545828,
+   "1996": 1.0821484670939068,
+   "1997": -0.15678073526904435,
+   "1998": 1.373231338266376,
+   "1999": 4.082445251929063,
+   "2000": -0.7452588853699738,
+   "2001": -0.2887836535762234,
+   "2002": -0.053618404692406973,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.3414637263802627,
+   "2008": -0.5522266574776342,
+   "2009": 0.9874546707853109,
+   "2010": -0.054284958989100685,
+   "2011": -0.30103139609555096,
+   "2012": 0.4574020356212487,
+   "2013": 1.22084759627865,
+   "2014": 0.6150896625002251,
+   "2015": -0.1708114611507522,
+   "2016": 0.1822281481475454,
+   "2017": 1.1330503451082996,
+   "2018": -0.40160666467625483,
+   "2019": 1.1304034884051801,
+   "2020": 1.512255910117998,
+   "2021": 0.9412812546499485,
+   "2022": -0.630519677930609,
+   "2023": 0.9147196626861793,
+   "2024": 0.6667862524162527,
+   "2025": -0.019737608762263825,
+   "2026": 0.06785928928787577
+  },
+  "⑩ + VIX 기간구조 역전 @dd5": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.096477046118609,
+   "1992": -0.24272732110368078,
+   "1993": 0.17430759993409417,
+   "1994": -0.1191018259689357,
+   "1995": 1.2884232187260287,
+   "1996": 1.0821501933302629,
+   "1997": -0.08177875780788035,
+   "1998": 1.1690800463729576,
+   "1999": 4.082445251929064,
+   "2000": -0.7452614516249458,
+   "2001": -0.28878365357622304,
+   "2002": -0.05361840469240686,
+   "2003": 1.1077868056407443,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5649673273606473,
+   "2009": 0.98745467078531,
+   "2010": 0.1203396088412092,
+   "2011": -0.3218776076517792,
+   "2012": 0.44088941803032466,
+   "2013": 1.1928117084943772,
+   "2014": 0.2560911685547653,
+   "2015": -0.030349129130485042,
+   "2016": 0.0801413780927358,
+   "2017": 1.1290768494985324,
+   "2018": -0.2503937402564004,
+   "2019": 1.0868354717413187,
+   "2020": 1.5143343425234086,
+   "2021": 0.9404668226075497,
+   "2022": -0.5875512712530415,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162529,
+   "2025": -0.11238398953043949,
+   "2026": 0.0574801567866301
+  },
+  "⑩ + VIX 기간구조 역전 @dd8": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.096477046118609,
+   "1992": -0.24272732110368078,
+   "1993": 0.17430759993409417,
+   "1994": -0.1191018259689357,
+   "1995": 1.2884232187260287,
+   "1996": 1.0821501933302629,
+   "1997": -0.08177875780788035,
+   "1998": 1.1690800463729576,
+   "1999": 4.082445251929064,
+   "2000": -0.7452614516249458,
+   "2001": -0.28878365357622304,
+   "2002": -0.05361840469240686,
+   "2003": 1.1077868056407443,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5649673273606473,
+   "2009": 0.98745467078531,
+   "2010": 0.1203396088412092,
+   "2011": -0.3684435099080482,
+   "2012": 0.4408804438328566,
+   "2013": 1.192796263072891,
+   "2014": 0.25504496100994123,
+   "2015": -0.030382069206695728,
+   "2016": 0.0801297561241281,
+   "2017": 1.1290768494985328,
+   "2018": -0.2503913187986705,
+   "2019": 1.0868354717413178,
+   "2020": 1.5143358171592407,
+   "2021": 0.940466245273204,
+   "2022": -0.5875508186105902,
+   "2023": 0.9147196626861798,
+   "2024": 0.6667862524162527,
+   "2025": -0.11238374195796719,
+   "2026": 0.07960856718019382
+  },
+  "⑩ + VIX 기간구조 역전 @dd12": {
+   "1986": -0.1839193038654059,
+   "1987": -0.2546741238386656,
+   "1988": -0.35385176457635925,
+   "1989": 0.6548204148578394,
+   "1990": -0.3938968443150742,
+   "1991": 2.096477046118609,
+   "1992": -0.24272732110368078,
+   "1993": 0.17430759993409417,
+   "1994": -0.1191018259689357,
+   "1995": 1.2884232187260287,
+   "1996": 1.0821501933302629,
+   "1997": -0.08177875780788035,
+   "1998": 1.1690800463729576,
+   "1999": 4.082445251929064,
+   "2000": -0.7452614516249458,
+   "2001": -0.28878365357622304,
+   "2002": -0.05361840469240686,
+   "2003": 1.1077868056407443,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.5649673273606473,
+   "2009": 0.98745467078531,
+   "2010": 0.1203396088412092,
+   "2011": -0.2979945763844135,
+   "2012": 0.4586767427540739,
+   "2013": 1.2229804150265013,
+   "2014": 0.6155850032535191,
+   "2015": -0.1709988250456571,
+   "2016": 0.08267423082667591,
+   "2017": 1.1290768494985324,
+   "2018": -0.47046555215482677,
+   "2019": 1.0868354717413182,
+   "2020": 1.5143386247852901,
+   "2021": 0.9404651460621154,
+   "2022": -0.5875499568048657,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": -0.146169160309068,
+   "2026": 0.06643111419192849
+  },
+  "⑩ + 12개월 추세 하회 @dd5": {
+   "1986": -0.2947965864678095,
+   "1987": -0.4196130898376741,
+   "1988": -0.40567082698656465,
+   "1989": 0.6548204148578394,
+   "1990": -0.5599523848291685,
+   "1991": 2.0027557868531507,
+   "1992": -0.4119482083646464,
+   "1993": 0.17878725813852614,
+   "1994": -0.15381372003583016,
+   "1995": 1.3184598771141856,
+   "1996": 1.0930446737884516,
+   "1997": -0.06625448279504309,
+   "1998": 1.1690800463729571,
+   "1999": 4.082445251929064,
+   "2000": -0.7450431766736922,
+   "2001": -0.2887836535762228,
+   "2002": -0.053618404692408195,
+   "2003": 1.1077868056407434,
+   "2004": -0.1208872001613075,
+   "2005": -0.21140438214689639,
+   "2006": -0.021693430023167593,
+   "2007": 0.3461890029285315,
+   "2008": -0.5319115489512783,
+   "2009": 0.9874546707853118,
+   "2010": -0.025366984690036287,
+   "2011": -0.3736674218211279,
+   "2012": 0.4223955316339678,
+   "2013": 1.1927562612281348,
+   "2014": 0.6084774136340123,
+   "2015": -0.1788038048176891,
+   "2016": -0.062206674169573706,
+   "2017": 1.1290768494985324,
+   "2018": -0.06930949847882506,
+   "2019": 0.3723188565956117,
+   "2020": 1.5549959479905997,
+   "2021": 0.9248124770573032,
+   "2022": -0.5557348812610559,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": 0.047917318275025655,
+   "2026": 0.11094126376661761
+  },
+  "⑩ + 12개월 추세 하회 @dd8": {
+   "1986": -0.2947965864678095,
+   "1987": -0.4196130898376741,
+   "1988": -0.40567082698656465,
+   "1989": 0.6548204148578394,
+   "1990": -0.5599523848291685,
+   "1991": 2.0027557868531507,
+   "1992": -0.4119482083646464,
+   "1993": 0.17878725813852614,
+   "1994": -0.16127814868147416,
+   "1995": 1.315719267676104,
+   "1996": 1.092062825897632,
+   "1997": -0.06615639692748532,
+   "1998": 1.169080046372958,
+   "1999": 4.082445251929064,
+   "2000": -0.7450397529469903,
+   "2001": -0.28878365357622227,
+   "2002": -0.05361840469240786,
+   "2003": 1.1077868056407434,
+   "2004": -0.05389118638030155,
+   "2005": -0.21140338748695942,
+   "2006": -0.003249363533669336,
+   "2007": 0.343392949257449,
+   "2008": -0.5299536101694456,
+   "2009": 0.987454670785312,
+   "2010": -0.0254529931039289,
+   "2011": -0.37796779038024564,
+   "2012": 0.4451524340995332,
+   "2013": 1.2001228694669228,
+   "2014": 0.6102274017170408,
+   "2015": -0.12045349738470146,
+   "2016": 0.14559099723861868,
+   "2017": 1.1290768494985328,
+   "2018": -0.06340550436270131,
+   "2019": 0.3723188565956119,
+   "2020": 1.5549460702018227,
+   "2021": 0.9248313601867988,
+   "2022": -0.5557502329823558,
+   "2023": 0.9147196626861784,
+   "2024": 0.6667862524162527,
+   "2025": 0.04790961000018856,
+   "2026": 0.13388082296821158
+  },
+  "⑩ + 12개월 추세 하회 @dd12": {
+   "1986": -0.33853277046342045,
+   "1987": -0.34148531205859967,
+   "1988": -0.3538517645763585,
+   "1989": 0.6548204148578394,
+   "1990": -0.5397985295397264,
+   "1991": 2.0027557868531503,
+   "1992": -0.4303185744316427,
+   "1993": 0.17838703790006183,
+   "1994": -0.21629589707512542,
+   "1995": 1.2883449835010836,
+   "1996": 1.0821214282987546,
+   "1997": -0.07146177633791118,
+   "1998": 1.1690800463729576,
+   "1999": 4.082445251929064,
+   "2000": -0.7450620026715615,
+   "2001": -0.28878365357622304,
+   "2002": -0.053618404692408306,
+   "2003": 1.107786805640743,
+   "2004": -0.014533854893060028,
+   "2005": -0.12097254107351485,
+   "2006": -0.2351701350786024,
+   "2007": 0.34146372638026246,
+   "2008": -0.5285988115264205,
+   "2009": 0.9874546707853114,
+   "2010": 0.01872372339504902,
+   "2011": -0.2574721907531575,
+   "2012": 0.4615500564392232,
+   "2013": 1.2277717481261634,
+   "2014": 0.6166943857448586,
+   "2015": -0.16017888567651373,
+   "2016": -0.015443120721335246,
+   "2017": 1.1290768494985328,
+   "2018": -0.31481482344684764,
+   "2019": 0.7859566622984262,
+   "2020": 1.5277702044076835,
+   "2021": 0.9352358171426125,
+   "2022": -0.5059729288458028,
+   "2023": 0.9147196626861795,
+   "2024": 0.6667862524162529,
+   "2025": 0.3444766096343743,
+   "2026": 0.302699708207151
+  },
+  "⑩ + 신용 OR VIX기간 OR 청구 @dd5": {
+   "1986": -0.29263525652560507,
+   "1987": -0.2546741238386653,
+   "1988": -0.3538517645763588,
+   "1989": 0.3793070583903082,
+   "1990": -0.514223071932182,
+   "1991": 2.0027557868531503,
+   "1992": -0.30411123125049755,
+   "1993": 0.17430856570039044,
+   "1994": -0.11910280296357223,
+   "1995": 1.2884324354715857,
+   "1996": 1.0821535819500654,
+   "1997": -0.07603536136160816,
+   "1998": 1.373231338266376,
+   "1999": 4.082445251929064,
+   "2000": -0.7451773286945811,
+   "2001": -0.2887836535762228,
+   "2002": -0.05361840469240731,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316256,
+   "2005": -0.1930345046399754,
+   "2006": -0.058841642793730164,
+   "2007": 0.3426436999131379,
+   "2008": -0.30309278847526366,
+   "2009": 0.987454670785312,
+   "2010": -0.13091441623901956,
+   "2011": -0.3942002974099128,
+   "2012": 0.42239553163396826,
+   "2013": 1.1927562612281348,
+   "2014": 0.25557777878201526,
+   "2015": -0.0933979546250514,
+   "2016": 0.17282926342287186,
+   "2017": 1.1290768494985324,
+   "2018": -0.24752035522263482,
+   "2019": 0.5736186204229179,
+   "2020": 1.5423893370239474,
+   "2021": 0.9296098571917317,
+   "2022": -0.6602064330136919,
+   "2023": 0.9147196626861784,
+   "2024": 0.6667862524162527,
+   "2025": -0.24612277012647776,
+   "2026": 0.07824648843364668
+  },
+  "⑩ + 신용 OR VIX기간 OR 청구 @dd8": {
+   "1986": -0.29263525652560507,
+   "1987": -0.2546741238386653,
+   "1988": -0.3538517645763588,
+   "1989": 0.3793070583903082,
+   "1990": -0.514223071932182,
+   "1991": 2.0027557868531503,
+   "1992": -0.30411123125049755,
+   "1993": 0.17430856570039044,
+   "1994": -0.11910280296357223,
+   "1995": 1.2884324354715857,
+   "1996": 1.0821535819500654,
+   "1997": -0.07603536136160816,
+   "1998": 1.373231338266376,
+   "1999": 4.082445251929064,
+   "2000": -0.7451773286945811,
+   "2001": -0.2887836535762228,
+   "2002": -0.05361840469240731,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316256,
+   "2005": -0.06572513851429118,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026223,
+   "2008": -0.3844234623852013,
+   "2009": 0.9874546707853105,
+   "2010": -0.1309204885149613,
+   "2011": -0.44480631893432687,
+   "2012": 0.44085720232594827,
+   "2013": 1.1927562612281348,
+   "2014": 0.2491162564509677,
+   "2015": -0.034522739390026036,
+   "2016": 0.14584384129565686,
+   "2017": 1.1290768494985324,
+   "2018": -0.2475224668655257,
+   "2019": 0.5736186204229177,
+   "2020": 1.542387638228854,
+   "2021": 0.9296105070145475,
+   "2022": -0.6602069308012115,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": -0.24612311429080325,
+   "2026": 0.10037403080502316
+  },
+  "⑩ + 신용 OR VIX기간 OR 청구 @dd12": {
+   "1986": -0.4095089911250632,
+   "1987": -0.2546741238386657,
+   "1988": -0.3538517645763588,
+   "1989": 0.6548204148578394,
+   "1990": -0.46665922509660707,
+   "1991": 2.0027557868531503,
+   "1992": -0.3250814184587395,
+   "1993": 0.17430795958119805,
+   "1994": -0.11910218979758258,
+   "1995": 1.2884266509997189,
+   "1996": 1.0821514552400244,
+   "1997": -0.07636501145551355,
+   "1998": 1.3732313382663763,
+   "1999": 4.082445251929064,
+   "2000": -0.7451890559490693,
+   "2001": -0.2887836535762225,
+   "2002": -0.05361840469240742,
+   "2003": 1.1077868056407438,
+   "2004": 0.16536806201316234,
+   "2005": -0.06572513851429107,
+   "2006": -0.055198123093730844,
+   "2007": 0.34146372638026246,
+   "2008": -0.3844476640338085,
+   "2009": 0.9874546707853111,
+   "2010": -0.2029720258016151,
+   "2011": -0.29532467550733343,
+   "2012": 0.4556453093210473,
+   "2013": 1.2179009763541093,
+   "2014": 0.6144037827009601,
+   "2015": -0.29960072467291365,
+   "2016": -0.1013499617964948,
+   "2017": 1.1290768494985328,
+   "2018": -0.47338519897965525,
+   "2019": 0.7859566622984269,
+   "2020": 1.5277392106705596,
+   "2021": 0.9352478169956284,
+   "2022": -0.6000737369391228,
+   "2023": 0.9147196626861787,
+   "2024": 0.6667862524162527,
+   "2025": -0.14908436155204363,
+   "2026": 0.06650522203062792
+  }
+ },
+ "rolling": {
+  "⑩ dd18 (기준)": {
+   "@1986": {
+    "windows": 124,
+    "win_rate": 0.7258064516129032,
+    "worst_cagr": -0.0576630913070415,
+    "loss_rate": 0.03225806451612903
+   },
+   "@1999": {
+    "windows": 68,
+    "win_rate": 0.7941176470588235,
+    "worst_cagr": -0.09328599371457713,
+    "loss_rate": 0.029411764705882353
+   }
+  },
+  "⑩ + 기간스프레드 역전 @dd12": {
+   "@1986": {
+    "windows": 124,
+    "win_rate": 0.7338709677419355,
+    "worst_cagr": -0.0725460650857368,
+    "loss_rate": 0.04838709677419355
+   },
+   "@1999": {
+    "windows": 68,
+    "win_rate": 0.7941176470588235,
+    "worst_cagr": -0.10765856859240897,
+    "loss_rate": 0.058823529411764705
+   }
+  }
+ },
+ "elapsed": 27
+}

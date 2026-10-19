@@ -52,11 +52,16 @@ docker compose down
     - `pages/1_Pattern_Detection.py`, `pages/2_Backtest_Results.py`, `pages/strategy.py`
     - `pages/3_Multi_Wedgepop.py`: universe 전체 백테스트
     - `pages/51_Lifecycle_Trade.py`: **«The Lifecycle Trade» IPO 생애주기** — 7장 스크린(IPO Alert/Rare Jewels/Liquidity Matters) + 6장 통계 재현 + 4매수지점×5매도규칙 $100K 시뮬 + ⑤ 계좌 시뮬(책 8장 자금관리로 그대로 돌리면 얼마). 엔진 `strategy/adapters/lifecycle_trade.py`, 계좌 엔진 `strategy/adapters/lifecycle_portfolio.py`, 배치 `lifecycle_batch_cli.py` → `lifecycle_portfolio_cli.py`, 문서 `docs/strategy_notes/라이프사이클_트레이드_*.md`
+    - `pages/52_TQQQ_Crash_Switch.py`: **"TQQQ 폭락 스위치 18" — 2026-10-19 확정 전략의 운용 화면, 손잡이 없음.** 규칙은 `deep_correction_lab.CRASH_SWITCH_PARAMS/RULE` 에 이름 붙여 고정(200일선 & 고점 −18% 이탈, 20일선 재진입, 다음날 체결, TQQQ 100%). 오늘 보유 여부·트리거, 세후 성적표, 자산 곡선, 매도→재매수 이력. 선정 근거 `docs/strategy_notes/study_cards/README.md`
+    - `pages/49_TQQQ_Deep_Correction.py`: 기존 ⑩ 급락 회피 **연구용** 그대로(격자·분포 탐색)
     - `pages/4_Multi_Wedgepop_Signals.py`: **Multi Wedgepop 실매수 후보 + watchlist 관리** — `3_Multi_Wedgepop` 백테스트와 동일 설정으로 현재 시점 signal 스캔. DB 영속 (`buy_signals` 테이블, 전략 간 공유), 최신 데이터 자동 리프레시, 수동 추가. 향후 전략마다 별도 `<N>_<strategy>_Signals.py` 페이지 추가 (scanner만 `SignalScannerPort` 구현체로 추가하면 됨).
   - `main.py` — FastAPI (uvicorn)
   - `minervini_trades_check_cli.py` — 거래 로그 CSV(Ticker, Entry Date…)의 각 진입을 진입 전날 기준 미너비니 STAGE 0~4 로 재판정 + 눈판독용 차트 PNG. 결과 예: `docs/strategy_notes/미너비니_WedgePop거래28건_*.md`
   - `minervini_watchlist_check_cli.py` — 44 스크리너 내보내기 CSV(티커, 산업군, RS…)의 후보 전부를 기준일 종가 기준 STAGE 0~4 재판정 + 차트 PNG + 종목별 도시에(주봉·일봉·실적·헤드라인). 0-3 은 `minervini_checklist_backtest_cli.py live` 결과(`live_json`)를 넘긴다. 결과 예: `docs/strategy_notes/미너비니_2026-10-13_스크리너_*.md`
   - `cache_fill_cli.py` — **캐시 앞단 채우기**. 날짜 단위 Mongo 캐시는 기준일이 거래일 하루만 앞으로 가도 전 종목이 미스가 되어 종목당 Alpha Vantage 1콜(분당 75콜 → 5,000종목 64분)을 다시 했다. `data/adapters/cache_frontier_fill.py` 가 Massive(Polygon) grouped-daily(`BulkDailyBarsPort`, 날짜당 1콜로 전 종목)로 최근 15거래일을 먼저 채우고, 분할 종목은 캐시를 비워 재조회시키며, grouped 에도 없고 최근 어느 소스가 'No data found' 를 기록한 폐지 심볼(SPAC 유닛·워런트 등 약 1,000개)에는 네 캐시 전부에 nodata 마커를 써서 거래일마다 네 소스를 두드리는 비용을 없앤다. 44 스크리너 페이지는 Run 시 자동 호출. 장 마감 후 크론으로 돌려 두면 첫 실행도 빠르다: `python cache_fill_cli.py '{"universe": "nasdaq_full@기준일", "as_of": "YYYY-MM-DD"}'`
+  - `optimal_leverage_cli.py` — 나스닥100(^NDX) 연도별 μ·σ·L\*=μ/σ²(성장 최적 노출 배수)와 1배·3배 합성·TQQQ 실제 수익 표. 로드맵 `TQQQ_초과수익_로드맵_2026-10.md` 기둥 3 (Phase 0 결과), 결과 `docs/strategy_notes/tqqq_optimal_leverage_2026-10.md`
+  - `vol_target_regime_cli.py` — 로드맵 기둥 2·3 (Phase 1) 배치: 변동성 타기팅(목표σ × 예측기 rv20/rv60/ewma/max) × ⑩ 낙폭 레짐을 세 표본(2010/1999/1986)·10년 롤링·세후로. 엔진 `strategy/adapters/vol_target_regime_lab.py`, 결과 `docs/strategy_notes/변동성타기팅_레짐_검증_2026-10.md`, 원본 `leveraged_etf_runs/vt_regime_*_2026-10-19.*`
+  - `crash_early_warning_cli.py` — 로드맵 기둥 2: 거시·신용·VIX·추세 신호의 혼동행렬(⑩ 이탈 대비 선행 일수·거짓 경보)과 "경보 ON 이면 얕은 낙폭에서 이탈" 변형의 세후 성과. 엔진 `strategy/adapters/crash_early_warning.py`, 후속 `reentry_gate_cli.py`(재진입 게이트, 기각). 결과 `docs/strategy_notes/참사_조기경보_검증_2026-10.md`, 가설 장부 `docs/strategy_notes/study_cards/README.md`
   - `scan_cli.py` — 배치 스캔 CLI. JSON config(single or list) → JSON 결과. progress 로그 stderr + `/tmp/batch_partial.json` incremental dump
   - `tests/` — pytest 테스트
 - `docker-compose.yaml` — backtester + PostgreSQL(db) 서비스. 컨테이너 기동 시 순서: `alembic upgrade head` → uvicorn + streamlit

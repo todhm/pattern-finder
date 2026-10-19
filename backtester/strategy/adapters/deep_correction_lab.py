@@ -24,6 +24,15 @@ class DeepParams:
     off_fraction: float = 0.0
 
 
+# ── 확정 전략 "TQQQ 폭락 스위치 18" (2026-10-19) ───────────────────────────────
+# 10월 검증 138개 변형(변동성 타기팅·조기경보·재진입 게이트·동승자 혼합·지수 로테이션) 중
+# 세후 2010~ 보유의 90% 를 지킨 유일한 계열. 근거: docs/strategy_notes/study_cards/README.md (F2·F5·F7).
+CRASH_SWITCH_NAME = "TQQQ 폭락 스위치 18"
+CRASH_SWITCH_PARAMS = DeepParams(n=200, dd=0.18, reenter_n=20, off_fraction=0.0)
+CRASH_SWITCH_RULE = ("평소 TQQQ 100%. QQQ 종가가 200일선 아래이면서 52주 고점 대비 −18% 아래로 마감 → 다음 거래일 전량 매도(현금). "
+                     "현금 상태에서 QQQ 종가가 20일선 위로 마감 → 다음 거래일 전량 재매수. 그 외엔 아무것도 하지 않는다.")
+
+
 def signal(signal_close: pd.Series, p: DeepParams) -> pd.Series:
     return deep_correction_filter(signal_close, p.n, p.dd, p.reenter_n, p.off_fraction)
 
