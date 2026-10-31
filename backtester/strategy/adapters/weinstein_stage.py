@@ -88,9 +88,11 @@ def classify_stages(weekly_ma: pd.DataFrame, p: StageParams = StageParams()) -> 
     stages = np.zeros(len(w), dtype=int)
     last_trend = 0
     prev = 0
+    slope_arr = w["slope"].to_numpy(dtype=float)          # .iat 행 접근은 종목당 수천 회 → numpy 로 (스크리너 28s → 수 초)
+    above_arr = w["above"].to_numpy(dtype=bool)
     for i in range(len(w)):
-        s = w["slope"].iat[i]
-        ab = bool(w["above"].iat[i])
+        s = slope_arr[i]
+        ab = bool(above_arr[i])
         if np.isnan(s):
             stages[i] = 0
             continue

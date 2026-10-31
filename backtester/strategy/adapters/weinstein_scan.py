@@ -296,7 +296,10 @@ def run_scan(
     growth_adapters: list | None = None,
     max_workers: int = 4,
     log: Callable[[str], None] = lambda _m: None,
+    prices: dict[str, pd.DataFrame] | None = None,
 ) -> ScanResult:
+    """prices 가 있으면 그 안의 종목은 market_data 를 거치지 않는다 (yfinance 일괄 다운로드 등 — 종목당 0.05초).
+    지수·섹터 ETF 와 prices 에 없는 종목만 market_data 로 받는다."""
     p, sp = params, params.stage
     completed_only = not p.include_partial_week
     start = as_of - timedelta(days=365 * p.lookback_years)
@@ -304,6 +307,9 @@ def run_scan(
     errors: list[str] = []
 
     def _fetch(sym: str) -> pd.DataFrame | None:
+        if prices is not None and sym in prices:
+            df = prices[sym]
+            return df[(df.index >= pd.Timestamp(start)) & (df.index <= pd.Timestamp(end))]
         try:
             return fetch_with_retry(market_data, sym, start, end)
         except Exception as e:  # noqa: BLE001 — 한 종목 실패는 건너뛴다
@@ -336,12 +342,19 @@ def run_scan(
 
     # --- 유니버스 일봉 (병렬) ---
     raw: dict[str, pd.DataFrame] = {}
+    if prices is not None:
+        raw = {t: _fetch(t) for t in tickers if t in prices}
+        missing = [t for t in tickers if t not in prices]
+        log(f"  일괄 데이터 {len(raw)} 종목, 캐시 스택으로 보충 {len(missing)}")
+        tickers_to_fetch = missing
+    else:
+        tickers_to_fetch = list(tickers)
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        for i, (t, df) in enumerate(zip(tickers, ex.map(_fetch, tickers))):
+        for i, (t, df) in enumerate(zip(tickers_to_fetch, ex.map(_fetch, tickers_to_fetch))):
             if df is not None:
                 raw[t] = df
             if (i + 1) % 100 == 0:
-                log(f"  일봉 {i + 1}/{len(tickers)}")
+                log(f"  일봉 {i + 1}/{len(tickers_to_fetch)}")
 
     # --- 종목별 주봉·단계·셋업 ---
     clipped: dict[str, pd.DataFrame] = {}

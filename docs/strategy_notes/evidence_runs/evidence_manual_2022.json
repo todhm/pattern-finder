@@ -1,0 +1,11 @@
+{"start": "2022-06-03", "end": "2022-09-02", "trades": [
+ {"ticker": "SNA", "legs": [{"date": "2022-06-03", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-06-10", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "PEG", "legs": [{"date": "2022-06-07", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-06-13", "side": "sell", "frac_of_pos": 1.0, "why": "손절 (2차 생략)"}]},
+ {"ticker": "LUV", "legs": [{"date": "2022-06-07", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-06-13", "side": "sell", "frac_of_pos": 1.0, "why": "손절 (2차 생략)"}]},
+ {"ticker": "INCY", "legs": [{"date": "2022-07-01", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-08-02", "side": "sell", "frac_of_pos": 1.0, "why": "손절 (실적 갭)"}]},
+ {"ticker": "BDX", "legs": [{"date": "2022-07-01", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-07-05", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2022-07-12", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}, {"date": "2022-08-05", "side": "buy", "frac": 0.1, "why": "재진입 1차"}, {"date": "2022-08-29", "side": "buy", "frac": 0.1, "why": "2차"}]},
+ {"ticker": "JKHY", "legs": [{"date": "2022-07-01", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-07-05", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2022-07-28", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}]},
+ {"ticker": "AJG", "legs": [{"date": "2022-07-15", "side": "buy", "frac": 0.1, "why": "1차 채널 하단"}, {"date": "2022-07-18", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2022-08-12", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}]},
+ {"ticker": "SO", "legs": [{"date": "2022-07-22", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-07-25", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2022-07-29", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}, {"date": "2022-08-16", "side": "sell", "frac_of_pos": 1.0, "why": "최종 목표"}]},
+ {"ticker": "CNP", "legs": [{"date": "2022-07-22", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2022-07-25", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2022-08-16", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}]}
+]}

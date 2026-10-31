@@ -1,0 +1,12 @@
+{"start": "2019-08-02", "end": "2019-11-01", "trades": [
+ {"ticker": "DLR", "legs": [{"date": "2019-08-02", "side": "buy", "frac": 0.1, "why": "1차 0.382"}, {"date": "2019-08-05", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2019-09-03", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}, {"date": "2019-09-17", "side": "sell", "frac_of_pos": 1.0, "why": "최종 목표"}]},
+ {"ticker": "GL", "legs": [{"date": "2019-08-30", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2019-09-10", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}, {"date": "2019-09-26", "side": "sell", "frac_of_pos": 1.0, "why": "최종 목표"}]},
+ {"ticker": "LIN", "legs": [{"date": "2019-08-30", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2019-09-09", "side": "buy", "frac": 0.1, "why": "2차"}]},
+ {"ticker": "ITW", "legs": [{"date": "2019-08-30", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2019-09-03", "side": "sell", "frac_of_pos": 1.0, "why": "진입 당일 종가 손절선 이탈"}]},
+ {"ticker": "SWK", "legs": [{"date": "2019-09-06", "side": "buy", "frac": 0.1, "why": "1차 모닝스타"}, {"date": "2019-10-02", "side": "buy", "frac": 0.1, "why": "2차 (새 저점 터치)"}, {"date": "2019-10-23", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}]},
+ {"ticker": "SYF", "legs": [{"date": "2019-09-13", "side": "buy", "frac": 0.1, "why": "1차 모닝스타"}, {"date": "2019-09-16", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2019-10-02", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "CCEP", "legs": [{"date": "2019-09-20", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2019-09-25", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2019-10-18", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}, {"date": "2019-10-24", "side": "sell", "frac_of_pos": 1.0, "why": "본전 스탑 이탈"}]},
+ {"ticker": "L", "legs": [{"date": "2019-09-27", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2019-10-01", "side": "buy", "frac": 0.1, "why": "2차"}]},
+ {"ticker": "AJG", "legs": [{"date": "2019-10-04", "side": "buy", "frac": 0.1, "why": "1차 채널 하단"}, {"date": "2019-10-08", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "NDAQ", "legs": [{"date": "2019-10-11", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2019-10-14", "side": "buy", "frac": 0.1, "why": "2차"}]}
+]}

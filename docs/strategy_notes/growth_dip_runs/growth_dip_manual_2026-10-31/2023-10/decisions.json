@@ -1,0 +1,21 @@
+{
+ "month": "2023-10",
+ "x_pct": 30,
+ "trigger": "per_own",
+ "per_exit_pct": 0,
+ "max_days": 250,
+ "picks": {
+  "PLTR@2023-10-03": {
+   "buy": false,
+   "why": "H3 PER 141"
+  },
+  "SJM@2023-10-06": {
+   "buy": false,
+   "why": "H4 50<200·하락, 52주 −28%, EPS +9% 뿐(가격 하락형)"
+  },
+  "GM@2023-10-27": {
+   "buy": false,
+   "why": "H4, 발표 3일 뒤(UAW 파업), 종목만 −26% vs QQQ −8%"
+  }
+ }
+}

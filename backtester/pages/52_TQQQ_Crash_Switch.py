@@ -5,7 +5,7 @@
 선정 근거: docs/strategy_notes/study_cards/README.md (F2·F5·F7), 변동성타기팅_레짐_검증_2026-10.md, 참사_조기경보_검증_2026-10.md.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -22,21 +22,36 @@ P = CRASH_SWITCH_PARAMS
 COSTS = CostParams(tax_rate=0.22, exec_lag=1, rebalance_band=0.02)  # 토스 수수료 + 양도세 22%, 다음날 종가 체결
 
 st.set_page_config(page_title=CRASH_SWITCH_NAME, layout="wide")
-st.title(f"{CRASH_SWITCH_NAME} — 오늘 보유 여부")
+_FORCE_KEY = "crash_switch_force_refresh"
+tcol, bcol = st.columns([5, 1])
+tcol.title(f"{CRASH_SWITCH_NAME} — 오늘 보유 여부")
+if bcol.button("🔄 강제 리프레시", use_container_width=True,
+               help="페이지 캐시(6시간)와 성적표 캐시를 비우고, 오늘 날짜가 포함된 구간은 Mongo 캐시를 건너뛰어 소스에서 다시 받는다."):
+    st.session_state[_FORCE_KEY] = True
+    st.rerun()
 st.caption(f"**규칙 고정**: {CRASH_SWITCH_RULE} 파라미터를 바꿔 보려면 49 페이지(연구용).")
 
 
 @st.cache_data(ttl=6 * 3600, show_spinner="가격 로딩…")
-def _prices():
-    pr = load_lab_prices(build_default_market_data(), "TQQQ", "QQQ", date(1999, 12, 1), date.today(), synthetic=True)
-    return pr.lev_close, pr.signal_close, pr.cash_rate, pr.source_note
+def _prices(_bypass_today: bool):
+    """_bypass_today=True 면 end >= 오늘인 요청은 Mongo 일 캐시를 건너뛰고 상위 소스에서 바로 받는다(강제 리프레시 전용).
+    앞 밑줄 = 캐시 키에서 제외. 강제 리프레시는 먼저 _prices.clear() 를 하고 True 로 한 번 채우며, 이후 False 호출도 같은 키를 쓴다."""
+    pr = load_lab_prices(build_default_market_data(bypass_today=_bypass_today), "TQQQ", "QQQ", date(1999, 12, 1), date.today(), synthetic=True)
+    return pr.lev_close, pr.signal_close, pr.cash_rate, pr.source_note, datetime.now()
 
 
+forced = bool(st.session_state.pop(_FORCE_KEY, False))
+if forced:
+    _prices.clear()
 try:
-    lev, sigc, cash, note = _prices()
+    lev, sigc, cash, note, loaded_at = _prices(forced)
 except Exception as e:  # noqa: BLE001
     st.error(f"데이터 로딩 실패: {e}")
     st.stop()
+if forced:
+    st.toast("소스에서 다시 받았습니다.", icon="🔄")
+st.caption(f"데이터: {note} · 마지막 종가 {sigc.index[-1].date()} · 로딩 {loaded_at:%Y-%m-%d %H:%M} "
+           f"({'강제 리프레시' if forced else '캐시 6시간'})")
 s = signal(sigc, P)
 
 # ── 오늘 보유 여부
@@ -93,8 +108,9 @@ st.plotly_chart(fig0, use_container_width=True)
 
 # ── 성적표 · 자산 곡선 · 이력
 @st.cache_data(ttl=6 * 3600, show_spinner="세후 성과 계산…")
-def _perf(_lev: pd.Series, _sigc: pd.Series, _cash):
-    """_sigc = QQQ 종가. run_pair 에는 0/1 스위치 신호를 넘긴다 (가격을 넘기면 항상 보유로 계산되는 버그가 있었음)."""
+def _perf(_lev: pd.Series, _sigc: pd.Series, _cash, data_key: str):
+    """_sigc = QQQ 종가. run_pair 에는 0/1 스위치 신호를 넘긴다 (가격을 넘기면 항상 보유로 계산되는 버그가 있었음).
+    밑줄 인자는 캐시 키에서 빠지므로 data_key(마지막 날짜·길이)로 가격이 바뀌면 다시 계산되게 한다."""
     sw = signal(_sigc, P)
     rows = []
     for label, start in (("2010-02~ (실제 TQQQ, 폭락 없는 표본)", date(2010, 2, 11)), ("1999-12~ (닷컴·2008 포함, 2010 전 합성)", date(1999, 12, 1))):
@@ -107,7 +123,7 @@ def _perf(_lev: pd.Series, _sigc: pd.Series, _cash):
     return pd.DataFrame(rows), hold99.equity, strat99.equity, avoided_segments(strat99, _lev, _sigc)
 
 
-perf, eq_hold, eq_strat, segs = _perf(lev, sigc, cash)
+perf, eq_hold, eq_strat, segs = _perf(lev, sigc, cash, f"{sigc.index[-1].date()}_{len(sigc)}_{len(lev)}")
 st.subheader("이 규칙의 세후 성적 (토스 수수료 + 양도세 22%, 다음날 종가 체결)")
 st.dataframe(perf.style.format({"보유 배수": "{:.0f}x", "스위치 배수": "{:.0f}x", "보유 대비": "{:.2f}", "보유 CAGR": "{:+.1%}", "스위치 CAGR": "{:+.1%}",
                                 "보유 MDD": "{:+.0%}", "스위치 MDD": "{:+.0%}"}), use_container_width=True, hide_index=True)

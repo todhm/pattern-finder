@@ -1,0 +1,10 @@
+{"start": "2010-05-28", "end": "2010-08-27", "trades": [
+ {"ticker": "WELL", "legs": [{"date": "2010-06-02", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-06-04", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "EVRG", "legs": [{"date": "2010-06-11", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-06-30", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2010-07-23", "side": "sell", "frac_of_pos": 0.75, "why": "1:1 익절"}]},
+ {"ticker": "PPG", "legs": [{"date": "2010-06-11", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-06-14", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2010-06-29", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "RVTY", "legs": [{"date": "2010-06-11", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-06-23", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2010-06-29", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "CRL", "legs": [{"date": "2010-06-11", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-06-23", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2010-07-29", "side": "sell", "frac_of_pos": 1.0, "why": "손절 (실적 갭)"}]},
+ {"ticker": "APH", "legs": [{"date": "2010-06-18", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-06-22", "side": "buy", "frac": 0.1, "why": "2차"}, {"date": "2010-06-30", "side": "sell", "frac_of_pos": 1.0, "why": "손절"}]},
+ {"ticker": "ALB", "legs": [{"date": "2010-07-09", "side": "buy", "frac": 0.1, "why": "1차 채널 하단"}, {"date": "2010-07-12", "side": "buy", "frac": 0.1, "why": "2차"}]},
+ {"ticker": "TRV", "legs": [{"date": "2010-07-09", "side": "buy", "frac": 0.1, "why": "1차"}, {"date": "2010-07-15", "side": "buy", "frac": 0.1, "why": "2차"}]}
+]}

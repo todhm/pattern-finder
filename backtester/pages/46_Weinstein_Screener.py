@@ -16,8 +16,12 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+from datetime import timedelta
+import time
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.wikipedia_universe import default_universe_provider
+from data.adapters.yfinance_bulk import download_many
 from pages._shared.growth_sources import build_growth_adapters
 from strategy.adapters.weinstein_scan import (
     Candidate,
@@ -72,7 +76,10 @@ with st.sidebar:
         help="저자 권장 시장 폭 유니버스 = S&P 500. `@기준일` = 그날 실제 상장 종목(생존 편향 없음, 느림).",
     )
     max_tickers = st.number_input("최대 종목 수 (0=전체)", value=0, min_value=0, step=50,
-                                  help="스모크 테스트용. 종목당 11년 일봉을 받으므로 첫 실행은 느리고 이후엔 Mongo 캐시.")
+                                  help="스모크 테스트용. 캐시 스택은 종목당 11년 일봉을 받으므로 첫 실행이 느리다.")
+    data_source = st.radio("데이터 소스", ["yfinance 일괄 (빠름)", "캐시 스택 (정확·느림)"], index=0,
+                           help="일괄 = 200종목/요청으로 한 번에 받는다(sp500 약 40초, 수정주가, 상장폐지 종목 없음). "
+                                "캐시 스택 = AV→yfinance Mongo 캐시, 종목당 1회 조회라 첫 실행 수 분. `@기준일` 유니버스의 폐지 종목은 스택으로만.")
     include_partial = st.toggle("진행 중인 주봉 포함", value=True,
                                 help="끄면 마지막 금요일 마감분까지만 — 백테스트처럼 완결된 주봉으로 판정.")
 
@@ -149,15 +156,23 @@ if run_btn:
             st.stop()
     if max_tickers:
         tickers = tickers[: int(max_tickers)]
-    prog = st.progress(0.0, text=f"일봉 수집·단계 분류 중... ({len(tickers)}종목, 종목당 11년)")
+    prog = st.progress(0.0, text=f"일봉 수집·단계 분류 중... ({len(tickers)}종목)")
     logs: list[str] = []
 
     def _log(m: str) -> None:
         logs.append(m)
         prog.progress(min(0.95, len(logs) / max(len(tickers) / 100 + 2, 1)), text=m)
 
-    res = run_scan(as_of, tickers, market_data, params, build_growth_adapters(), max_workers=4, log=_log)
+    t_run = time.time()
+    prices = None
+    if data_source.startswith("yfinance"):
+        _log("yfinance 일괄 다운로드...")
+        prices = download_many(list(tickers), as_of - timedelta(days=365 * params.lookback_years + 30),
+                               min(as_of + timedelta(days=params.forward_days), date.today()))
+        _log(f"일괄 {len(prices)}/{len(tickers)} 종목 {time.time() - t_run:.0f}초")
+    res = run_scan(as_of, tickers, market_data, params, build_growth_adapters(), max_workers=8, log=_log, prices=prices)
     prog.empty()
+    st.caption(f"스캔 {time.time() - t_run:.0f}초 · 소스 {data_source}")
 
     rows, outcomes = [], {}
     if show_forward and res.candidates:

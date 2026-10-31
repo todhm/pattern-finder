@@ -1,0 +1,45 @@
+{
+ "month": "2021-06",
+ "x_pct": 30,
+ "trigger": "per_own",
+ "per_exit_pct": 0,
+ "max_days": 250,
+ "picks": {
+  "CRM@2021-06-01": {
+   "buy": false,
+   "why": "H3 원래 PER 60 거품"
+  },
+  "TSLA@2021-06-03": {
+   "buy": false,
+   "why": "H3 PER 291, H5 종목만 −15% vs QQQ +6%"
+  },
+  "ULTA@2021-06-04": {
+   "buy": true,
+   "why": "EPS 상승형(5/27 발표 EPS 점프, 가격 +20%). 50·200일선 위 상승 추세, 52주 −7%"
+  },
+  "NFLX@2021-06-10": {
+   "buy": false,
+   "why": "H3 PER 83"
+  },
+  "QCOM@2021-06-15": {
+   "buy": true,
+   "why": "EPS 상승형(1월 발표 점프). 200일선 위 5개월 횡보 눌림, 200일선 상승"
+  },
+  "AMD@2021-06-21": {
+   "buy": false,
+   "why": "H3 PER 74"
+  },
+  "XYZ@2021-06-21": {
+   "buy": false,
+   "why": "H3 PER 265"
+  },
+  "AMZN@2021-06-25": {
+   "buy": false,
+   "why": "H3 PER 92"
+  },
+  "LH@2021-06-28": {
+   "buy": true,
+   "why": "EPS 상승형(코로나 검사, EPS +174%). 신고가 상승 추세. 단 EPS 일회성 위험 메모"
+  }
+ }
+}

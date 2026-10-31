@@ -1,0 +1,17 @@
+{
+ "month": "2024-06",
+ "x_pct": 30,
+ "trigger": "per_own",
+ "per_exit_pct": 0,
+ "max_days": 250,
+ "picks": {
+  "XYZ@2024-06-07": {
+   "buy": false,
+   "why": "H5 종목만 −24% vs QQQ +5%, 50일선 아래"
+  },
+  "RCL@2024-06-17": {
+   "buy": true,
+   "why": "상승 추세 신고가 근처, PER 16.6. 원래 PER 23.5 는 적자 탈출 직후 PER 100+ 구간이 창에 섞여 과대 — 할인 폭은 과장이지만 현재 PER 자체는 정상"
+  }
+ }
+}
