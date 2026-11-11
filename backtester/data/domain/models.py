@@ -86,6 +86,63 @@ class AnnualFinancials(BaseModel):
         return None
 
 
+class QuarterlyStatement(BaseModel):
+    """한 분기의 재무제표 3종(손익·재무상태·현금흐름) 핵심 항목 — "재무제표 읽기" 품질 판정용.
+
+    ``fiscal_date`` 분기 말일, ``report_date`` 실적 발표일(같은 분기 EARNINGS reportedDate —
+    재무제표 본문(10-Q)은 보통 발표 당일~며칠 뒤 공시되므로 소비자가 하루 이상 지연을 둔다).
+    금액은 소스 통화 그대로(대부분 USD), 없으면 ``None``. 현금흐름 지출 항목(capex·자사주·배당)은
+    소스가 주는 부호 그대로(Alpha Vantage 는 양수) 두고 소비자가 절대값으로 쓴다.
+    """
+
+    symbol: str
+    fiscal_date: date
+    report_date: date | None = None
+    # 손익계산서
+    revenue: float | None = None
+    cost_of_revenue: float | None = None
+    gross_profit: float | None = None
+    operating_income: float | None = None
+    rnd: float | None = None
+    sga: float | None = None
+    da: float | None = None
+    ebit: float | None = None
+    ebitda: float | None = None
+    interest_expense: float | None = None
+    pretax_income: float | None = None
+    income_tax: float | None = None
+    net_income: float | None = None
+    # 재무상태표
+    total_assets: float | None = None
+    total_current_assets: float | None = None
+    total_current_liabilities: float | None = None
+    cash_and_st_investments: float | None = None
+    short_term_debt: float | None = None
+    long_term_debt: float | None = None
+    total_debt: float | None = None
+    total_liabilities: float | None = None
+    equity: float | None = None
+    inventory: float | None = None
+    receivables: float | None = None
+    deferred_revenue: float | None = None
+    shares_outstanding: float | None = None
+    goodwill: float | None = None
+    retained_earnings: float | None = None
+    # 현금흐름표
+    operating_cf: float | None = None
+    capex: float | None = None
+    dividends: float | None = None
+    buybacks: float | None = None
+    stock_issuance: float | None = None
+    sbc: float | None = None            # 주식보상비용 (현금흐름표 가산 항목)
+    investing_cf: float | None = None
+    financing_cf: float | None = None
+
+    @property
+    def effective_report_date(self) -> date:
+        return self.report_date or (self.fiscal_date + timedelta(days=90))
+
+
 class QuarterlyBalance(BaseModel):
     """분기 재무상태표 발췌 — 미너비니 2-9 (재고·매출채권 적색경보)용.
 

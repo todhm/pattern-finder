@@ -1,0 +1,1070 @@
+{
+ "cfg": {
+  "out": "/app/sweep_results/tqqq_h12_2026-11-10.json",
+  "md": "/app/sweep_results/tqqq_h12_2026-11-10.md",
+  "n_trials": 11,
+  "placebo_seeds": 30
+ },
+ "n_trials": 11,
+ "rows": [
+  {
+   "name": "whipsaw band0.00 daily 1stage",
+   "band": 0.0,
+   "monthly": false,
+   "two_stage": false,
+   "rt": {
+    "1999-2002": 9,
+    "2010-2024": 7,
+    "2007-2009": 9
+   },
+   "a10_win": 0.5,
+   "a10_med": 1.0829324929894566,
+   "a10_min": 0.6950171293330987,
+   "ainf_win": 1.0,
+   "ainf_med": 1.2192602150286844,
+   "ainf_min": 1.1369705961363676,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.6701987149366269,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.7105263157894737,
+   "b_beat_qqq": 0.9035087719298246,
+   "b_worst_cagr": -0.07286326579149793,
+   "b_dotcom": 6.554229071868376,
+   "b_loss": 6,
+   "a10_ret_med": 30.44350660399453,
+   "a10_mdd_med": -0.6422512210245317,
+   "trades_a10": 6.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.00 daily 2stage",
+   "band": 0.0,
+   "monthly": false,
+   "two_stage": true,
+   "rt": {
+    "1999-2002": 9,
+    "2010-2024": 7,
+    "2007-2009": 9
+   },
+   "a10_win": 0.5,
+   "a10_med": 0.9443995727580508,
+   "a10_min": 0.6817078413616066,
+   "ainf_win": 0.1111111111111111,
+   "ainf_med": 0.9669195677837148,
+   "ainf_min": 0.9016346293269497,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.6887037423898863,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.7017543859649122,
+   "b_beat_qqq": 0.9298245614035088,
+   "b_worst_cagr": -0.05048732774354203,
+   "b_dotcom": 7.630490818608469,
+   "b_loss": 2,
+   "a10_ret_med": 24.889964984467635,
+   "a10_mdd_med": -0.640941731204722,
+   "trades_a10": 10.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.00 monthly 1stage",
+   "band": 0.0,
+   "monthly": true,
+   "two_stage": false,
+   "rt": {
+    "1999-2002": 2,
+    "2010-2024": 2,
+    "2007-2009": 2
+   },
+   "a10_win": 0.16666666666666666,
+   "a10_med": 0.9407369533819328,
+   "a10_min": 0.6018054277855388,
+   "ainf_win": 0.0,
+   "ainf_med": 0.9022957158196835,
+   "ainf_min": 0.8477354350012393,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7203018097971265,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.6754385964912281,
+   "b_beat_qqq": 0.9298245614035088,
+   "b_worst_cagr": -0.056685017972687435,
+   "b_dotcom": 29.537897029573408,
+   "b_loss": 5,
+   "a10_ret_med": 21.611274049891286,
+   "a10_mdd_med": -0.6992207764323516,
+   "trades_a10": 4.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.00 monthly 2stage",
+   "band": 0.0,
+   "monthly": true,
+   "two_stage": true,
+   "rt": {
+    "1999-2002": 2,
+    "2010-2024": 2,
+    "2007-2009": 2
+   },
+   "a10_win": 0.1111111111111111,
+   "a10_med": 0.8580989193875902,
+   "a10_min": 0.5623771777285316,
+   "ainf_win": 0.0,
+   "ainf_med": 0.8211394067466853,
+   "ainf_min": 0.7714934721480288,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7203018097971265,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.6666666666666666,
+   "b_beat_qqq": 0.9298245614035088,
+   "b_worst_cagr": -0.0414039499182165,
+   "b_dotcom": 36.641517385364864,
+   "b_loss": 4,
+   "a10_ret_med": 19.891926278266148,
+   "a10_mdd_med": -0.6992207764323516,
+   "trades_a10": 5.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.03 daily 1stage",
+   "band": 0.03,
+   "monthly": false,
+   "two_stage": false,
+   "rt": {
+    "1999-2002": 7,
+    "2010-2024": 5,
+    "2007-2009": 4
+   },
+   "a10_win": 0.4444444444444444,
+   "a10_med": 0.8667698998584522,
+   "a10_min": 0.6706386712884511,
+   "ainf_win": 1.0,
+   "ainf_med": 1.1376432783707129,
+   "ainf_min": 1.0608130271274678,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.6564044864374619,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.6929824561403509,
+   "b_beat_qqq": 0.8508771929824561,
+   "b_worst_cagr": -0.10148635879654877,
+   "b_dotcom": 3.5836605468971876,
+   "b_loss": 8,
+   "a10_ret_med": 25.28764594471341,
+   "a10_mdd_med": -0.6490712432209838,
+   "trades_a10": 6.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.03 daily 2stage",
+   "band": 0.03,
+   "monthly": false,
+   "two_stage": true,
+   "rt": {
+    "1999-2002": 7,
+    "2010-2024": 5,
+    "2007-2009": 4
+   },
+   "a10_win": 0.2777777777777778,
+   "a10_med": 0.8220318905548394,
+   "a10_min": 0.5928373898149504,
+   "ainf_win": 0.0,
+   "ainf_med": 0.9005079521377171,
+   "ainf_min": 0.8396263194601187,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.6814320786496575,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.6666666666666666,
+   "b_beat_qqq": 0.9035087719298246,
+   "b_worst_cagr": -0.07555010914452365,
+   "b_dotcom": 5.525863273776878,
+   "b_loss": 6,
+   "a10_ret_med": 20.79846383914516,
+   "a10_mdd_med": -0.6467111140163933,
+   "trades_a10": 9.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.03 monthly 1stage",
+   "band": 0.03,
+   "monthly": true,
+   "two_stage": false,
+   "rt": {
+    "1999-2002": 2,
+    "2010-2024": 2,
+    "2007-2009": 1
+   },
+   "a10_win": 0.16666666666666666,
+   "a10_med": 0.9407369533819328,
+   "a10_min": 0.6018054277855388,
+   "ainf_win": 0.0,
+   "ainf_med": 0.9022957158196835,
+   "ainf_min": 0.8477354350012393,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7203018097971265,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.6754385964912281,
+   "b_beat_qqq": 0.9385964912280702,
+   "b_worst_cagr": -0.006616728389095883,
+   "b_dotcom": 20.504424991564896,
+   "b_loss": 2,
+   "a10_ret_med": 21.611274049891286,
+   "a10_mdd_med": -0.6992207764323516,
+   "trades_a10": 4.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "whipsaw band0.03 monthly 2stage",
+   "band": 0.03,
+   "monthly": true,
+   "two_stage": true,
+   "rt": {
+    "1999-2002": 2,
+    "2010-2024": 2,
+    "2007-2009": 1
+   },
+   "a10_win": 0.1111111111111111,
+   "a10_med": 0.8397879911388046,
+   "a10_min": 0.5497110199463373,
+   "ainf_win": 0.0,
+   "ainf_med": 0.8033186507591044,
+   "ainf_min": 0.7547525335731329,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7203018097971265,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.6666666666666666,
+   "b_beat_qqq": 0.9298245614035088,
+   "b_worst_cagr": -0.001231045026016453,
+   "b_dotcom": 22.221648050359857,
+   "b_loss": 1,
+   "a10_ret_med": 19.435021249493595,
+   "a10_mdd_med": -0.6992207764323516,
+   "trades_a10": 5.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  }
+ ],
+ "verdicts": {
+  "whipsaw band0.00 daily 1stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.5,
+     "ratio_median": 1.0829324929894566,
+     "ratio_min": 0.6950171293330987,
+     "ratio_max": 2.265187612910219
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 1.0,
+     "ratio_median": 1.2192602150286844,
+     "ratio_min": 1.1369705961363676,
+     "ratio_max": 1.304039377478172
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.6701987149366269,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6700687488946553,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.9798963510316754,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 7.369858067624001,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 3.054411023299637,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.2137437889849885,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.7105263157894737,
+    "beat_qqq_rate": 0.9035087719298246,
+    "worst_cagr": -0.07286326579149793,
+    "ret_median": 8.849185983712188,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 6.554229071868376,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 6,
+    "worst_mdd": -0.9229183659089081
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.00 daily 2stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.5,
+     "ratio_median": 0.9443995727580508,
+     "ratio_min": 0.6817078413616066,
+     "ratio_max": 1.9433937731874544
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.1111111111111111,
+     "ratio_median": 0.9669195677837148,
+     "ratio_min": 0.9016346293269497,
+     "ratio_max": 1.0342465288966292
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.6887037423898863,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6885623807622576,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.9037763599972375,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 6.501529691543636,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.296931746224458,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.9492877434754663,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.7017543859649122,
+    "beat_qqq_rate": 0.9298245614035088,
+    "worst_cagr": -0.05048732774354203,
+    "ret_median": 7.86801142896856,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 7.630490818608469,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 2,
+    "worst_mdd": -0.8889851476791537
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.00 monthly 1stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.16666666666666666,
+     "ratio_median": 0.9407369533819328,
+     "ratio_min": 0.6018054277855388,
+     "ratio_max": 1.4949023390426461
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.9022957158196835,
+     "ratio_min": 0.8477354350012393,
+     "ratio_max": 0.9313663560552641
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7203018097971265,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323516,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 4.200945997545137,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 4.466144082197795,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.0757652032292015,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.3075896832536404,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6754385964912281,
+    "beat_qqq_rate": 0.9298245614035088,
+    "worst_cagr": -0.056685017972687435,
+    "ret_median": 13.733019157317031,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 29.537897029573408,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 5,
+    "worst_mdd": -0.8823767651236589
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.00 monthly 2stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.1111111111111111,
+     "ratio_median": 0.8580989193875902,
+     "ratio_min": 0.5623771777285316,
+     "ratio_max": 1.4008752335208008
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.8211394067466853,
+     "ratio_min": 0.7714934721480288,
+     "ratio_max": 0.8487504032561484
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7203018097971265,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323516,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 4.200945997545137,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 4.129788603983155,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.9017455366709861,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.2420621761466397,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6666666666666666,
+    "beat_qqq_rate": 0.9298245614035088,
+    "worst_cagr": -0.0414039499182165,
+    "ret_median": 14.197781928786815,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 36.641517385364864,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 4,
+    "worst_mdd": -0.8646826336156175
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.03 daily 1stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.4444444444444444,
+     "ratio_median": 0.8667698998584522,
+     "ratio_min": 0.6706386712884511,
+     "ratio_max": 1.6969468652862352
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 1.0,
+     "ratio_median": 1.1376432783707129,
+     "ratio_min": 1.0608130271274678,
+     "ratio_max": 1.2169235092456865
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.6564044864374619,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6490712432209838,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.8639646335467654,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 5.590589293539774,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.8672598510133196,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.6137514017276056,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6929824561403509,
+    "beat_qqq_rate": 0.8508771929824561,
+    "worst_cagr": -0.10148635879654877,
+    "ret_median": 6.889762895879284,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 3.5836605468971876,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 8,
+    "worst_mdd": -0.9464535661677592
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.03 daily 2stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.2777777777777778,
+     "ratio_median": 0.8220318905548394,
+     "ratio_min": 0.5928373898149504,
+     "ratio_max": 1.4641045694650512
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.9005079521377171,
+     "ratio_min": 0.8396263194601187,
+     "ratio_max": 0.9635003443139862
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.6814320786496575,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6812424710627445,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.820680064009812,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 4.964902372067139,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.1117160721229555,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.274057464412885,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6666666666666666,
+    "beat_qqq_rate": 0.9035087719298246,
+    "worst_cagr": -0.07555010914452365,
+    "ret_median": 7.824072098931456,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 5.525863273776878,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 6,
+    "worst_mdd": -0.9237282470702572
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.03 monthly 1stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.16666666666666666,
+     "ratio_median": 0.9407369533819328,
+     "ratio_min": 0.6018054277855388,
+     "ratio_max": 1.4949023390426461
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.9022957158196835,
+     "ratio_min": 0.8477354350012393,
+     "ratio_max": 0.9313663560552641
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7203018097971265,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323516,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 4.200945997545137,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 4.466144082197795,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.0757652032292015,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.3075896832536404,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6754385964912281,
+    "beat_qqq_rate": 0.9385964912280702,
+    "worst_cagr": -0.006616728389095883,
+    "ret_median": 14.211400414041535,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 20.504424991564896,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 2,
+    "worst_mdd": -0.8691221990672231
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "whipsaw band0.03 monthly 2stage": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.1111111111111111,
+     "ratio_median": 0.8397879911388046,
+     "ratio_min": 0.5497110199463373,
+     "ratio_max": 1.3706697719325014
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.8033186507591044,
+     "ratio_min": 0.7547525335731329,
+     "ratio_max": 0.8307248919771141
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7203018097971265,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323516,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 6.737797780079987,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 4.200945997545137,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 4.0217355051179124,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.8647728985773184,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.2420621761466397,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6666666666666666,
+    "beat_qqq_rate": 0.9298245614035088,
+    "worst_cagr": -0.001231045026016453,
+    "ret_median": 13.309040281799092,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 22.221648050359857,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 1,
+    "worst_mdd": -0.8448441653735143
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  }
+ },
+ "elapsed_s": 24.481616973876953
+}

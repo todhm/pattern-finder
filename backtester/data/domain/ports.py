@@ -14,6 +14,7 @@ if TYPE_CHECKING:
         IpoEvent,
         NewsEvent,
         QuarterlyBalance,
+        QuarterlyStatement,
     )
 
 
@@ -94,6 +95,19 @@ class BalanceSheetPort(ABC):
     @abstractmethod
     def fetch_balance_sheet(self, symbol: str) -> "list[QuarterlyBalance]":
         """fiscal_date 오름차순 분기 리스트. 데이터 없음/실패 = []."""
+        ...
+
+
+class FinancialStatementsPort(ABC):
+    """Port: 분기 재무제표 3종(손익·재무상태·현금흐름) fetcher — 품질 체크리스트용.
+
+    :class:`GrowthFundamentalsPort`(EPS·매출만) 와 분리: 재무상태표·현금흐름표는 소스 콜이
+    따로 들고(Alpha Vantage 각 1콜) 품질 판정에만 쓴다. 실패 시 빈 리스트 (raise 금지).
+    """
+
+    @abstractmethod
+    def fetch_statements(self, symbol: str) -> "list[QuarterlyStatement]":
+        """fiscal_date 오름차순 분기 리스트. point-in-time 필터(``effective_report_date`` 이후)는 소비자 책임."""
         ...
 
 

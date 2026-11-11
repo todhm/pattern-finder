@@ -1,0 +1,1688 @@
+{
+ "cfg": {
+  "out": "/app/sweep_results/tqqq_h6_2026-11-10.json",
+  "md": "/app/sweep_results/tqqq_h6_2026-11-10.md",
+  "n_trials": 7,
+  "placebo_seeds": 30
+ },
+ "n_trials": 7,
+ "rows": [
+  {
+   "name": "season halloween m10-3 off=qqq",
+   "kind": "halloween",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "qqq",
+   "tqqq_share": 0.4977769186158902,
+   "a10_win": 0.0,
+   "a10_med": 0.2578280648531204,
+   "a10_min": 0.1233494384776424,
+   "ainf_win": 0.0,
+   "ainf_med": 0.2465731530904301,
+   "ainf_min": 0.18532976685678293,
+   "g2_shallow": 0.7222222222222222,
+   "worst_mdd": -0.6992207764323516,
+   "g3_fail": 3,
+   "b_beat_tqqq": 0.24561403508771928,
+   "b_beat_qqq": 0.4473684210526316,
+   "b_worst_cagr": -0.37407910703595193,
+   "b_ret_med": 1.2912166387790154,
+   "a10_ret_med": 5.380423868978214,
+   "a10_mdd_med": -0.6992207764323515,
+   "trades_a10": 45.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season halloween m11-4 off=qqq",
+   "kind": "halloween",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "qqq",
+   "tqqq_share": 0.4904310844770926,
+   "a10_win": 0.0,
+   "a10_med": 0.22815246616905488,
+   "a10_min": 0.13241591429318117,
+   "ainf_win": 0.0,
+   "ainf_med": 0.14885627241965388,
+   "ainf_min": 0.10673304679547446,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7108220481388272,
+   "g3_fail": 5,
+   "b_beat_tqqq": 0.47368421052631576,
+   "b_beat_qqq": 0.45614035087719296,
+   "b_worst_cagr": -0.35729865633806246,
+   "b_ret_med": 1.5688376726638344,
+   "a10_ret_med": 4.1082292464271735,
+   "a10_mdd_med": -0.7047328309741665,
+   "trades_a10": 48.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season halloween m12-5 off=qqq",
+   "kind": "halloween",
+   "months": [
+    12,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "qqq",
+   "tqqq_share": 0.4933307558476706,
+   "a10_win": 0.0,
+   "a10_med": 0.21547563605610273,
+   "a10_min": 0.13095293367989577,
+   "ainf_win": 0.0,
+   "ainf_med": 0.15446204628657537,
+   "ainf_min": 0.09523601527206085,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7572680856265691,
+   "g3_fail": 5,
+   "b_beat_tqqq": 0.5350877192982456,
+   "b_beat_qqq": 0.5,
+   "b_worst_cagr": -0.31629803910317,
+   "b_ret_med": 1.8345609143303596,
+   "a10_ret_med": 3.9706209453272963,
+   "a10_mdd_med": -0.711688611968212,
+   "trades_a10": 48.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season earnings w2-4 off=qqq",
+   "kind": "earnings",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "qqq",
+   "tqqq_share": 0.23410013531799728,
+   "a10_win": 0.0,
+   "a10_med": 0.2439054162672329,
+   "a10_min": 0.11024916359753104,
+   "ainf_win": 0.0,
+   "ainf_med": 0.17745174670280456,
+   "ainf_min": 0.11143364457747332,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.5490792504502113,
+   "g3_fail": 4,
+   "b_beat_tqqq": 0.40350877192982454,
+   "b_beat_qqq": 0.5526315789473685,
+   "b_worst_cagr": -0.14836849737149493,
+   "b_ret_med": 2.1847708487686184,
+   "a10_ret_med": 6.424491433520276,
+   "a10_mdd_med": -0.40611019126954745,
+   "trades_a10": 167.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season earnings w2-5 off=qqq",
+   "kind": "earnings",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "off_asset": "qqq",
+   "tqqq_share": 0.2654165861202397,
+   "a10_win": 0.0,
+   "a10_med": 0.24719128330830162,
+   "a10_min": 0.11576359718228514,
+   "ainf_win": 0.0,
+   "ainf_med": 0.18951004469439875,
+   "ainf_min": 0.1231735561632108,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.5410848521074343,
+   "g3_fail": 3,
+   "b_beat_tqqq": 0.5263157894736842,
+   "b_beat_qqq": 0.6403508771929824,
+   "b_worst_cagr": -0.14735999680422318,
+   "b_ret_med": 2.6807493573764836,
+   "a10_ret_med": 7.033266125910647,
+   "a10_mdd_med": -0.3818890374850568,
+   "trades_a10": 166.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season earnings w1-5 off=qqq",
+   "kind": "earnings",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "off_asset": "qqq",
+   "tqqq_share": 0.33655519041175336,
+   "a10_win": 0.0,
+   "a10_med": 0.34707674540441746,
+   "a10_min": 0.1975303634704139,
+   "ainf_win": 0.0,
+   "ainf_med": 0.25159876567883566,
+   "ainf_min": 0.18150983413794486,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.6631448864853581,
+   "g3_fail": 4,
+   "b_beat_tqqq": 0.40350877192982454,
+   "b_beat_qqq": 0.49122807017543857,
+   "b_worst_cagr": -0.21019816428403826,
+   "b_ret_med": 1.6855987097781076,
+   "a10_ret_med": 9.3641043027084,
+   "a10_mdd_med": -0.42423125327433586,
+   "trades_a10": 165.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season halloween m10-3 off=cash",
+   "kind": "halloween",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "cash",
+   "tqqq_share": 0.4977769186158902,
+   "a10_win": 0.0,
+   "a10_med": 0.1369815744775249,
+   "a10_min": 0.05176396561319136,
+   "ainf_win": 0.0,
+   "ainf_med": 0.12912342614883118,
+   "ainf_min": 0.09120123028786238,
+   "g2_shallow": 0.7222222222222222,
+   "worst_mdd": -0.6992207764323516,
+   "g3_fail": 4,
+   "b_beat_tqqq": 0.21929824561403508,
+   "b_beat_qqq": 0.19298245614035087,
+   "b_worst_cagr": -0.3440751133822463,
+   "b_ret_med": 0.901849718532229,
+   "a10_ret_med": 3.1181518333721714,
+   "a10_mdd_med": -0.6992207764323515,
+   "trades_a10": 25.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season halloween m11-4 off=cash",
+   "kind": "halloween",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "cash",
+   "tqqq_share": 0.4904310844770926,
+   "a10_win": 0.0,
+   "a10_med": 0.11462714763193677,
+   "a10_min": 0.05579543774887203,
+   "ainf_win": 0.0,
+   "ainf_med": 0.06309957483181347,
+   "ainf_min": 0.03926528256702583,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7117319183182417,
+   "g3_fail": 5,
+   "b_beat_tqqq": 0.35964912280701755,
+   "b_beat_qqq": 0.2807017543859649,
+   "b_worst_cagr": -0.33963422545904975,
+   "b_ret_med": 0.8838486641389833,
+   "a10_ret_med": 1.5075823036534162,
+   "a10_mdd_med": -0.7065995625911365,
+   "trades_a10": 25.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season halloween m12-5 off=cash",
+   "kind": "halloween",
+   "months": [
+    12,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "cash",
+   "tqqq_share": 0.4933307558476706,
+   "a10_win": 0.0,
+   "a10_med": 0.11330522027725956,
+   "a10_min": 0.05985018205971108,
+   "ainf_win": 0.0,
+   "ainf_med": 0.07209341963428742,
+   "ainf_min": 0.035722946753280124,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7444639736961388,
+   "g3_fail": 5,
+   "b_beat_tqqq": 0.3157894736842105,
+   "b_beat_qqq": 0.32456140350877194,
+   "b_worst_cagr": -0.2889459965288771,
+   "b_ret_med": 1.12177890027596,
+   "a10_ret_med": 1.681993768446549,
+   "a10_mdd_med": -0.7037176898758437,
+   "trades_a10": 24.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season earnings w2-4 off=cash",
+   "kind": "earnings",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    2,
+    3,
+    4
+   ],
+   "off_asset": "cash",
+   "tqqq_share": 0.23410013531799728,
+   "a10_win": 0.0,
+   "a10_med": 0.1186743997828129,
+   "a10_min": 0.04044308594574276,
+   "ainf_win": 0.0,
+   "ainf_med": 0.07670806423778347,
+   "ainf_min": 0.040389345624178646,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.40727203768032794,
+   "g3_fail": 4,
+   "b_beat_tqqq": 0.39473684210526316,
+   "b_beat_qqq": 0.3684210526315789,
+   "b_worst_cagr": -0.06060456493207422,
+   "b_ret_med": 1.821189307333274,
+   "a10_ret_med": 2.701190035118853,
+   "a10_mdd_med": -0.35044634199995534,
+   "trades_a10": 80.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season earnings w2-5 off=cash",
+   "kind": "earnings",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "off_asset": "cash",
+   "tqqq_share": 0.2654165861202397,
+   "a10_win": 0.0,
+   "a10_med": 0.12339818194948379,
+   "a10_min": 0.044455182093425534,
+   "ainf_win": 0.0,
+   "ainf_med": 0.08743984000837957,
+   "ainf_min": 0.04835231569103758,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.39401238576705355,
+   "g3_fail": 4,
+   "b_beat_tqqq": 0.4473684210526316,
+   "b_beat_qqq": 0.5,
+   "b_worst_cagr": -0.0471676945576881,
+   "b_ret_med": 2.481961736367231,
+   "a10_ret_med": 3.02230966010808,
+   "a10_mdd_med": -0.3417996148496647,
+   "trades_a10": 80.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  {
+   "name": "season earnings w1-5 off=cash",
+   "kind": "earnings",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "weeks": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "off_asset": "cash",
+   "tqqq_share": 0.33655519041175336,
+   "a10_win": 0.0,
+   "a10_med": 0.21168523493130442,
+   "a10_min": 0.10152327752846232,
+   "ainf_win": 0.0,
+   "ainf_med": 0.13841605343297442,
+   "ainf_min": 0.09141255290495118,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.5746909131128509,
+   "g3_fail": 4,
+   "b_beat_tqqq": 0.40350877192982454,
+   "b_beat_qqq": 0.41228070175438597,
+   "b_worst_cagr": -0.13718131736812111,
+   "b_ret_med": 1.6250584849792973,
+   "a10_ret_med": 6.289775514601542,
+   "a10_mdd_med": -0.40061264211678316,
+   "trades_a10": 80.0,
+   "first_fail": "G1",
+   "passed_through": 0
+  }
+ ],
+ "verdicts": {
+  "season halloween m10-3 off=qqq": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.2578280648531204,
+     "ratio_min": 0.1233494384776424,
+     "ratio_max": 0.42786337041138545
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.2465731530904301,
+     "ratio_min": 0.18532976685678293,
+     "ratio_max": 0.3151044877024258
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.7222222222222222,
+    "worst_mdd": -0.6992207764323516,
+    "per_bundle": {
+     "A-10": 0.4444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323515,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 5.450486083632468,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.9019781911461187,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.3382797784481628,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.6446084971473465,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.0636156657287086,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.24561403508771928,
+    "beat_qqq_rate": 0.4473684210526316,
+    "worst_cagr": -0.37407910703595193,
+    "ret_median": 1.2912166387790154,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.8382709950094271,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 42,
+    "worst_mdd": -0.9990246468426544
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season halloween m11-4 off=qqq": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.22815246616905488,
+     "ratio_min": 0.13241591429318117,
+     "ratio_max": 0.31171459188719114
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.14885627241965388,
+     "ratio_min": 0.10673304679547446,
+     "ratio_max": 0.2117022710677879
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7108220481388272,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7106471125308955,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 3.6518515747859235,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.0224185061962525,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 2.4318324657947197,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.24586938902471323,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.23926153595841182,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.47368421052631576,
+    "beat_qqq_rate": 0.45614035087719296,
+    "worst_cagr": -0.35729865633806246,
+    "ret_median": 1.5688376726638344,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.7111146128753018,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 44,
+    "worst_mdd": -0.9983864182810295
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season halloween m12-5 off=qqq": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.21547563605610273,
+     "ratio_min": 0.13095293367989577,
+     "ratio_max": 0.27366708759780606
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.15446204628657537,
+     "ratio_min": 0.09523601527206085,
+     "ratio_max": 0.2359140809308583
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7572680856265691,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7571525842922283,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.3298443476214774,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.6974552613462217,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 2.974480614189004,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.23341844141280998,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.20282947267402118,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.5350877192982456,
+    "beat_qqq_rate": 0.5,
+    "worst_cagr": -0.31629803910317,
+    "ret_median": 1.8345609143303596,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.7571314865805927,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 42,
+    "worst_mdd": -0.9957600036213535
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season earnings w2-4 off=qqq": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.2439054162672329,
+     "ratio_min": 0.11024916359753104,
+     "ratio_max": 0.4858756999394656
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.17745174670280456,
+     "ratio_min": 0.11143364457747332,
+     "ratio_max": 0.2850102146831438
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.5490792504502113,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.5489332250543381,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.129946179774977,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.8119430572759394,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.9614463116061698,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.9207418786865327,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.510864691828607,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 4
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.40350877192982454,
+    "beat_qqq_rate": 0.5526315789473685,
+    "worst_cagr": -0.14836849737149493,
+    "ret_median": 2.1847708487686184,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 1.9464687240691576,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 16,
+    "worst_mdd": -0.9004536590478002
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season earnings w2-5 off=qqq": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.24719128330830162,
+     "ratio_min": 0.11576359718228514,
+     "ratio_max": 0.48120857129026146
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.18951004469439875,
+     "ratio_min": 0.1231735561632108,
+     "ratio_max": 0.31979253131011925
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.5410848521074343,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.5409428284532614,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.0686189160311432,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.7723335595342755,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.9852112598223846,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.1306228232901443,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.6035763836743833,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.5263157894736842,
+    "beat_qqq_rate": 0.6403508771929824,
+    "worst_cagr": -0.14735999680422318,
+    "ret_median": 2.6807493573764836,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 1.8966425580689057,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 15,
+    "worst_mdd": -0.9071641957970344
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season earnings w1-5 off=qqq": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.34707674540441746,
+     "ratio_min": 0.1975303634704139,
+     "ratio_max": 0.6100710948580934
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.25159876567883566,
+     "ratio_min": 0.18150983413794486,
+     "ratio_max": 0.44190673088731414
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.6631448864853581,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6630527317408883,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.335609845385181,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.6539513603718476,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 3.89831838822443,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.2582842803873424,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.34100139972797194,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 4
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.40350877192982454,
+    "beat_qqq_rate": 0.49122807017543857,
+    "worst_cagr": -0.21019816428403826,
+    "ret_median": 1.6855987097781076,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 1.014290207686336,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 20,
+    "worst_mdd": -0.9590283169979802
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season halloween m10-3 off=cash": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.1369815744775249,
+     "ratio_min": 0.05176396561319136,
+     "ratio_max": 0.30179429053171464
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.12912342614883118,
+     "ratio_min": 0.09120123028786238,
+     "ratio_max": 0.17691821043039044
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.7222222222222222,
+    "worst_mdd": -0.6992207764323516,
+    "per_bundle": {
+     "A-10": 0.4444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323515,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 4.713448875209608,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.3104410441920362,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 0.27187534351067866,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.23103910665011895,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.3142967287403784,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 4
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.21929824561403508,
+    "beat_qqq_rate": 0.19298245614035087,
+    "worst_cagr": -0.3440751133822463,
+    "ret_median": 0.901849718532229,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.8554515645266005,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 41,
+    "worst_mdd": -0.9983217230789926
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season halloween m11-4 off=cash": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.11462714763193677,
+     "ratio_min": 0.05579543774887203,
+     "ratio_max": 0.1788486705779055
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.06309957483181347,
+     "ratio_min": 0.03926528256702583,
+     "ratio_max": 0.10266520458782709
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7117319183182417,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7066624564925894,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.4992820077169116,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.3449415128274862,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.2225416830476212,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": -0.1325787047958401,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.07972367083953324,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.35964912280701755,
+    "beat_qqq_rate": 0.2807017543859649,
+    "worst_cagr": -0.33963422545904975,
+    "ret_median": 0.8838486641389833,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.7611115189878032,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 44,
+    "worst_mdd": -0.9974058567224864
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season halloween m12-5 off=cash": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.11330522027725956,
+     "ratio_min": 0.05985018205971108,
+     "ratio_max": 0.16068721546255485
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.07209341963428742,
+     "ratio_min": 0.035722946753280124,
+     "ratio_max": 0.1304517925429381
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7444639736961388,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7439951736902056,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 1.1970114299468277,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.0706878014832606,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.851409447189821,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": -0.17022179492181932,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.028518320990105872,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.3157894736842105,
+    "beat_qqq_rate": 0.32456140350877194,
+    "worst_cagr": -0.2889459965288771,
+    "ret_median": 1.12177890027596,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.8499414244815056,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 44,
+    "worst_mdd": -0.9916195487831791
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season earnings w2-4 off=cash": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.1186743997828129,
+     "ratio_min": 0.04044308594574276,
+     "ratio_max": 0.31008323120373377
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.07670806423778347,
+     "ratio_min": 0.040389345624178646,
+     "ratio_max": 0.14560976616918395
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.40727203768032794,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.4069463385606871,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 1.062474942800466,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.0577346017193827,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 0.601076570813412,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.510469344697974,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.4688149913452213,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 4
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.39473684210526316,
+    "beat_qqq_rate": 0.3684210526315789,
+    "worst_cagr": -0.06060456493207422,
+    "ret_median": 1.821189307333274,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 2.531067494882583,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 17,
+    "worst_mdd": -0.8664492037606479
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season earnings w2-5 off=cash": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.12339818194948379,
+     "ratio_min": 0.044455182093425534,
+     "ratio_max": 0.310440156530936
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.08743984000837957,
+     "ratio_min": 0.04835231569103758,
+     "ratio_max": 0.17729265597556654
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.39401238576705355,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.3937039514939718,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 1.0300299767327772,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 1.0224398519648443,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 0.6042236265812602,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.8051367246961045,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.6335215670027501,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 4
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.4473684210526316,
+    "beat_qqq_rate": 0.5,
+    "worst_cagr": -0.0471676945576881,
+    "ret_median": 2.481961736367231,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 2.78732501489879,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 9,
+    "worst_mdd": -0.8635317490936871
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "season earnings w1-5 off=cash": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.21168523493130442,
+     "ratio_min": 0.10152327752846232,
+     "ratio_max": 0.5076814019171297
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.13841605343297442,
+     "ratio_min": 0.09141255290495118,
+     "ratio_max": 0.3000377273987168
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.5746909131128509,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.5745373042198129,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 1.3013319291944714,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.1771039068128175,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 2.4551410992413842,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.9874946776971045,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.25190732251783143,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 4
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.40350877192982454,
+    "beat_qqq_rate": 0.41228070175438597,
+    "worst_cagr": -0.13718131736812111,
+    "ret_median": 1.6250584849792973,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 1.47002281970612,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 21,
+    "worst_mdd": -0.9101471937852821
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  }
+ },
+ "elapsed_s": 38.0226616859436
+}

@@ -17,7 +17,9 @@ def build_growth_adapters() -> list[GrowthFundamentalsPort]:
         from data.adapters.alphavantage_growth_fundamentals import (
             AlphaVantageGrowthFundamentalsAdapter,
         )
-        adapters.append(AlphaVantageGrowthFundamentalsAdapter())
+        import os
+        ttl = float(os.environ.get("GROWTH_FUND_TTL_DAYS", "7"))      # 배치에서 캐시 재조회를 피하려면 환경변수로 늘린다(과거 분기는 불변)
+        adapters.append(AlphaVantageGrowthFundamentalsAdapter(cache_ttl_days=ttl))
     except Exception:
         pass
     try:

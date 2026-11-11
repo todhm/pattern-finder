@@ -1,0 +1,955 @@
+{
+ "cfg": {
+  "dump": "/app/sweep_results/tqqq_h5_list150_dev_dump.json",
+  "mode": "prelim",
+  "curve": "equity",
+  "n_trials": 6,
+  "out": "/app/sweep_results/tqqq_h5_prelim_equity_2026-11-10.json",
+  "md": "/app/sweep_results/tqqq_h5_prelim_equity_2026-11-10.md"
+ },
+ "mode": "prelim",
+ "curve": "equity",
+ "list_start": "2006-07-03",
+ "rows": [
+  {
+   "name": "listmix w0.3 Q sw=off",
+   "w_tqqq": 0.3,
+   "rebalance": "Q",
+   "switch": false,
+   "dd": 0.18,
+   "n": 200,
+   "reenter_n": 20,
+   "ratio_median": 0.23553534320939684,
+   "win_rate": 0.0,
+   "s5_below_half": 3,
+   "n_a": 10,
+   "pass": false,
+   "a10_ret_med": 5.204843384031101,
+   "a10_mdd_med": -0.44221464507099306,
+   "a10_min_ratio": 0.12319140854244429,
+   "first_fail": "G1",
+   "s5": [
+    [
+     "2010-02",
+     1.77,
+     6.79
+    ],
+    [
+     "2015-02",
+     1.1,
+     4.39
+    ],
+    [
+     "2016-01",
+     2.43,
+     7.17
+    ],
+    [
+     "2020-02",
+     1.22,
+     1.36
+    ],
+    [
+     "2021-01",
+     0.5,
+     0.58
+    ]
+   ]
+  },
+  {
+   "name": "listmix w0.3 Q sw=18",
+   "w_tqqq": 0.3,
+   "rebalance": "Q",
+   "switch": true,
+   "dd": 0.18,
+   "n": 200,
+   "reenter_n": 20,
+   "ratio_median": 0.23891012826489103,
+   "win_rate": 0.0,
+   "s5_below_half": 3,
+   "n_a": 10,
+   "pass": false,
+   "a10_ret_med": 5.170378704521444,
+   "a10_mdd_med": -0.40255945169202145,
+   "a10_min_ratio": 0.1140865666599197,
+   "first_fail": "G1",
+   "s5": [
+    [
+     "2010-02",
+     1.77,
+     6.79
+    ],
+    [
+     "2015-02",
+     0.97,
+     4.39
+    ],
+    [
+     "2016-01",
+     2.41,
+     7.17
+    ],
+    [
+     "2020-02",
+     1.48,
+     1.36
+    ],
+    [
+     "2021-01",
+     0.61,
+     0.58
+    ]
+   ]
+  },
+  {
+   "name": "listmix w0.5 Q sw=off",
+   "w_tqqq": 0.5,
+   "rebalance": "Q",
+   "switch": false,
+   "dd": 0.18,
+   "n": 200,
+   "reenter_n": 20,
+   "ratio_median": 0.37839971064693756,
+   "win_rate": 0.0,
+   "s5_below_half": 2,
+   "n_a": 10,
+   "pass": false,
+   "a10_ret_med": 8.513639797745293,
+   "a10_mdd_med": -0.5404803472420914,
+   "a10_min_ratio": 0.22892565219806163,
+   "first_fail": "G1",
+   "s5": [
+    [
+     "2010-02",
+     2.74,
+     6.79
+    ],
+    [
+     "2015-02",
+     1.79,
+     4.39
+    ],
+    [
+     "2016-01",
+     3.7,
+     7.17
+    ],
+    [
+     "2020-02",
+     1.44,
+     1.36
+    ],
+    [
+     "2021-01",
+     0.58,
+     0.58
+    ]
+   ]
+  },
+  {
+   "name": "listmix w0.5 Q sw=18",
+   "w_tqqq": 0.5,
+   "rebalance": "Q",
+   "switch": true,
+   "dd": 0.18,
+   "n": 200,
+   "reenter_n": 20,
+   "ratio_median": 0.3908006010396877,
+   "win_rate": 0.0,
+   "s5_below_half": 2,
+   "n_a": 10,
+   "pass": false,
+   "a10_ret_med": 9.018878933032235,
+   "a10_mdd_med": -0.4611703107889248,
+   "a10_min_ratio": 0.19891554570948958,
+   "first_fail": "G1",
+   "s5": [
+    [
+     "2010-02",
+     2.74,
+     6.79
+    ],
+    [
+     "2015-02",
+     1.48,
+     4.39
+    ],
+    [
+     "2016-01",
+     3.61,
+     7.17
+    ],
+    [
+     "2020-02",
+     1.94,
+     1.36
+    ],
+    [
+     "2021-01",
+     0.81,
+     0.58
+    ]
+   ]
+  },
+  {
+   "name": "listmix w0.7 Q sw=off",
+   "w_tqqq": 0.7,
+   "rebalance": "Q",
+   "switch": false,
+   "dd": 0.18,
+   "n": 200,
+   "reenter_n": 20,
+   "ratio_median": 0.5987265968309528,
+   "win_rate": 0.0,
+   "s5_below_half": 0,
+   "n_a": 10,
+   "pass": false,
+   "a10_ret_med": 12.500819395186381,
+   "a10_mdd_med": -0.6335263910687257,
+   "a10_min_ratio": 0.40890233077202254,
+   "first_fail": "G1",
+   "s5": [
+    [
+     "2010-02",
+     3.93,
+     6.79
+    ],
+    [
+     "2015-02",
+     2.65,
+     4.39
+    ],
+    [
+     "2016-01",
+     5.23,
+     7.17
+    ],
+    [
+     "2020-02",
+     1.49,
+     1.36
+    ],
+    [
+     "2021-01",
+     0.59,
+     0.58
+    ]
+   ]
+  },
+  {
+   "name": "listmix w0.7 Q sw=18",
+   "w_tqqq": 0.7,
+   "rebalance": "Q",
+   "switch": true,
+   "dd": 0.18,
+   "n": 200,
+   "reenter_n": 20,
+   "ratio_median": 0.6482355313780064,
+   "win_rate": 0.0,
+   "s5_below_half": 1,
+   "n_a": 10,
+   "pass": false,
+   "a10_ret_med": 15.530489849216043,
+   "a10_mdd_med": -0.5224988291232154,
+   "a10_min_ratio": 0.328197538984216,
+   "first_fail": "G1",
+   "s5": [
+    [
+     "2010-02",
+     3.93,
+     6.79
+    ],
+    [
+     "2015-02",
+     2.06,
+     4.39
+    ],
+    [
+     "2016-01",
+     5.11,
+     7.17
+    ],
+    [
+     "2020-02",
+     2.38,
+     1.36
+    ],
+    [
+     "2021-01",
+     0.96,
+     0.58
+    ]
+   ]
+  }
+ ],
+ "verdicts": {
+  "listmix w0.3 Q sw=off": {
+   "prelim": {
+    "ratio_median": 0.23553534320939684,
+    "win_rate": 0.0,
+    "s5_below_half": 3,
+    "n_a": 10,
+    "pass": false
+   },
+   "gates": {
+    "G1": {
+     "passed": false,
+     "A-10": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.31442983048798806,
+      "ratio_min": 0.12319140854244429,
+      "ratio_max": 0.3650532386853415
+     },
+     "A-∞": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.20135729275223652,
+      "ratio_min": 0.10257225125862002,
+      "ratio_max": 0.2712216158599979
+     }
+    },
+    "G2": {
+     "passed": true,
+     "n": 10,
+     "shallower_rate": 1.0,
+     "worst_mdd": -0.5092945309823546,
+     "per_bundle": {
+      "A-10": 1.0,
+      "A-∞": 1.0
+     },
+     "mdd_median": -0.5066075250135205,
+     "tqqq_mdd_median": -0.8165984644944917
+    },
+    "G3": {
+     "passed": false,
+     "windows": [
+      {
+       "start": "2010-02-11",
+       "end": "2015-02-11",
+       "strat_ret": 1.7700932837135954,
+       "floor": 4.7526042486625455,
+       "tqqq_ret": 6.789434640946494,
+       "ok": false
+      },
+      {
+       "start": "2015-02-11",
+       "end": "2020-02-11",
+       "strat_ret": 1.1000450006205265,
+       "floor": 3.0712497425822844,
+       "tqqq_ret": 4.387499632260407,
+       "ok": false
+      },
+      {
+       "start": "2016-01-04",
+       "end": "2020-12-31",
+       "strat_ret": 2.4309516927681805,
+       "floor": 5.018650837881449,
+       "tqqq_ret": 7.169501196973499,
+       "ok": false
+      },
+      {
+       "start": "2020-02-11",
+       "end": "2024-06-30",
+       "strat_ret": 1.2213045954333865,
+       "floor": 0.9504280707649457,
+       "tqqq_ret": 1.3577543868070654,
+       "ok": true
+      },
+      {
+       "start": "2021-01-01",
+       "end": "2024-06-30",
+       "strat_ret": 0.49763318660958866,
+       "floor": 0.409097286274231,
+       "tqqq_ret": 0.5844246946774728,
+       "ok": true
+      }
+     ],
+     "n_fail": 3
+    },
+    "G4": {
+     "passed": false,
+     "n": 3,
+     "beat_tqqq_rate": 0.0,
+     "beat_qqq_rate": 1.0,
+     "worst_cagr": 0.11229636348370264,
+     "ret_median": 4.222629932270497,
+     "tqqq_ret_median": 10.751893211979022,
+     "qqq_ret_median": 2.606953706857949,
+     "dotcom_n": 0,
+     "dotcom_strat_median": NaN,
+     "dotcom_qqq_median": NaN,
+     "loss_windows": 0,
+     "worst_mdd": -0.5782893980416013
+    },
+    "G5": {
+     "passed": false,
+     "error": "플라세보 없음"
+    },
+    "G6": {
+     "passed": false,
+     "error": "이웃 없음"
+    },
+    "first_fail": "G1",
+    "passed_through": 0
+   }
+  },
+  "listmix w0.3 Q sw=18": {
+   "prelim": {
+    "ratio_median": 0.23891012826489103,
+    "win_rate": 0.0,
+    "s5_below_half": 3,
+    "n_a": 10,
+    "pass": false
+   },
+   "gates": {
+    "G1": {
+     "passed": false,
+     "A-10": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.33120147625733176,
+      "ratio_min": 0.1140865666599197,
+      "ratio_max": 0.3862058053371424
+     },
+     "A-∞": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.21060042207919139,
+      "ratio_min": 0.10717294490237933,
+      "ratio_max": 0.2856464853634625
+     }
+    },
+    "G2": {
+     "passed": true,
+     "n": 10,
+     "shallower_rate": 1.0,
+     "worst_mdd": -0.42986412128713924,
+     "per_bundle": {
+      "A-10": 1.0,
+      "A-∞": 1.0
+     },
+     "mdd_median": -0.4269710939206197,
+     "tqqq_mdd_median": -0.8165984644944917
+    },
+    "G3": {
+     "passed": false,
+     "windows": [
+      {
+       "start": "2010-02-11",
+       "end": "2015-02-11",
+       "strat_ret": 1.7700932837135954,
+       "floor": 4.7526042486625455,
+       "tqqq_ret": 6.789434640946494,
+       "ok": false
+      },
+      {
+       "start": "2015-02-11",
+       "end": "2020-02-11",
+       "strat_ret": 0.9662082055245278,
+       "floor": 3.0712497425822844,
+       "tqqq_ret": 4.387499632260407,
+       "ok": false
+      },
+      {
+       "start": "2016-01-04",
+       "end": "2020-12-31",
+       "strat_ret": 2.411745033168473,
+       "floor": 5.018650837881449,
+       "tqqq_ret": 7.169501196973499,
+       "ok": false
+      },
+      {
+       "start": "2020-02-11",
+       "end": "2024-06-30",
+       "strat_ret": 1.4810188207650001,
+       "floor": 0.9504280707649457,
+       "tqqq_ret": 1.3577543868070654,
+       "ok": true
+      },
+      {
+       "start": "2021-01-01",
+       "end": "2024-06-30",
+       "strat_ret": 0.6107578645458833,
+       "floor": 0.409097286274231,
+       "tqqq_ret": 0.5844246946774728,
+       "ok": true
+      }
+     ],
+     "n_fail": 3
+    },
+    "G4": {
+     "passed": false,
+     "n": 3,
+     "beat_tqqq_rate": 0.0,
+     "beat_qqq_rate": 1.0,
+     "worst_cagr": 0.13251050377944829,
+     "ret_median": 3.8526911897824476,
+     "tqqq_ret_median": 10.751893211979022,
+     "qqq_ret_median": 2.606953706857949,
+     "dotcom_n": 0,
+     "dotcom_strat_median": NaN,
+     "dotcom_qqq_median": NaN,
+     "loss_windows": 0,
+     "worst_mdd": -0.40329883803271827
+    },
+    "G5": {
+     "passed": false,
+     "error": "플라세보 없음"
+    },
+    "G6": {
+     "passed": false,
+     "error": "이웃 없음"
+    },
+    "first_fail": "G1",
+    "passed_through": 0
+   }
+  },
+  "listmix w0.5 Q sw=off": {
+   "prelim": {
+    "ratio_median": 0.37839971064693756,
+    "win_rate": 0.0,
+    "s5_below_half": 2,
+    "n_a": 10,
+    "pass": false
+   },
+   "gates": {
+    "G1": {
+     "passed": false,
+     "A-10": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.4668117931076098,
+      "ratio_min": 0.22892565219806163,
+      "ratio_max": 0.5308891227202425
+     },
+     "A-∞": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.33927353622624806,
+      "ratio_min": 0.2084471594492951,
+      "ratio_max": 0.42124849570105194
+     }
+    },
+    "G2": {
+     "passed": true,
+     "n": 10,
+     "shallower_rate": 1.0,
+     "worst_mdd": -0.6302884296627642,
+     "per_bundle": {
+      "A-10": 1.0,
+      "A-∞": 1.0
+     },
+     "mdd_median": -0.629007075400716,
+     "tqqq_mdd_median": -0.8165984644944917
+    },
+    "G3": {
+     "passed": false,
+     "windows": [
+      {
+       "start": "2010-02-11",
+       "end": "2015-02-11",
+       "strat_ret": 2.7405240632824106,
+       "floor": 4.7526042486625455,
+       "tqqq_ret": 6.789434640946494,
+       "ok": false
+      },
+      {
+       "start": "2015-02-11",
+       "end": "2020-02-11",
+       "strat_ret": 1.7921727952979771,
+       "floor": 3.0712497425822844,
+       "tqqq_ret": 4.387499632260407,
+       "ok": false
+      },
+      {
+       "start": "2016-01-04",
+       "end": "2020-12-31",
+       "strat_ret": 3.7009743861928746,
+       "floor": 5.018650837881449,
+       "tqqq_ret": 7.169501196973499,
+       "ok": false
+      },
+      {
+       "start": "2020-02-11",
+       "end": "2024-06-30",
+       "strat_ret": 1.4392432326361422,
+       "floor": 0.9504280707649457,
+       "tqqq_ret": 1.3577543868070654,
+       "ok": true
+      },
+      {
+       "start": "2021-01-01",
+       "end": "2024-06-30",
+       "strat_ret": 0.5826869579465794,
+       "floor": 0.409097286274231,
+       "tqqq_ret": 0.5844246946774728,
+       "ok": true
+      }
+     ],
+     "n_fail": 3
+    },
+    "G4": {
+     "passed": false,
+     "n": 3,
+     "beat_tqqq_rate": 0.0,
+     "beat_qqq_rate": 1.0,
+     "worst_cagr": 0.14849119945310219,
+     "ret_median": 6.753378013072803,
+     "tqqq_ret_median": 10.751893211979022,
+     "qqq_ret_median": 2.606953706857949,
+     "dotcom_n": 0,
+     "dotcom_strat_median": NaN,
+     "dotcom_qqq_median": NaN,
+     "loss_windows": 0,
+     "worst_mdd": -0.7095918486263346
+    },
+    "G5": {
+     "passed": false,
+     "error": "플라세보 없음"
+    },
+    "G6": {
+     "passed": false,
+     "error": "이웃 없음"
+    },
+    "first_fail": "G1",
+    "passed_through": 0
+   }
+  },
+  "listmix w0.5 Q sw=18": {
+   "prelim": {
+    "ratio_median": 0.3908006010396877,
+    "win_rate": 0.0,
+    "s5_below_half": 2,
+    "n_a": 10,
+    "pass": false
+   },
+   "gates": {
+    "G1": {
+     "passed": false,
+     "A-10": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.5206438933891359,
+      "ratio_min": 0.19891554570948958,
+      "ratio_max": 0.6009042946175306
+     },
+     "A-∞": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.37031978597797255,
+      "ratio_min": 0.2269664888525869,
+      "ratio_max": 0.4665382248517735
+     }
+    },
+    "G2": {
+     "passed": true,
+     "n": 10,
+     "shallower_rate": 1.0,
+     "worst_mdd": -0.5112340871793031,
+     "per_bundle": {
+      "A-10": 1.0,
+      "A-∞": 1.0
+     },
+     "mdd_median": -0.5099861735106922,
+     "tqqq_mdd_median": -0.8165984644944917
+    },
+    "G3": {
+     "passed": false,
+     "windows": [
+      {
+       "start": "2010-02-11",
+       "end": "2015-02-11",
+       "strat_ret": 2.7405240632824106,
+       "floor": 4.7526042486625455,
+       "tqqq_ret": 6.789434640946494,
+       "ok": false
+      },
+      {
+       "start": "2015-02-11",
+       "end": "2020-02-11",
+       "strat_ret": 1.480624776895275,
+       "floor": 3.0712497425822844,
+       "tqqq_ret": 4.387499632260407,
+       "ok": false
+      },
+      {
+       "start": "2016-01-04",
+       "end": "2020-12-31",
+       "strat_ret": 3.6118354377954063,
+       "floor": 5.018650837881449,
+       "tqqq_ret": 7.169501196973499,
+       "ok": false
+      },
+      {
+       "start": "2020-02-11",
+       "end": "2024-06-30",
+       "strat_ret": 1.944878770279324,
+       "floor": 0.9504280707649457,
+       "tqqq_ret": 1.3577543868070654,
+       "ok": true
+      },
+      {
+       "start": "2021-01-01",
+       "end": "2024-06-30",
+       "strat_ret": 0.8108123741045723,
+       "floor": 0.409097286274231,
+       "tqqq_ret": 0.5844246946774728,
+       "ok": true
+      }
+     ],
+     "n_fail": 3
+    },
+    "G4": {
+     "passed": false,
+     "n": 3,
+     "beat_tqqq_rate": 0.0,
+     "beat_qqq_rate": 1.0,
+     "worst_cagr": 0.1885062554936754,
+     "ret_median": 6.928208391625963,
+     "tqqq_ret_median": 10.751893211979022,
+     "qqq_ret_median": 2.606953706857949,
+     "dotcom_n": 0,
+     "dotcom_strat_median": NaN,
+     "dotcom_qqq_median": NaN,
+     "loss_windows": 0,
+     "worst_mdd": -0.4618899832297444
+    },
+    "G5": {
+     "passed": false,
+     "error": "플라세보 없음"
+    },
+    "G6": {
+     "passed": false,
+     "error": "이웃 없음"
+    },
+    "first_fail": "G1",
+    "passed_through": 0
+   }
+  },
+  "listmix w0.7 Q sw=off": {
+   "prelim": {
+    "ratio_median": 0.5987265968309528,
+    "win_rate": 0.0,
+    "s5_below_half": 0,
+    "n_a": 10,
+    "pass": false
+   },
+   "gates": {
+    "G1": {
+     "passed": false,
+     "A-10": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.6902679005016032,
+      "ratio_min": 0.40890233077202254,
+      "ratio_max": 0.7453247285935725
+     },
+     "A-∞": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.5722009738472873,
+      "ratio_min": 0.4113023119384705,
+      "ratio_max": 0.64466262428981
+     }
+    },
+    "G2": {
+     "passed": true,
+     "n": 10,
+     "shallower_rate": 1.0,
+     "worst_mdd": -0.7214806990862093,
+     "per_bundle": {
+      "A-10": 1.0,
+      "A-∞": 1.0
+     },
+     "mdd_median": -0.7206786029647558,
+     "tqqq_mdd_median": -0.8165984644944917
+    },
+    "G3": {
+     "passed": false,
+     "windows": [
+      {
+       "start": "2010-02-11",
+       "end": "2015-02-11",
+       "strat_ret": 3.9345483377682973,
+       "floor": 4.7526042486625455,
+       "tqqq_ret": 6.789434640946494,
+       "ok": false
+      },
+      {
+       "start": "2015-02-11",
+       "end": "2020-02-11",
+       "strat_ret": 2.6545638110149326,
+       "floor": 3.0712497425822844,
+       "tqqq_ret": 4.387499632260407,
+       "ok": false
+      },
+      {
+       "start": "2016-01-04",
+       "end": "2020-12-31",
+       "strat_ret": 5.225150248473889,
+       "floor": 5.018650837881449,
+       "tqqq_ret": 7.169501196973499,
+       "ok": true
+      },
+      {
+       "start": "2020-02-11",
+       "end": "2024-06-30",
+       "strat_ret": 1.487668270643693,
+       "floor": 0.9504280707649457,
+       "tqqq_ret": 1.3577543868070654,
+       "ok": true
+      },
+      {
+       "start": "2021-01-01",
+       "end": "2024-06-30",
+       "strat_ret": 0.5930025715462783,
+       "floor": 0.409097286274231,
+       "tqqq_ret": 0.5844246946774728,
+       "ok": true
+      }
+     ],
+     "n_fail": 2
+    },
+    "G4": {
+     "passed": false,
+     "n": 3,
+     "beat_tqqq_rate": 0.0,
+     "beat_qqq_rate": 1.0,
+     "worst_cagr": 0.1740896213968781,
+     "ret_median": 9.175703541377649,
+     "tqqq_ret_median": 10.751893211979022,
+     "qqq_ret_median": 2.606953706857949,
+     "dotcom_n": 0,
+     "dotcom_strat_median": NaN,
+     "dotcom_qqq_median": NaN,
+     "loss_windows": 0,
+     "worst_mdd": -0.8200761168629631
+    },
+    "G5": {
+     "passed": false,
+     "error": "플라세보 없음"
+    },
+    "G6": {
+     "passed": false,
+     "error": "이웃 없음"
+    },
+    "first_fail": "G1",
+    "passed_through": 0
+   }
+  },
+  "listmix w0.7 Q sw=18": {
+   "prelim": {
+    "ratio_median": 0.6482355313780064,
+    "win_rate": 0.0,
+    "s5_below_half": 1,
+    "n_a": 10,
+    "pass": false
+   },
+   "gates": {
+    "G1": {
+     "passed": false,
+     "A-10": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.7820366239927299,
+      "ratio_min": 0.328197538984216,
+      "ratio_max": 0.9244234733567882
+     },
+     "A-∞": {
+      "n": 5,
+      "win_rate": 0.0,
+      "ratio_median": 0.6305176611083524,
+      "ratio_min": 0.4509182651310383,
+      "ratio_max": 0.7284165959441249
+     }
+    },
+    "G2": {
+     "passed": true,
+     "n": 10,
+     "shallower_rate": 1.0,
+     "worst_mdd": -0.5804796104898591,
+     "per_bundle": {
+      "A-10": 1.0,
+      "A-∞": 1.0
+     },
+     "mdd_median": -0.5800009675749833,
+     "tqqq_mdd_median": -0.8165984644944917
+    },
+    "G3": {
+     "passed": false,
+     "windows": [
+      {
+       "start": "2010-02-11",
+       "end": "2015-02-11",
+       "strat_ret": 3.9345483377682973,
+       "floor": 4.7526042486625455,
+       "tqqq_ret": 6.789434640946494,
+       "ok": false
+      },
+      {
+       "start": "2015-02-11",
+       "end": "2020-02-11",
+       "strat_ret": 2.062694692062347,
+       "floor": 3.0712497425822844,
+       "tqqq_ret": 4.387499632260407,
+       "ok": false
+      },
+      {
+       "start": "2016-01-04",
+       "end": "2020-12-31",
+       "strat_ret": 5.106987844799002,
+       "floor": 5.018650837881449,
+       "tqqq_ret": 7.169501196973499,
+       "ok": true
+      },
+      {
+       "start": "2020-02-11",
+       "end": "2024-06-30",
+       "strat_ret": 2.380863109671438,
+       "floor": 0.9504280707649457,
+       "tqqq_ret": 1.3577543868070654,
+       "ok": true
+      },
+      {
+       "start": "2021-01-01",
+       "end": "2024-06-30",
+       "strat_ret": 0.9638079667468864,
+       "floor": 0.409097286274231,
+       "tqqq_ret": 0.5844246946774728,
+       "ok": true
+      }
+     ],
+     "n_fail": 2
+    },
+    "G4": {
+     "passed": false,
+     "n": 3,
+     "beat_tqqq_rate": 0.6666666666666666,
+     "beat_qqq_rate": 1.0,
+     "worst_cagr": 0.2418824958293908,
+     "ret_median": 11.18916332647964,
+     "tqqq_ret_median": 10.751893211979022,
+     "qqq_ret_median": 2.606953706857949,
+     "dotcom_n": 0,
+     "dotcom_strat_median": NaN,
+     "dotcom_qqq_median": NaN,
+     "loss_windows": 0,
+     "worst_mdd": -0.526623367244221
+    },
+    "G5": {
+     "passed": false,
+     "error": "플라세보 없음"
+    },
+    "G6": {
+     "passed": false,
+     "error": "이웃 없음"
+    },
+    "first_fail": "G1",
+    "passed_through": 0
+   }
+  }
+ },
+ "elapsed_s": 6.918733358383179,
+ "prelim_pass_any": false
+}

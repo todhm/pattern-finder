@@ -137,6 +137,12 @@ class AlphaVantageGrowthFundamentalsAdapter(GrowthFundamentalsPort, BalanceSheet
 
     # ---- raw + disk cache -------------------------------------------
 
+    def fetch_raw_statements(self, symbol: str) -> dict | None:
+        """캐시된 slim 원본(quarterlyEarnings·quarterlyReports…) — 재무제표 어댑터가
+        손익계산서 전 항목과 발표일을 재사용한다(추가 콜 없음)."""
+        return self._fetch_raw(symbol)
+
+
     def _cache_path(self, symbol: str) -> Path:
         safe = symbol.replace("/", "_").replace(".", "_")
         return self._cache_dir / f"{safe}.{CACHE_VERSION}.json"

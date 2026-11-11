@@ -1,0 +1,2338 @@
+{
+ "cfg": {
+  "out": "/app/sweep_results/tqqq_h19_2026-11-10.json",
+  "md": "/app/sweep_results/tqqq_h19_2026-11-10.md",
+  "n_trials": 13,
+  "placebo_seeds": 30
+ },
+ "n_trials": 13,
+ "signal_counts": {
+  "wedge_drop": 195,
+  "ema_crossback": 125,
+  "reversal": 29,
+  "exhaustion": 12,
+  "base_break": 15,
+  "wedge_pop": 90
+ },
+ "rows": [
+  {
+   "name": "pattern sell=all re=wedge_pop",
+   "mode": "pattern",
+   "sell_set": "all",
+   "reenter": "wedge_pop",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.2149488217091169,
+   "a10_win": 0.0,
+   "a10_med": 0.06388094398407539,
+   "a10_min": 0.024146895180048093,
+   "ainf_win": 0.0,
+   "ainf_med": 0.036091507183589396,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.5217798391638666,
+   "g3_fail": 5,
+   "b_beat_tqqq": 0.37719298245614036,
+   "b_beat_qqq": 0.10526315789473684,
+   "b_worst_cagr": -0.10715437516282345,
+   "a10_ret_med": 0.8410313616620553,
+   "a10_mdd_med": -0.44970793394263575,
+   "trades_a10": 48.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 29%/0.92 · B 29%/0.92 · C 67%/1.08 · D 36%/0.89"
+  },
+  {
+   "name": "pattern sell=all re=sma20",
+   "mode": "pattern",
+   "sell_set": "all",
+   "reenter": "sma20",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.8424184717924303,
+   "a10_win": 0.0,
+   "a10_med": 0.6032572785054366,
+   "a10_min": 0.2785018563310953,
+   "ainf_win": 0.0,
+   "ainf_med": 0.6012184419696531,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.7747434242085334,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.4473684210526316,
+   "b_beat_qqq": 0.39473684210526316,
+   "b_worst_cagr": -0.2660039781242387,
+   "a10_ret_med": 14.519826145843904,
+   "a10_mdd_med": -0.5333734368310827,
+   "trades_a10": 147.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 21%/0.94 · B 36%/0.98 · C 67%/1.17 · D 36%/1.00"
+  },
+  {
+   "name": "pattern sell=all re=either",
+   "mode": "pattern",
+   "sell_set": "all",
+   "reenter": "either",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.8467031659128779,
+   "a10_win": 0.0,
+   "a10_med": 0.6893762166475064,
+   "a10_min": 0.31827158944717865,
+   "ainf_win": 0.0,
+   "ainf_med": 0.6815719143729346,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.7747456096369533,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.4473684210526316,
+   "b_beat_qqq": 0.37719298245614036,
+   "b_worst_cagr": -0.27210819358385663,
+   "a10_ret_med": 16.356887765765542,
+   "a10_mdd_med": -0.5354606421796853,
+   "trades_a10": 148.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 19%/0.94 · B 36%/0.98 · C 67%/1.17 · D 36%/1.00"
+  },
+  {
+   "name": "pattern sell=frequent re=wedge_pop",
+   "mode": "pattern",
+   "sell_set": "frequent",
+   "reenter": "wedge_pop",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.22637467269697692,
+   "a10_win": 0.0,
+   "a10_med": 0.058921324872659483,
+   "a10_min": 0.02226681989976737,
+   "ainf_win": 0.0,
+   "ainf_med": 0.03330106519778134,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.5214735845274932,
+   "g3_fail": 5,
+   "b_beat_tqqq": 0.37719298245614036,
+   "b_beat_qqq": 0.10526315789473684,
+   "b_worst_cagr": -0.11937161586075296,
+   "a10_ret_med": 0.698930366574107,
+   "a10_mdd_med": -0.4657340139322614,
+   "trades_a10": 46.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 29%/0.92 · B 29%/0.92 · C 67%/1.08 · D 36%/0.89"
+  },
+  {
+   "name": "pattern sell=frequent re=sma20",
+   "mode": "pattern",
+   "sell_set": "frequent",
+   "reenter": "sma20",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.8507498214710784,
+   "a10_win": 0.0,
+   "a10_med": 0.3152821983653582,
+   "a10_min": 0.24446166540935518,
+   "ainf_win": 0.0,
+   "ainf_med": 0.33374412626993744,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.7588627299174134,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.3684210526315789,
+   "b_beat_qqq": 0.3684210526315789,
+   "b_worst_cagr": -0.3094971978628376,
+   "a10_ret_med": 8.912125097893245,
+   "a10_mdd_med": -0.7075503647069845,
+   "trades_a10": 138.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 21%/0.95 · B 32%/0.97 · C 67%/1.17 · D 36%/1.00"
+  },
+  {
+   "name": "pattern sell=frequent re=either",
+   "mode": "pattern",
+   "sell_set": "frequent",
+   "reenter": "either",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.8547964770292787,
+   "a10_win": 0.0,
+   "a10_med": 0.3634815419035152,
+   "a10_min": 0.28180405467596714,
+   "ainf_win": 0.0,
+   "ainf_med": 0.38174686002523006,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.75886750162071,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.37719298245614036,
+   "b_beat_qqq": 0.3684210526315789,
+   "b_worst_cagr": -0.3152397056613725,
+   "a10_ret_med": 10.341683826795958,
+   "a10_mdd_med": -0.7075819084725268,
+   "trades_a10": 139.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 21%/0.95 · B 32%/0.97 · C 67%/1.17 · D 36%/1.00"
+  },
+  {
+   "name": "pattern sell=rare re=wedge_pop",
+   "mode": "pattern",
+   "sell_set": "rare",
+   "reenter": "wedge_pop",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.7462508926446084,
+   "a10_win": 0.0,
+   "a10_med": 0.4064980199808038,
+   "a10_min": 0.15486963613530935,
+   "ainf_win": 0.0,
+   "ainf_med": 0.4096365035919529,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.5897997982217233,
+   "g3_fail": 3,
+   "b_beat_tqqq": 0.6052631578947368,
+   "b_beat_qqq": 0.8421052631578947,
+   "b_worst_cagr": -0.08404165439987754,
+   "a10_ret_med": 9.712018633126124,
+   "a10_mdd_med": -0.5890175062277193,
+   "trades_a10": 19.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 10%/1.00 · B 25%/0.94 · C 67%/1.08 · D 27%/1.00"
+  },
+  {
+   "name": "pattern sell=rare re=sma20",
+   "mode": "pattern",
+   "sell_set": "rare",
+   "reenter": "sma20",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.974767912401809,
+   "a10_win": 0.0,
+   "a10_med": 0.8494730233134562,
+   "a10_min": 0.40784529390364754,
+   "ainf_win": 0.0,
+   "ainf_med": 0.64944279095173,
+   "g2_shallow": 0.25,
+   "worst_mdd": -0.8816988486471112,
+   "g3_fail": 3,
+   "b_beat_tqqq": 0.631578947368421,
+   "b_beat_qqq": 0.6228070175438597,
+   "b_worst_cagr": -0.3253983406072355,
+   "a10_ret_med": 19.225070117163234,
+   "a10_mdd_med": -0.6429515454840953,
+   "trades_a10": 22.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 5%/1.00 · B 29%/1.00 · C 33%/1.00 · D 0%/1.00"
+  },
+  {
+   "name": "pattern sell=rare re=either",
+   "mode": "pattern",
+   "sell_set": "rare",
+   "reenter": "either",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.9750059509640562,
+   "a10_win": 0.0,
+   "a10_med": 0.8414854512104777,
+   "a10_min": 0.4040067451592607,
+   "ainf_win": 0.0,
+   "ainf_med": 0.643338528868245,
+   "g2_shallow": 0.25,
+   "worst_mdd": -0.8816984481059544,
+   "g3_fail": 3,
+   "b_beat_tqqq": 0.631578947368421,
+   "b_beat_qqq": 0.6228070175438597,
+   "b_worst_cagr": -0.3253983406072355,
+   "a10_ret_med": 19.034888666868476,
+   "a10_mdd_med": -0.6422952260486989,
+   "trades_a10": 22.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 5%/1.00 · B 29%/1.00 · C 33%/1.00 · D 0%/1.00"
+  },
+  {
+   "name": "sw18+pattern sell=all dd0.05",
+   "mode": "switch18_early",
+   "sell_set": "all",
+   "reenter": "sma20",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.8907402999285884,
+   "a10_win": 0.1111111111111111,
+   "a10_med": 0.5723313532502325,
+   "a10_min": 0.2506071948764377,
+   "ainf_win": 0.0,
+   "ainf_med": 0.6062794393702227,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.6720882520382947,
+   "g3_fail": 3,
+   "b_beat_tqqq": 0.5087719298245614,
+   "b_beat_qqq": 0.7192982456140351,
+   "b_worst_cagr": -0.07302848277767626,
+   "a10_ret_med": 17.55059568214385,
+   "a10_mdd_med": -0.609824230275884,
+   "trades_a10": 61.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 7%/0.97 · B 36%/0.98 · C 33%/0.99 · D 14%/1.00"
+  },
+  {
+   "name": "sw18+pattern sell=all dd0.10",
+   "mode": "switch18_early",
+   "sell_set": "all",
+   "reenter": "sma20",
+   "dd_alarm": 0.1,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.920733158771721,
+   "a10_win": 0.5555555555555556,
+   "a10_med": 1.0567936420868826,
+   "a10_min": 0.4732781481116981,
+   "ainf_win": 0.8333333333333334,
+   "ainf_med": 1.3519196434763858,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.7018092571703661,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.7017543859649122,
+   "b_beat_qqq": 0.8245614035087719,
+   "b_worst_cagr": -0.04257699078640187,
+   "a10_ret_med": 33.90786027759387,
+   "a10_mdd_med": -0.5626760610139308,
+   "trades_a10": 24.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 0%/1.00 · B 29%/0.99 · C 33%/0.99 · D 5%/1.00"
+  },
+  {
+   "name": "sw18+pattern sell=frequent dd0.05",
+   "mode": "switch18_early",
+   "sell_set": "frequent",
+   "reenter": "sma20",
+   "dd_alarm": 0.05,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.8990716496072364,
+   "a10_win": 0.1111111111111111,
+   "a10_med": 0.5206975834813876,
+   "a10_min": 0.2762076159700739,
+   "ainf_win": 0.0,
+   "ainf_med": 0.5695252561330977,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.6493999331076765,
+   "g3_fail": 2,
+   "b_beat_tqqq": 0.5877192982456141,
+   "b_beat_qqq": 0.7631578947368421,
+   "b_worst_cagr": -0.060000974942971186,
+   "a10_ret_med": 16.11248670926028,
+   "a10_mdd_med": -0.6136911216509142,
+   "trades_a10": 57.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 7%/0.97 · B 36%/0.97 · C 33%/0.99 · D 14%/1.00"
+  },
+  {
+   "name": "sw18+pattern sell=frequent dd0.10",
+   "mode": "switch18_early",
+   "sell_set": "frequent",
+   "reenter": "sma20",
+   "dd_alarm": 0.1,
+   "n": 200,
+   "dd": 0.18,
+   "reenter_n": 20,
+   "tim": 0.9295405855748631,
+   "a10_win": 0.6111111111111112,
+   "a10_med": 1.0429049262288472,
+   "a10_min": 0.5669495593351132,
+   "ainf_win": 0.8333333333333334,
+   "ainf_med": 1.3799885560159808,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.6813300607684724,
+   "g3_fail": 1,
+   "b_beat_tqqq": 0.7105263157894737,
+   "b_beat_qqq": 0.7982456140350878,
+   "b_worst_cagr": -0.07905937771200311,
+   "a10_ret_med": 33.32856029669438,
+   "a10_mdd_med": -0.5655718310000568,
+   "trades_a10": 20.5,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 0%/1.00 · B 29%/0.99 · C 33%/0.99 · D 5%/1.00"
+  }
+ ],
+ "slot_rows": [
+  {
+   "component": "pattern sell=all re=wedge_pop",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 0.915042508733413,
+   "ratio_min": 0.3722540853786748,
+   "ratio_max": 1.3494547141360296,
+   "days": 5352,
+   "placebo_pct": 56.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=wedge_pop",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 0.9240649955995481,
+   "ratio_min": 0.7749895762306277,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 50.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=wedge_pop",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.077669438429046,
+   "ratio_min": 0.819468695771411,
+   "ratio_max": 25.801488283905673,
+   "days": 785,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=wedge_pop",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 0.8868630981927457,
+   "ratio_min": 0.670783660984119,
+   "ratio_max": 1.3315023288001604,
+   "days": 1022,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=sma20",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.21428571428571427,
+   "ratio_median": 0.9379096515162118,
+   "ratio_min": 0.5543127549485096,
+   "ratio_max": 1.1156654165227986,
+   "days": 5352,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=sma20",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.35714285714285715,
+   "ratio_median": 0.9767819245426853,
+   "ratio_min": 0.7832992519196719,
+   "ratio_max": 4.051219111644822,
+   "days": 2043,
+   "placebo_pct": 60.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=sma20",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.1691632579579805,
+   "ratio_min": 0.9823942622473485,
+   "ratio_max": 6.039548736328656,
+   "days": 785,
+   "placebo_pct": 100.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=sma20",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.3086777681871802,
+   "days": 1022,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=either",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.19047619047619047,
+   "ratio_median": 0.9379096515162118,
+   "ratio_min": 0.5766120079907979,
+   "ratio_max": 1.1156654165227986,
+   "days": 5352,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=either",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.35714285714285715,
+   "ratio_median": 0.9767819245426853,
+   "ratio_min": 0.7832992519196719,
+   "ratio_max": 3.895269777798105,
+   "days": 2043,
+   "placebo_pct": 60.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=either",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.1691632579579805,
+   "ratio_min": 0.9823942622473485,
+   "ratio_max": 6.039548736328656,
+   "days": 785,
+   "placebo_pct": 100.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=all re=either",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.3066834738692983,
+   "days": 1022,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=wedge_pop",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 0.915042508733413,
+   "ratio_min": 0.3722540853786748,
+   "ratio_max": 1.3494547141360296,
+   "days": 5352,
+   "placebo_pct": 56.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=wedge_pop",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 0.9240649955995481,
+   "ratio_min": 0.6815702119429229,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 50.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=wedge_pop",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.077669438429046,
+   "ratio_min": 0.819468695771411,
+   "ratio_max": 25.801488283905673,
+   "days": 785,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=wedge_pop",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 0.8868630981927457,
+   "ratio_min": 0.670783660984119,
+   "ratio_max": 1.3315023288001604,
+   "days": 1022,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=sma20",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.21428571428571427,
+   "ratio_median": 0.9495044181428276,
+   "ratio_min": 0.5543127549485096,
+   "ratio_max": 1.1156654165227986,
+   "days": 5352,
+   "placebo_pct": 3.3333333333333335,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=sma20",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.32142857142857145,
+   "ratio_median": 0.9709485162870527,
+   "ratio_min": 0.7832992519196719,
+   "ratio_max": 3.3881640979806815,
+   "days": 2043,
+   "placebo_pct": 40.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=sma20",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.1691632579579805,
+   "ratio_min": 0.9823942622473485,
+   "ratio_max": 4.103220314298704,
+   "days": 785,
+   "placebo_pct": 100.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=sma20",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.3086777681871802,
+   "days": 1022,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=either",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.21428571428571427,
+   "ratio_median": 0.9495044181428276,
+   "ratio_min": 0.5766120079907979,
+   "ratio_max": 1.1156654165227986,
+   "days": 5352,
+   "placebo_pct": 3.3333333333333335,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=either",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.32142857142857145,
+   "ratio_median": 0.9709485162870527,
+   "ratio_min": 0.7832992519196719,
+   "ratio_max": 3.257738682943347,
+   "days": 2043,
+   "placebo_pct": 36.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=either",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.1691632579579805,
+   "ratio_min": 0.9823942622473485,
+   "ratio_max": 4.103220314298704,
+   "days": 785,
+   "placebo_pct": 100.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=frequent re=either",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.3066834738692983,
+   "days": 1022,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=wedge_pop",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.09523809523809523,
+   "ratio_median": 1.0,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.110369970026077,
+   "days": 5352,
+   "placebo_pct": 6.666666666666667,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=wedge_pop",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.25,
+   "ratio_median": 0.9406294185931605,
+   "ratio_min": 0.7339002074070677,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 10.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=wedge_pop",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.6666666666666666,
+   "ratio_median": 1.077669438429046,
+   "ratio_min": 0.819468695771411,
+   "ratio_max": 25.801488283905673,
+   "days": 785,
+   "placebo_pct": 96.66666666666667,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=wedge_pop",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.2727272727272727,
+   "ratio_median": 1.0,
+   "ratio_min": 0.670783660984119,
+   "ratio_max": 1.192976059135603,
+   "days": 1022,
+   "placebo_pct": 16.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=sma20",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.047619047619047616,
+   "ratio_median": 1.0,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.0088609216959672,
+   "days": 5352,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=sma20",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8274611670548219,
+   "ratio_max": 2.816248256907994,
+   "days": 2043,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=sma20",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 1.0,
+   "ratio_min": 1.0,
+   "ratio_max": 2.7501030595086973,
+   "days": 785,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=sma20",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.0,
+   "ratio_median": 1.0,
+   "ratio_min": 0.9483987932227446,
+   "ratio_max": 1.0,
+   "days": 1022,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=either",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.047619047619047616,
+   "ratio_median": 1.0,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.0088609216959672,
+   "days": 5352,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=either",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8274611670548219,
+   "ratio_max": 2.816248256907994,
+   "days": 2043,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=either",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 1.0,
+   "ratio_min": 1.0,
+   "ratio_max": 2.7501030595086973,
+   "days": 785,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "pattern sell=rare re=either",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.0,
+   "ratio_median": 1.0,
+   "ratio_min": 0.9483987932227446,
+   "ratio_max": 1.0,
+   "days": 1022,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.05",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.07142857142857142,
+   "ratio_median": 0.9653832198079818,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.132023221494339,
+   "days": 5352,
+   "placebo_pct": 16.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.05",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.35714285714285715,
+   "ratio_median": 0.9783395481692299,
+   "ratio_min": 0.7092796157638087,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 36.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.05",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 0.987002459530739,
+   "ratio_min": 0.7482292988396622,
+   "ratio_max": 12.469174833720023,
+   "days": 785,
+   "placebo_pct": 40.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.05",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.13636363636363635,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.0824711186521794,
+   "days": 1022,
+   "placebo_pct": 80.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.10",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.0,
+   "ratio_median": 1.0,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.0,
+   "days": 5352,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.10",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 0.9943159177037134,
+   "ratio_min": 0.7092796157638087,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.10",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 0.987002459530739,
+   "ratio_min": 0.7482292988396622,
+   "ratio_max": 12.469174833720023,
+   "days": 785,
+   "placebo_pct": 3.3333333333333335,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=all dd0.10",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.045454545454545456,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.031686811993778,
+   "days": 1022,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.05",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.07142857142857142,
+   "ratio_median": 0.9727945414127777,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.132023221494339,
+   "days": 5352,
+   "placebo_pct": 16.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.05",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.35714285714285715,
+   "ratio_median": 0.9729793039744994,
+   "ratio_min": 0.7092796157638087,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 16.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.05",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 0.987002459530739,
+   "ratio_min": 0.7482292988396622,
+   "ratio_max": 12.469174833720023,
+   "days": 785,
+   "placebo_pct": 40.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.05",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.13636363636363635,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.0824711186521794,
+   "days": 1022,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.10",
+   "code": "A",
+   "n": 42,
+   "win_rate": 0.0,
+   "ratio_median": 1.0,
+   "ratio_min": 0.6107127659390847,
+   "ratio_max": 1.0,
+   "days": 5352,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.10",
+   "code": "B",
+   "n": 28,
+   "win_rate": 0.2857142857142857,
+   "ratio_median": 0.9943159177037134,
+   "ratio_min": 0.5984191684249105,
+   "ratio_max": 13.11770165314567,
+   "days": 2043,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.10",
+   "code": "C",
+   "n": 3,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 0.987002459530739,
+   "ratio_min": 0.7482292988396622,
+   "ratio_max": 12.469174833720023,
+   "days": 785,
+   "placebo_pct": 3.3333333333333335,
+   "pass": false
+  },
+  {
+   "component": "sw18+pattern sell=frequent dd0.10",
+   "code": "D",
+   "n": 22,
+   "win_rate": 0.045454545454545456,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8825020274532537,
+   "ratio_max": 1.031686811993778,
+   "days": 1022,
+   "placebo_pct": 0.0,
+   "pass": false
+  }
+ ],
+ "verdicts": {
+  "pattern sell=all re=wedge_pop": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.06388094398407539,
+     "ratio_min": 0.024146895180048093,
+     "ratio_max": 0.13348049623915348
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.036091507183589396,
+     "ratio_min": 0.015048965554125639,
+     "ratio_max": 0.07271445381216038
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.5217798391638666,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.5213687211447757,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 0.2897657131205962,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 0.3443646008190664,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.0429127607103075,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.20199507614387624,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.04294263462683601,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.37719298245614036,
+    "beat_qqq_rate": 0.10526315789473684,
+    "worst_cagr": -0.10715437516282345,
+    "ret_median": 0.38349488722054415,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 0.43481817678995993,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 20,
+    "worst_mdd": -0.8038471935317875
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=all re=sma20": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.6032572785054366,
+     "ratio_min": 0.2785018563310953,
+     "ratio_max": 0.891653517859955
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.6012184419696531,
+     "ratio_min": 0.425563157609777,
+     "ratio_max": 0.7903166485368325
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.7747434242085334,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7747129620664669,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.934061842036836,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.4389764283071504,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 10.762754061269124,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.895640102154586,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.4699875243489644,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.4473684210526316,
+    "beat_qqq_rate": 0.39473684210526316,
+    "worst_cagr": -0.2660039781242387,
+    "ret_median": 1.3768604142780043,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 0.3890099393544314,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 24,
+    "worst_mdd": -0.9872570461446387
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=all re=either": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.6893762166475064,
+     "ratio_min": 0.31827158944717865,
+     "ratio_max": 0.9980967741240448
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.6815719143729346,
+     "ratio_min": 0.48637606223145485,
+     "ratio_max": 0.8831303595866091
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.7747456096369533,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7747180687053494,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 3.177797430482995,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.7008592570982897,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 11.790417884905409,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.895640102154586,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.4699875243489644,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.4473684210526316,
+    "beat_qqq_rate": 0.37719298245614036,
+    "worst_cagr": -0.27210819358385663,
+    "ret_median": 1.3091815246149163,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 0.479231153182442,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 24,
+    "worst_mdd": -0.9890290413898495
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=frequent re=wedge_pop": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.058921324872659483,
+     "ratio_min": 0.02226681989976737,
+     "ratio_max": 0.12312922528551255
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.03330106519778134,
+     "ratio_min": 0.013884641595107917,
+     "ratio_max": 0.06711660964009422
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.5214735845274932,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.5210277457176813,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 0.2897657131205962,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 0.23968886295324143,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 1.1519766158369777,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.20252831612826028,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.04341608876506409,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.37719298245614036,
+    "beat_qqq_rate": 0.10526315789473684,
+    "worst_cagr": -0.11937161586075296,
+    "ret_median": 0.353354810667046,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 0.39685802283463434,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 22,
+    "worst_mdd": -0.832300479066867
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=frequent re=sma20": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.3152821983653582,
+     "ratio_min": 0.24446166540935518,
+     "ratio_max": 0.4949096357862742
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.33374412626993744,
+     "ratio_min": 0.23619145632305602,
+     "ratio_max": 0.43930990800869163
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.7588627299174134,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7588001239309289,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.934061842036836,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.3485217128093074,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 5.971347092888974,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.304645085254171,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.5696980284839663,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.3684210526315789,
+    "beat_qqq_rate": 0.3684210526315789,
+    "worst_cagr": -0.3094971978628376,
+    "ret_median": 1.106029673678029,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.1935438070465993,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 33,
+    "worst_mdd": -0.9928160920651755
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=frequent re=either": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.3634815419035152,
+     "ratio_min": 0.28180405467596714,
+     "ratio_max": 0.5589016407133204
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.38174686002523006,
+     "ratio_min": 0.2723362527245985,
+     "ratio_max": 0.49517981946020423
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.75886750162071,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7588113957822006,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 3.177797430482995,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.635608544555502,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 6.649988391501836,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.304645085254171,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.5696980284839663,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.37719298245614036,
+    "beat_qqq_rate": 0.3684210526315789,
+    "worst_cagr": -0.3152397056613725,
+    "ret_median": 1.0950844042240842,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.14116268334722898,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 32,
+    "worst_mdd": -0.9938287413003771
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=rare re=wedge_pop": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.4064980199808038,
+     "ratio_min": 0.15486963613530935,
+     "ratio_max": 0.9561514723247789
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.4096365035919529,
+     "ratio_min": 0.2968409482008795,
+     "ratio_max": 0.6702315835137354
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.5897997982217233,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.5890175062277193,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 3.0888467924518928,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.2977307852647275,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 2.775559798393766,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.8347129292887692,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 2.2291273991532994,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.6052631578947368,
+    "beat_qqq_rate": 0.8421052631578947,
+    "worst_cagr": -0.08404165439987754,
+    "ret_median": 7.2895920239196,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 16.314305711210107,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 8,
+    "worst_mdd": -0.9035492439112285
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=rare re=sma20": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.8494730233134562,
+     "ratio_min": 0.40784529390364754,
+     "ratio_max": 0.9281294068367012
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.64944279095173,
+     "ratio_min": 0.49250977424459536,
+     "ratio_max": 0.8542106409725307
+    }
+   },
+   "G2": {
+    "passed": false,
+    "n": 36,
+    "shallower_rate": 0.25,
+    "worst_mdd": -0.8816988486471112,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 0.0
+    },
+    "mdd_median": -0.8816129578315551,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 4.212787005644433,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.751138443582703,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 9.723779348972577,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.0025811177457786,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.33346113378622677,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.631578947368421,
+    "beat_qqq_rate": 0.6228070175438597,
+    "worst_cagr": -0.3253983406072355,
+    "ret_median": 4.283224921697087,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.5094606663256044,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 36,
+    "worst_mdd": -0.9981462724441084
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "pattern sell=rare re=either": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.8414854512104777,
+     "ratio_min": 0.4040067451592607,
+     "ratio_max": 0.9193955331471094
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.643338528868245,
+     "ratio_min": 0.48787496756109805,
+     "ratio_max": 0.8462002125581277
+    }
+   },
+   "G2": {
+    "passed": false,
+    "n": 36,
+    "shallower_rate": 0.25,
+    "worst_mdd": -0.8816984481059544,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 0.0
+    },
+    "mdd_median": -0.8816117430560224,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 4.212787005644433,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.716018051908356,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 9.623561933920577,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.0025811177457786,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.33346113378622677,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.631578947368421,
+    "beat_qqq_rate": 0.6228070175438597,
+    "worst_cagr": -0.3253983406072355,
+    "ret_median": 4.283224921697087,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": -0.5094606663256044,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 36,
+    "worst_mdd": -0.9981462724441084
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "sw18+pattern sell=all dd0.05": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.1111111111111111,
+     "ratio_median": 0.5723313532502325,
+     "ratio_min": 0.2506071948764377,
+     "ratio_max": 1.4528549260372585
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.6062794393702227,
+     "ratio_min": 0.31468973498726777,
+     "ratio_max": 0.7234381086190046
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.6720882520382947,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6720413534231467,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.455166850715959,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.49694525396392,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 7.438573567499155,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.161242247532326,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.3638079614198051,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.5087719298245614,
+    "beat_qqq_rate": 0.7192982456140351,
+    "worst_cagr": -0.07302848277767626,
+    "ret_median": 4.6293934690093455,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 5.214394981417897,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 14,
+    "worst_mdd": -0.845713936748226
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "sw18+pattern sell=all dd0.10": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.5555555555555556,
+     "ratio_median": 1.0567936420868826,
+     "ratio_min": 0.4732781481116981,
+     "ratio_max": 2.73449051345146
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.8333333333333334,
+     "ratio_median": 1.3519196434763858,
+     "ratio_min": 0.8866252368260001,
+     "ratio_max": 1.6332469233066529
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.7018092571703661,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7017308416140577,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 3.9689772052251424,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 3.303146178267384,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 10.06858114724563,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 3.546075620720001,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.9971275916647369,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.7017543859649122,
+    "beat_qqq_rate": 0.8245614035087719,
+    "worst_cagr": -0.04257699078640187,
+    "ret_median": 4.704105444679198,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 3.476343819482936,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 3,
+    "worst_mdd": -0.901752405456573
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "sw18+pattern sell=frequent dd0.05": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.1111111111111111,
+     "ratio_median": 0.5206975834813876,
+     "ratio_min": 0.2762076159700739,
+     "ratio_max": 1.3247567659378436
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.5695252561330977,
+     "ratio_min": 0.30161752773221445,
+     "ratio_max": 0.6609922845617834
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.6493999331076765,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6493389503166223,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.633377018362874,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.603462539197655,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 7.083480573737592,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.798279401340407,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.456751049632214,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.5877192982456141,
+    "beat_qqq_rate": 0.7631578947368421,
+    "worst_cagr": -0.060000974942971186,
+    "ret_median": 5.013420227256802,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 5.6341172458654984,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 9,
+    "worst_mdd": -0.839484547748105
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  },
+  "sw18+pattern sell=frequent dd0.10": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.6111111111111112,
+     "ratio_median": 1.0429049262288472,
+     "ratio_min": 0.5669495593351132,
+     "ratio_max": 2.6212132131941166
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.8333333333333334,
+     "ratio_median": 1.3799885560159808,
+     "ratio_min": 0.9194777425398678,
+     "ratio_max": 1.563717941857044
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.6813300607684724,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6812382585303173,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 4.349836513648255,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 3.7722791314297757,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 9.010524963629269,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 2.912663372625203,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.1339744408104222,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "n": 114,
+    "beat_tqqq_rate": 0.7105263157894737,
+    "beat_qqq_rate": 0.7982456140350878,
+    "worst_cagr": -0.07905937771200311,
+    "ret_median": 4.264868167568801,
+    "tqqq_ret_median": 2.0318011762482033,
+    "qqq_ret_median": 1.8896850306556587,
+    "dotcom_n": 40,
+    "dotcom_strat_median": 3.0154731462175026,
+    "dotcom_qqq_median": 1.404770425764899,
+    "loss_windows": 8,
+    "worst_mdd": -0.9159822180106264
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0
+  }
+ },
+ "elapsed_s": 51.18719720840454
+}

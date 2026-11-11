@@ -52,6 +52,8 @@ class CostParams:
     rebalance_band: float = 0.0   # 목표 비중과 현재 비중 차이가 이 이하(자본 대비)면 거래 안 함 — 잔거래·세금 억제.
                                   # 0 이면 현금 이자 재투자 같은 미세 거래도 '매매' 로 세어진다 (CLI 기본 0.02, 페이지 기본 0.05)
     exec_lag: int = 0             # 0 = 신호 종가에 체결, 1 = 다음날 종가
+    dividend_yield: float = 0.0   # 연 배당수익률(가격이 배당 재투자 조정이라 배당세만 드래그로) — H13
+    dividend_tax_rate: float = 0.154
 
 
 @dataclass
@@ -250,6 +252,9 @@ def simulate_exposure(price: pd.Series, target: pd.Series, costs: CostParams = C
         p = float(p)
         if i > 0:
             led.cash *= 1.0 + float(rate.iloc[i])
+            if costs.dividend_yield > 0 and led.shares > 0:           # 배당세 드래그(H13)
+                dtax = led.shares * p * costs.dividend_yield * costs.dividend_tax_rate / TRADING_DAYS
+                led.cash -= dtax; led.tax += dtax
         equity = led.equity(p)
         want = float(tgt.iloc[i]) * equity
         have = led.shares * p

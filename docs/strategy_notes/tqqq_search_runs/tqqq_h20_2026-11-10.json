@@ -1,0 +1,1521 @@
+{
+ "cfg": {
+  "out": "/app/sweep_results/tqqq_h20_2026-11-10.json",
+  "md": "/app/sweep_results/tqqq_h20_2026-11-10.md",
+  "n_trials": 15,
+  "placebo_seeds": 30
+ },
+ "rows": [
+  {
+   "name": "intraday stop x3%",
+   "rule": "stop",
+   "x": 0.03,
+   "lag": 0,
+   "exit_days_per_year": 60.85880077369439,
+   "exposure": 0.8156396794694668,
+   "a10_win": 0.0,
+   "a10_med": 0.18647022059228024,
+   "a10_min": 0.1133222184165261,
+   "ainf_win": 0.0,
+   "ainf_med": 0.10633803258473642,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.7730179232566631,
+   "g3_fail": 5,
+   "a10_ret_med": 4.923002318349969,
+   "a10_mdd_med": -0.5783949084048698,
+   "g5": 100.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 27%/0.97 · B 36%/0.90 · C 0%/0.64 · D 11%/0.92"
+  },
+  {
+   "name": "intraday stop x5%",
+   "rule": "stop",
+   "x": 0.05,
+   "lag": 0,
+   "exit_days_per_year": 28.897485493230175,
+   "exposure": 0.910914617297596,
+   "a10_win": 0.0,
+   "a10_med": 0.5042431339441773,
+   "a10_min": 0.32468844409763764,
+   "ainf_win": 0.0,
+   "ainf_med": 0.3053097750762117,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.7774760603257154,
+   "g3_fail": 3,
+   "a10_ret_med": 14.490011068273164,
+   "a10_mdd_med": -0.5640710969869067,
+   "g5": 100.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 40%/0.93 · B 36%/1.00 · C 0%/0.62 · D 11%/0.98"
+  },
+  {
+   "name": "intraday stop x8%",
+   "rule": "stop",
+   "x": 0.08,
+   "lag": 0,
+   "exit_days_per_year": 10.166344294003869,
+   "exposure": 0.9684443216358111,
+   "a10_win": 0.0,
+   "a10_med": 0.5434964935345994,
+   "a10_min": 0.37677464791274873,
+   "ainf_win": 0.0,
+   "ainf_med": 0.4572718098847933,
+   "g2_shallow": 0.9722222222222222,
+   "worst_mdd": -0.7834112762570211,
+   "g3_fail": 2,
+   "a10_ret_med": 12.64467929593627,
+   "a10_mdd_med": -0.6086367643412063,
+   "g5": 96.66666666666667,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 27%/1.00 · B 36%/1.00 · C 0%/0.96 · D 22%/1.00"
+  },
+  {
+   "name": "intraday stop x5% lag1",
+   "rule": "stop",
+   "x": 0.05,
+   "lag": 1,
+   "exit_days_per_year": 23.67504835589942,
+   "exposure": 0.8329649074329926,
+   "a10_win": 0.4444444444444444,
+   "a10_med": 0.5959555160892547,
+   "a10_min": 0.3350149265438753,
+   "ainf_win": 0.1111111111111111,
+   "ainf_med": 0.7420608164057836,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.5628228780594302,
+   "g3_fail": 1,
+   "a10_ret_med": 19.328313511897857,
+   "a10_mdd_med": -0.56282287805943,
+   "g5": 100.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 33%/0.97 · B 27%/0.97 · C 100%/1.27 · D 22%/0.97"
+  },
+  {
+   "name": "intraday stop_vwap x5%",
+   "rule": "stop_vwap",
+   "x": 0.05,
+   "lag": 0,
+   "exit_days_per_year": 20.95938104448743,
+   "exposure": 0.8058856037579442,
+   "a10_win": 0.0,
+   "a10_med": 0.38313969755046334,
+   "a10_min": 0.19029376123313024,
+   "ainf_win": 0.0,
+   "ainf_med": 0.28521923408340555,
+   "g2_shallow": 1.0,
+   "worst_mdd": -0.6078447316577713,
+   "g3_fail": 3,
+   "a10_ret_med": 10.721957253329528,
+   "a10_mdd_med": -0.6078447316577711,
+   "g5": 80.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 20%/0.95 · B 36%/0.99 · C 0%/0.87 · D 33%/0.97"
+  },
+  {
+   "name": "intraday vwap",
+   "rule": "vwap",
+   "x": 0.05,
+   "lag": 0,
+   "exit_days_per_year": 62.73887814313346,
+   "exposure": 0.571704890853827,
+   "a10_win": 0.0,
+   "a10_med": 0.012401182647409498,
+   "a10_min": 0.006335910608115169,
+   "ainf_win": 0.0,
+   "ainf_med": 0.005793990536730078,
+   "g2_shallow": 0.08333333333333333,
+   "worst_mdd": -0.9256654432750746,
+   "g3_fail": 5,
+   "a10_ret_med": -0.6165393975448754,
+   "a10_mdd_med": -0.812472719986479,
+   "g5": 0.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 13%/0.80 · B 9%/0.85 · C 0%/0.65 · D 22%/0.87"
+  },
+  {
+   "name": "intraday orb",
+   "rule": "orb",
+   "x": 0.05,
+   "lag": 0,
+   "exit_days_per_year": 42.75435203094778,
+   "exposure": 0.8390439347886156,
+   "a10_win": 0.0,
+   "a10_med": 0.15618237103033006,
+   "a10_min": 0.08936343727693084,
+   "ainf_win": 0.0,
+   "ainf_med": 0.16517059533675182,
+   "g2_shallow": 0.75,
+   "worst_mdd": -0.6992207764323517,
+   "g3_fail": 3,
+   "a10_ret_med": 4.002594280003757,
+   "a10_mdd_med": -0.6992207764323515,
+   "g5": 90.0,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 27%/0.93 · B 64%/1.01 · C 100%/1.14 · D 11%/0.92"
+  },
+  {
+   "name": "intraday overnight",
+   "rule": "overnight",
+   "x": 0.05,
+   "lag": 0,
+   "exit_days_per_year": 0.0,
+   "exposure": 0.3003868471953578,
+   "a10_win": 0.0,
+   "a10_med": 0.000369892475918085,
+   "a10_min": 0.00023222874128622854,
+   "ainf_win": 0.0,
+   "ainf_med": 4.333197183909105e-05,
+   "g2_shallow": 0.0,
+   "worst_mdd": -0.9990704133773587,
+   "g3_fail": 5,
+   "a10_ret_med": -0.9880434407275316,
+   "a10_mdd_med": -0.9929240182878951,
+   "g5": null,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 13%/0.71 · B 0%/0.83 · C 0%/0.50 · D 22%/0.76"
+  },
+  {
+   "name": "intraday intraday",
+   "rule": "intraday",
+   "x": 0.05,
+   "lag": 0,
+   "exit_days_per_year": 0.0,
+   "exposure": 0.7001657916551532,
+   "a10_win": 0.0,
+   "a10_med": 1.909316460185916e-05,
+   "a10_min": 8.37276900923642e-06,
+   "ainf_win": 0.0,
+   "ainf_med": 2.6878121741462515e-06,
+   "g2_shallow": 0.0,
+   "worst_mdd": -0.9999682437858184,
+   "g3_fail": 5,
+   "a10_ret_med": -0.9993098302380008,
+   "a10_mdd_med": -0.9995027357056007,
+   "g5": null,
+   "first_fail": "G1",
+   "passed_through": 0,
+   "slots": "A 7%/0.53 · B 18%/0.88 · C 0%/0.87 · D 22%/0.81"
+  }
+ ],
+ "slot_rows": [
+  {
+   "component": "intraday stop x3%",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.26666666666666666,
+   "ratio_median": 0.965688986856104,
+   "ratio_min": 0.5812822223284616,
+   "ratio_max": 1.0692983239402312,
+   "days": 2367,
+   "placebo_pct": 73.33333333333333,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x3%",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 0.9014158888052662,
+   "ratio_min": 0.7410531578047834,
+   "ratio_max": 1.7678017226687086,
+   "days": 530,
+   "placebo_pct": 6.666666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x3%",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.6379566216928917,
+   "ratio_min": 0.6379566216928917,
+   "ratio_max": 0.6379566216928917,
+   "days": 148,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x3%",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.1111111111111111,
+   "ratio_median": 0.92091109942972,
+   "ratio_min": 0.8064866723602525,
+   "ratio_max": 1.077415818198971,
+   "days": 413,
+   "placebo_pct": 16.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5%",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.4,
+   "ratio_median": 0.9266865178601433,
+   "ratio_min": 0.7843527128705872,
+   "ratio_max": 1.2178558708910197,
+   "days": 2367,
+   "placebo_pct": 3.3333333333333335,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5%",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 1.0,
+   "ratio_min": 0.9030193618066414,
+   "ratio_max": 1.9205716997666336,
+   "days": 530,
+   "placebo_pct": 86.66666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5%",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.6235066034054876,
+   "ratio_min": 0.6235066034054876,
+   "ratio_max": 0.6235066034054876,
+   "days": 148,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5%",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.1111111111111111,
+   "ratio_median": 0.9842225104834278,
+   "ratio_min": 0.8801198394522269,
+   "ratio_max": 1.043788685290604,
+   "days": 413,
+   "placebo_pct": 30.0,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x8%",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.26666666666666666,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8607482560936607,
+   "ratio_max": 1.1022001024273687,
+   "days": 2367,
+   "placebo_pct": 10.0,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x8%",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 1.0,
+   "ratio_min": 0.8581801920445035,
+   "ratio_max": 1.3625703513888345,
+   "days": 530,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x8%",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.9582738258782634,
+   "ratio_min": 0.9582738258782634,
+   "ratio_max": 0.9582738258782634,
+   "days": 148,
+   "placebo_pct": 30.0,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x8%",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.2222222222222222,
+   "ratio_median": 1.0,
+   "ratio_min": 0.9212008413173888,
+   "ratio_max": 1.0621080646121805,
+   "days": 413,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5% lag1",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 0.9656528184486467,
+   "ratio_min": 0.7226456978082358,
+   "ratio_max": 1.076750880771912,
+   "days": 2367,
+   "placebo_pct": 16.666666666666664,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5% lag1",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.2727272727272727,
+   "ratio_median": 0.96808030227627,
+   "ratio_min": 0.7225300665383552,
+   "ratio_max": 2.281525325277683,
+   "days": 530,
+   "placebo_pct": 53.333333333333336,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5% lag1",
+   "code": "C",
+   "n": 1,
+   "win_rate": 1.0,
+   "ratio_median": 1.2687044813381785,
+   "ratio_min": 1.2687044813381785,
+   "ratio_max": 1.2687044813381785,
+   "days": 148,
+   "placebo_pct": 96.66666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday stop x5% lag1",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.2222222222222222,
+   "ratio_median": 0.974146622617028,
+   "ratio_min": 0.8553538918131419,
+   "ratio_max": 1.0878345937608174,
+   "days": 413,
+   "placebo_pct": 66.66666666666666,
+   "pass": false
+  },
+  {
+   "component": "intraday stop_vwap x5%",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.2,
+   "ratio_median": 0.9523240830671509,
+   "ratio_min": 0.6880523534873071,
+   "ratio_max": 1.180438397547028,
+   "days": 2367,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "intraday stop_vwap x5%",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.36363636363636365,
+   "ratio_median": 0.9941651519154074,
+   "ratio_min": 0.6759545563284388,
+   "ratio_max": 2.156146077992637,
+   "days": 530,
+   "placebo_pct": 96.66666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday stop_vwap x5%",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.8698748340545222,
+   "ratio_min": 0.8698748340545222,
+   "ratio_max": 0.8698748340545222,
+   "days": 148,
+   "placebo_pct": 10.0,
+   "pass": false
+  },
+  {
+   "component": "intraday stop_vwap x5%",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.3333333333333333,
+   "ratio_median": 0.9711863590971056,
+   "ratio_min": 0.8210661936733381,
+   "ratio_max": 1.1431758211442173,
+   "days": 413,
+   "placebo_pct": 53.333333333333336,
+   "pass": false
+  },
+  {
+   "component": "intraday vwap",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.13333333333333333,
+   "ratio_median": 0.7983084705857787,
+   "ratio_min": 0.5780139237449019,
+   "ratio_max": 1.127234995154087,
+   "days": 2367,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "intraday vwap",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.09090909090909091,
+   "ratio_median": 0.8523465372394671,
+   "ratio_min": 0.6792722266135139,
+   "ratio_max": 1.3678064135874737,
+   "days": 530,
+   "placebo_pct": 43.333333333333336,
+   "pass": false
+  },
+  {
+   "component": "intraday vwap",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.6533465183643061,
+   "ratio_min": 0.6533465183643061,
+   "ratio_max": 0.6533465183643061,
+   "days": 148,
+   "placebo_pct": 3.3333333333333335,
+   "pass": false
+  },
+  {
+   "component": "intraday vwap",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.2222222222222222,
+   "ratio_median": 0.8724898536594483,
+   "ratio_min": 0.6177865155597817,
+   "ratio_max": 1.1307649672741162,
+   "days": 413,
+   "placebo_pct": 90.0,
+   "pass": false
+  },
+  {
+   "component": "intraday orb",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.26666666666666666,
+   "ratio_median": 0.931875623805467,
+   "ratio_min": 0.3729168286716027,
+   "ratio_max": 1.097372033449511,
+   "days": 2367,
+   "placebo_pct": 13.333333333333334,
+   "pass": false
+  },
+  {
+   "component": "intraday orb",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.6363636363636364,
+   "ratio_median": 1.0142974400123619,
+   "ratio_min": 0.877952533141804,
+   "ratio_max": 1.6038744011998942,
+   "days": 530,
+   "placebo_pct": 90.0,
+   "pass": false
+  },
+  {
+   "component": "intraday orb",
+   "code": "C",
+   "n": 1,
+   "win_rate": 1.0,
+   "ratio_median": 1.1350381090273165,
+   "ratio_min": 1.1350381090273165,
+   "ratio_max": 1.1350381090273165,
+   "days": 148,
+   "placebo_pct": 96.66666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday orb",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.1111111111111111,
+   "ratio_median": 0.9228395781320207,
+   "ratio_min": 0.8007916668117538,
+   "ratio_max": 1.0538464782031935,
+   "days": 413,
+   "placebo_pct": 10.0,
+   "pass": false
+  },
+  {
+   "component": "intraday overnight",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.13333333333333333,
+   "ratio_median": 0.7109016172335748,
+   "ratio_min": 0.14373296076506603,
+   "ratio_max": 1.0904857227507847,
+   "days": 2367,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "intraday overnight",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.0,
+   "ratio_median": 0.8282098212609745,
+   "ratio_min": 0.5965399414669893,
+   "ratio_max": 0.9846076171919325,
+   "days": 530,
+   "placebo_pct": 76.66666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday overnight",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.502898853871559,
+   "ratio_min": 0.502898853871559,
+   "ratio_max": 0.502898853871559,
+   "days": 148,
+   "placebo_pct": 6.666666666666667,
+   "pass": false
+  },
+  {
+   "component": "intraday overnight",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.2222222222222222,
+   "ratio_median": 0.7632828667461437,
+   "ratio_min": 0.6308827879375662,
+   "ratio_max": 1.0830218536735172,
+   "days": 413,
+   "placebo_pct": 60.0,
+   "pass": false
+  },
+  {
+   "component": "intraday intraday",
+   "code": "A",
+   "n": 15,
+   "win_rate": 0.06666666666666667,
+   "ratio_median": 0.529112920482747,
+   "ratio_min": 0.053122609531990134,
+   "ratio_max": 1.0090216841357154,
+   "days": 2367,
+   "placebo_pct": 0.0,
+   "pass": false
+  },
+  {
+   "component": "intraday intraday",
+   "code": "B",
+   "n": 11,
+   "win_rate": 0.18181818181818182,
+   "ratio_median": 0.8780427673764771,
+   "ratio_min": 0.6424862484047831,
+   "ratio_max": 1.2318189941905495,
+   "days": 530,
+   "placebo_pct": 100.0,
+   "pass": false
+  },
+  {
+   "component": "intraday intraday",
+   "code": "C",
+   "n": 1,
+   "win_rate": 0.0,
+   "ratio_median": 0.8655347711556046,
+   "ratio_min": 0.8655347711556046,
+   "ratio_max": 0.8655347711556046,
+   "days": 148,
+   "placebo_pct": 70.0,
+   "pass": false
+  },
+  {
+   "component": "intraday intraday",
+   "code": "D",
+   "n": 9,
+   "win_rate": 0.2222222222222222,
+   "ratio_median": 0.8064944054781887,
+   "ratio_min": 0.6188390381238825,
+   "ratio_max": 1.026943375363858,
+   "days": 413,
+   "placebo_pct": 83.33333333333334,
+   "pass": false
+  }
+ ],
+ "verdicts": {
+  "intraday stop x3%": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.18647022059228024,
+     "ratio_min": 0.1133222184165261,
+     "ratio_max": 0.4042699602355188
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.10633803258473642,
+     "ratio_min": 0.04683177850637106,
+     "ratio_max": 0.17488368445681857
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.7730179232566631,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7729455343712512,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 0.7790345620534331,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.218859660268044,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 4.048775619947279,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.12787259510914217,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": -0.19152988961732065,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": true,
+    "percentile": 100.0,
+    "strat_median": 0.14251247246822799,
+    "placebo_median": 0.051745004699782084,
+    "placebo_max": 0.12192684114642527
+   }
+  },
+  "intraday stop x5%": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.5042431339441773,
+     "ratio_min": 0.32468844409763764,
+     "ratio_max": 0.9059196213351353
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.3053097750762117,
+     "ratio_min": 0.21710030306468345,
+     "ratio_max": 0.44663224687787
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.7774760603257154,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7774345935675353,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 3.116052685086925,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 4.718185607157845,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 5.314191318028884,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.28779662579374965,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.018673279033531998,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": true,
+    "percentile": 100.0,
+    "strat_median": 0.4049023535141183,
+    "placebo_median": 0.18705630839856646,
+    "placebo_max": 0.3480540246567301
+   }
+  },
+  "intraday stop x8%": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.5434964935345994,
+     "ratio_min": 0.37677464791274873,
+     "ratio_max": 0.6816129614686608
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.4572718098847933,
+     "ratio_min": 0.35570133256831765,
+     "ratio_max": 0.5145107616488034
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.9722222222222222,
+    "worst_mdd": -0.7834112762570211,
+    "per_bundle": {
+     "A-10": 0.9444444444444444,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.7833647833956506,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 5.427788795368922,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": true
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.779469837805149,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 5.174817479789138,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.1188984681047804,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.17391533734280995,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 2
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": true,
+    "percentile": 96.66666666666667,
+    "strat_median": 0.4923433390170651,
+    "placebo_median": 0.3895812401695386,
+    "placebo_max": 0.5260407373485798
+   }
+  },
+  "intraday stop x5% lag1": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.4444444444444444,
+     "ratio_median": 0.5959555160892547,
+     "ratio_min": 0.3350149265438753,
+     "ratio_max": 1.5597935524088897
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.1111111111111111,
+     "ratio_median": 0.7420608164057836,
+     "ratio_min": 0.43419781362791693,
+     "ratio_max": 1.0704548294769511
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.5628228780594302,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.56282287805943,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.509077482586557,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 5.2324152147928915,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 6.88207725245353,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": true
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.7692918798685402,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 1.3761772158949341,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 1
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": true,
+    "percentile": 100.0,
+    "strat_median": 0.7202263484843484,
+    "placebo_median": 0.23133333544231174,
+    "placebo_max": 0.35071159955847137
+   }
+  },
+  "intraday stop_vwap x5%": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.38313969755046334,
+     "ratio_min": 0.19029376123313024,
+     "ratio_max": 0.9010745971401372
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.28521923408340555,
+     "ratio_min": 0.17897170701684437,
+     "ratio_max": 0.5125798259852361
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 1.0,
+    "worst_mdd": -0.6078447316577713,
+    "per_bundle": {
+     "A-10": 1.0,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6078447316577711,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 2.184515669232968,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 3.987364007266218,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": true
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 5.009812348097271,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 0.576849669326321,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.48337488318402055,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": false,
+    "percentile": 80.0,
+    "strat_median": 0.30744750513465813,
+    "placebo_median": 0.25186692931066945,
+    "placebo_max": 0.42904278458656936
+   }
+  },
+  "intraday vwap": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.012401182647409498,
+     "ratio_min": 0.006335910608115169,
+     "ratio_max": 0.027402759913582347
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.005793990536730078,
+     "ratio_min": 0.0015214100210748256,
+     "ratio_max": 0.016113268704437262
+    }
+   },
+   "G2": {
+    "passed": false,
+    "n": 36,
+    "shallower_rate": 0.08333333333333333,
+    "worst_mdd": -0.9256654432750746,
+    "per_bundle": {
+     "A-10": 0.16666666666666666,
+     "A-∞": 0.0
+    },
+    "mdd_median": -0.923493412530312,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": -0.2322026431816322,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 0.33402348876679344,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": -0.6107165846753186,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": -0.7973418670620724,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": -0.4950700193955079,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": false,
+    "percentile": 0.0,
+    "strat_median": 0.010156829510304562,
+    "placebo_median": 0.12304220529729885,
+    "placebo_max": 0.5338474103104949
+   }
+  },
+  "intraday orb": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.15618237103033006,
+     "ratio_min": 0.08936343727693084,
+     "ratio_max": 0.3498590073871997
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.16517059533675182,
+     "ratio_min": 0.09337828800166777,
+     "ratio_max": 0.31769844368564004
+    }
+   },
+   "G2": {
+    "passed": true,
+    "n": 36,
+    "shallower_rate": 0.75,
+    "worst_mdd": -0.6992207764323517,
+    "per_bundle": {
+     "A-10": 0.5,
+     "A-∞": 1.0
+    },
+    "mdd_median": -0.6992207764323515,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": 0.9972413532634898,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": 2.040308658313366,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": 2.4648726755751245,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": 1.2804797986412915,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": true
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": 0.8369558537803263,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": true
+     }
+    ],
+    "n_fail": 3
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": false,
+    "percentile": 90.0,
+    "strat_median": 0.16517059533675182,
+    "placebo_median": 0.10954077014049753,
+    "placebo_max": 0.32874147067221926
+   }
+  },
+  "intraday overnight": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 0.000369892475918085,
+     "ratio_min": 0.00023222874128622854,
+     "ratio_max": 0.0006423488418649171
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 4.333197183909105e-05,
+     "ratio_min": 7.656025432440426e-06,
+     "ratio_max": 0.00021536638867863622
+    }
+   },
+   "G2": {
+    "passed": false,
+    "n": 36,
+    "shallower_rate": 0.0,
+    "worst_mdd": -0.9990704133773587,
+    "per_bundle": {
+     "A-10": 0.0,
+     "A-∞": 0.0
+    },
+    "mdd_median": -0.9959967877368098,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": -0.8283016802875136,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": -0.8820040013245042,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": -0.8688043555263846,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": -0.9479791839704954,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": -0.9232680870109662,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": false,
+    "error": "결정적 규칙 — 플라세보 없음"
+   }
+  },
+  "intraday intraday": {
+   "G1": {
+    "passed": false,
+    "A-10": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 1.909316460185916e-05,
+     "ratio_min": 8.37276900923642e-06,
+     "ratio_max": 4.777911531635858e-05
+    },
+    "A-∞": {
+     "n": 18,
+     "win_rate": 0.0,
+     "ratio_median": 2.6878121741462515e-06,
+     "ratio_min": 2.9302972739738957e-07,
+     "ratio_max": 3.292095717084189e-05
+    }
+   },
+   "G2": {
+    "passed": false,
+    "n": 36,
+    "shallower_rate": 0.0,
+    "worst_mdd": -0.9999682437858184,
+    "per_bundle": {
+     "A-10": 0.0,
+     "A-∞": 0.0
+    },
+    "mdd_median": -0.9996010644504838,
+    "tqqq_mdd_median": -0.8165984644944917
+   },
+   "G3": {
+    "passed": false,
+    "windows": [
+     {
+      "start": "2010-02-11",
+      "end": "2015-02-11",
+      "strat_ret": -0.970362574735185,
+      "floor": 4.7526042486625455,
+      "tqqq_ret": 6.789434640946494,
+      "ok": false
+     },
+     {
+      "start": "2015-02-11",
+      "end": "2020-02-11",
+      "strat_ret": -0.9705643755637225,
+      "floor": 3.0712497425822844,
+      "tqqq_ret": 4.387499632260407,
+      "ok": false
+     },
+     {
+      "start": "2016-01-04",
+      "end": "2020-12-31",
+      "strat_ret": -0.9732453677099988,
+      "floor": 5.018650837881449,
+      "tqqq_ret": 7.169501196973499,
+      "ok": false
+     },
+     {
+      "start": "2020-02-11",
+      "end": "2024-06-30",
+      "strat_ret": -0.9537613575922593,
+      "floor": 0.9504280707649457,
+      "tqqq_ret": 1.3577543868070654,
+      "ok": false
+     },
+     {
+      "start": "2021-01-01",
+      "end": "2024-06-30",
+      "strat_ret": -0.8875588529331967,
+      "floor": 0.409097286274231,
+      "tqqq_ret": 0.5844246946774728,
+      "ok": false
+     }
+    ],
+    "n_fail": 5
+   },
+   "G4": {
+    "passed": false,
+    "error": "B 표본 없음(장중 자료 2010~)"
+   },
+   "G5": {
+    "passed": false,
+    "error": "플라세보 없음"
+   },
+   "G6": {
+    "passed": false,
+    "error": "이웃 없음"
+   },
+   "first_fail": "G1",
+   "passed_through": 0,
+   "G5_diag": {
+    "passed": false,
+    "error": "결정적 규칙 — 플라세보 없음"
+   }
+  }
+ },
+ "elapsed_s": 36.99440097808838
+}

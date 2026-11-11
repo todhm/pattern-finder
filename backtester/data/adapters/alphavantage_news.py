@@ -80,6 +80,10 @@ class AlphaVantageNewsAdapter(NewsCatalystPort):
             out = capped
         return out
 
+    def fetch_feed(self, symbol: str, start: date, end: date) -> list[dict]:
+        """원본 feed(ticker_sentiment·topics 포함)를 캐시에서/API 로. 1000 건이면 잘린 것이니 호출 쪽에서 창을 나눠라."""
+        return self._cached_feed(symbol, start, end)
+
     # ---- internals ----------------------------------------------------
 
     def _cached_feed(self, symbol: str, start: date, end: date) -> list[dict]:
