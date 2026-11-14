@@ -1,0 +1,259 @@
+{
+ "hold": 63,
+ "n": 16,
+ "thr": 0.51,
+ "codes": {
+  "D01": {
+   "date": "2018-12-07",
+   "symbols": {
+    "A": "MDB",
+    "B": "DXCM",
+    "C": "AMD",
+    "D": "ETSY",
+    "E": "SRPT",
+    "F": "LOXO",
+    "G": "XYZ",
+    "H": "AMED",
+    "I": "TNDM",
+    "J": "HQY",
+    "K": "GOOS",
+    "L": "LULU",
+    "M": "TTD",
+    "N": "ABMD",
+    "O": "WWE",
+    "P": "TWLO"
+   }
+  },
+  "D02": {
+   "date": "2023-08-01",
+   "symbols": {
+    "A": "WFRD",
+    "B": "ACLS",
+    "C": "PEN",
+    "D": "RCL",
+    "E": "SMCI",
+    "F": "TDW",
+    "G": "OPRA",
+    "H": "VRT",
+    "I": "AEHR",
+    "J": "RMBS",
+    "K": "NVDA",
+    "L": "ELF",
+    "M": "SYM",
+    "N": "MLCO",
+    "O": "ROIV",
+    "P": "ANF"
+   }
+  },
+  "D03": {
+   "date": "2019-07-18",
+   "symbols": {
+    "A": "TNDM",
+    "B": "OKTA",
+    "C": "PAYC",
+    "D": "IIPR",
+    "E": "SMAR",
+    "F": "TWLO",
+    "G": "AYX",
+    "H": "TTD",
+    "I": "CYBR",
+    "J": "MRTX",
+    "K": "VEEV",
+    "L": "TEAM",
+    "M": "ROKU",
+    "N": "OLED",
+    "O": "MDB",
+    "P": "ENPH"
+   }
+  },
+  "D04": {
+   "date": "2021-12-10",
+   "symbols": {
+    "A": "SIG",
+    "B": "ETHE",
+    "C": "ASAN",
+    "D": "BOOT",
+    "E": "PRFT",
+    "F": "MTDR",
+    "G": "CPE",
+    "H": "CAR",
+    "I": "RRC",
+    "J": "SYNA",
+    "K": "ASTH",
+    "L": "AR",
+    "M": "RVLV",
+    "N": "DDS",
+    "O": "MARA",
+    "P": "SM"
+   }
+  },
+  "D05": {
+   "date": "2022-07-25",
+   "symbols": {
+    "A": "CVE",
+    "B": "MRO",
+    "C": "APA",
+    "D": "CF",
+    "E": "CAR",
+    "F": "VET",
+    "G": "NRGU",
+    "H": "PBF",
+    "I": "DVN",
+    "J": "SQM",
+    "K": "ARCH",
+    "L": "IRTC",
+    "M": "SIGA",
+    "N": "LNTH",
+    "O": "AMR",
+    "P": "AR"
+   }
+  },
+  "D06": {
+   "date": "2019-03-20",
+   "symbols": {
+    "A": "MEDP",
+    "B": "COUP",
+    "C": "KL",
+    "D": "AYX",
+    "E": "TTD",
+    "F": "TWLO",
+    "G": "ETSY",
+    "H": "CYBR",
+    "I": "RH",
+    "J": "OKTA",
+    "K": "WWE",
+    "L": "AMD",
+    "M": "TNDM",
+    "N": "DXCM",
+    "O": "MRTX",
+    "P": "MDB"
+   }
+  },
+  "D07": {
+   "date": "2021-04-09",
+   "symbols": {
+    "A": "PLUG",
+    "B": "CELH",
+    "C": "HOME",
+    "D": "FCEL",
+    "E": "GRWG",
+    "F": "PACB",
+    "G": "PLL",
+    "H": "NIO",
+    "I": "NVAX",
+    "J": "APPS",
+    "K": "RIOT",
+    "L": "JMIA",
+    "M": "AGNT",
+    "N": "SM",
+    "O": "FUTU",
+    "P": "KOPN"
+   }
+  },
+  "D08": {
+   "date": "2018-06-28",
+   "symbols": {
+    "A": "WWE",
+    "B": "NKTR",
+    "C": "DINO",
+    "D": "ABMD",
+    "E": "PENG",
+    "F": "BZUN",
+    "G": "ONC",
+    "H": "NTNX",
+    "I": "MDGL",
+    "J": "GDS",
+    "K": "SRPT",
+    "L": "GRUB",
+    "M": "CRSP",
+    "N": "CGC",
+    "O": "RGNX",
+    "P": "AXON"
+   }
+  },
+  "D09": {
+   "date": "2020-06-30",
+   "symbols": {
+    "A": "ENPH",
+    "B": "IMMU",
+    "C": "AXSM",
+    "D": "SHOP",
+    "E": "PAAS",
+    "F": "RNG",
+    "G": "MNTA",
+    "H": "QDEL",
+    "I": "DXCM",
+    "J": "TSLA",
+    "K": "PDD",
+    "L": "ZM",
+    "M": "CDLX",
+    "N": "DOCU",
+    "O": "SEDG",
+    "P": "TDOC"
+   }
+  },
+  "D10": {
+   "date": "2020-09-02",
+   "symbols": {
+    "A": "PLUG",
+    "B": "CWH",
+    "C": "GOTU",
+    "D": "FSLY",
+    "E": "LVGO",
+    "F": "TDOC",
+    "G": "DOCU",
+    "H": "FUTU",
+    "I": "BILI",
+    "J": "NIO",
+    "K": "FVRR",
+    "L": "VSLR",
+    "M": "BLDP",
+    "N": "IMMU",
+    "O": "QDEL",
+    "P": "SWBI"
+   }
+  },
+  "D11": {
+   "date": "2022-01-21",
+   "symbols": {
+    "A": "ARCB",
+    "B": "SIG",
+    "C": "MTDR",
+    "D": "DDS",
+    "E": "RRC",
+    "F": "DVN",
+    "G": "FTNT",
+    "H": "NVDA",
+    "I": "SYNA",
+    "J": "NUE",
+    "K": "OLN",
+    "L": "CAR",
+    "M": "SM",
+    "N": "CPE",
+    "O": "AR",
+    "P": "ETHE"
+   }
+  },
+  "D12": {
+   "date": "2023-01-19",
+   "symbols": {
+    "A": "AR",
+    "B": "SMCI",
+    "C": "HRB",
+    "D": "HALO",
+    "E": "CELH",
+    "F": "FRO",
+    "G": "ENPH",
+    "H": "CMBT",
+    "I": "STNG",
+    "J": "TPL",
+    "K": "NFE",
+    "L": "FSLR",
+    "M": "OXY",
+    "N": "PBF",
+    "O": "STLD",
+    "P": "SRPT"
+   }
+  }
+ }
+}

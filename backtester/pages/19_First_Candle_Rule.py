@@ -26,6 +26,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
@@ -454,7 +456,7 @@ daily_fig.update_layout(
     height=320, xaxis_rangeslider_visible=False,
     margin=dict(l=10, r=10, t=10, b=10),
 )
-st.plotly_chart(daily_fig, use_container_width=True)
+st_candles(daily_fig, use_container_width=True)
 
 # ---- Intraday chart with full pattern overlays --------------------
 st.subheader(f"{strat_interval} — pattern overlays")
@@ -639,7 +641,7 @@ intra_fig.update_layout(
     ],
     margin=dict(l=10, r=10, t=10, b=10),
 )
-st.plotly_chart(intra_fig, use_container_width=True)
+st_candles(intra_fig, use_container_width=True)
 st.caption(
     "🟧 첫 5분봉 OR  ·  🟪 FVG zone (3-bar bullish above OR)  ·  "
     "▲ 청록 = range-break candle (stop reference)  ·  "

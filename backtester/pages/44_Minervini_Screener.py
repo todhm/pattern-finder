@@ -15,6 +15,8 @@ from datetime import date, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.cache_frontier_fill import fill_recent_days
@@ -848,7 +850,7 @@ details = _state.get("details") or {}
 if details:
     sel = st.selectbox("종목 선택", list(result_df["티커"]))
     d = details[sel]
-    st.plotly_chart(
+    st_candles(
         _detail_chart(d["chart"], d["pivot"], d["stop"], d["target"]),
         use_container_width=True,
     )

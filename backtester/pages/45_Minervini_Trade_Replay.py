@@ -16,6 +16,8 @@ from datetime import date, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.composed_market_data import build_default_market_data
@@ -268,7 +270,7 @@ fig.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1.02),
     margin=dict(l=40, r=95, t=30, b=20),
 )
-st.plotly_chart(fig, use_container_width=True)
+st_candles(fig, use_container_width=True)
 
 # --- 진입 후 일자별 테이블 ---------------------------------------------------
 if viz.entered:

@@ -1,0 +1,866 @@
+{
+ "A01": {
+  "date": "2020-06-30",
+  "sic3": 104,
+  "leaders": "Newmont Corp /De/, Coeur Mining, Inc., Mcewen Mining Inc., Gold Resource Corp, New Jersey Mining Co",
+  "fwd12": 0.018679897272186705,
+  "fwd36": -0.2402445798345626,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A02": {
+  "date": "2020-06-30",
+  "sic3": 621,
+  "leaders": "Raymond James Financial Inc, Blackrock Inc., Schwab Charles Corp, Jones Financial Companies Lllp, Jefferies Financial Group Inc.",
+  "fwd12": 1.1757418111186475,
+  "fwd36": 0.677782625535478,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A03": {
+  "date": "2020-06-30",
+  "sic3": 731,
+  "leaders": "Omnicom Group Inc., Interpublic Group Of Companies, Inc., Clear Channel Outdoor Holdings, Inc., Criteo S.A., Groupon, Inc.",
+  "fwd12": 0.5722086870560014,
+  "fwd36": 0.11934048802150352,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A04": {
+  "date": "2020-06-30",
+  "sic3": 369,
+  "leaders": "Spectrum Brands Holdings, Inc., Energizer Holdings, Inc., Atkore International Group Inc., Integer Holdings Corp, Novanta Inc",
+  "fwd12": 0.5810828045725147,
+  "fwd36": 1.2092898412622728,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A05": {
+  "date": "2020-06-30",
+  "sic3": 602,
+  "leaders": "Bank Of America Corp /De/, Citigroup Inc, Pnc Financial Services Group, Inc., State Street Corp, Ally Financial Inc.",
+  "fwd12": 0.6624713068043647,
+  "fwd36": 0.25298273700537943,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A06": {
+  "date": "2020-06-30",
+  "sic3": 382,
+  "leaders": "Thermo Fisher Scientific Inc., Kla Corp, Danaher Corp /De/, Rockwell Automation, Inc, Trane Technologies Plc",
+  "fwd12": 0.6892073736553889,
+  "fwd36": 0.4954254403565435,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A07": {
+  "date": "2020-06-30",
+  "sic3": 492,
+  "leaders": "Energy Transfer Lp, Enterprise Products Partners L.P., Kinder Morgan, Inc., Cheniere Energy Inc, Oneok Inc /New/",
+  "fwd12": 0.4280847326466558,
+  "fwd36": 0.6988181968162704,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A08": {
+  "date": "2020-06-30",
+  "sic3": 799,
+  "leaders": "Walt Disney Co, International Game Technology Plc, Vail Resorts Inc, Madison Square Garden Sports Corp., Town Sports International Holdings Inc",
+  "fwd12": 1.6305547050645481,
+  "fwd36": 1.2668902427902824,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A09": {
+  "date": "2020-06-30",
+  "sic3": 440,
+  "leaders": "Carnival Corp, Royal Caribbean Cruises Ltd, Teekay Offshore Partners L.P., Norwegian Cruise Line Holdings Ltd., Ncl Corp Ltd.",
+  "fwd12": 0.5446978625605883,
+  "fwd36": 1.00912070266227,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A10": {
+  "date": "2020-06-30",
+  "sic3": 491,
+  "leaders": "Tennessee Valley Authority, Southern Co, Dominion Energy, Inc, American Electric Power Co Inc, Vistra Energy Corp.",
+  "fwd12": 0.15044153306068883,
+  "fwd36": 0.14491499813120232,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A11": {
+  "date": "2020-06-30",
+  "sic3": 280,
+  "leaders": "Huntsman Corp, Olin Corp, Chemours Co, Fmc Corp, W R Grace & Co",
+  "fwd12": 0.9402965892315684,
+  "fwd36": 1.1205468592971948,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A12": {
+  "date": "2020-06-30",
+  "sic3": 701,
+  "leaders": "Melco Resorts & Entertainment Ltd, Marriott International Inc /Md/, Mgm Resorts International, Hilton Worldwide Holdings Inc., Caesars Entertainment Corp",
+  "fwd12": 0.8839061351435911,
+  "fwd36": 0.6828388044760124,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A13": {
+  "date": "2020-06-30",
+  "sic3": 470,
+  "leaders": "Xpo Logistics, Inc., Booking Holdings Inc., Expedia Group, Inc., Despegar.Com, Corp., Daseke, Inc.",
+  "fwd12": 0.8704245573223253,
+  "fwd36": 0.4392535264890093,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A14": {
+  "date": "2020-06-30",
+  "sic3": 484,
+  "leaders": "Comcast Corp, Charter Communications, Inc. /Mo/, Cco Holdings Llc, Dish Network Corp, Liberty Global Plc",
+  "fwd12": 0.6688570022638052,
+  "fwd36": -0.28234673126623144,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A15": {
+  "date": "2020-06-30",
+  "sic3": 594,
+  "leaders": "Signet Jewelers Ltd, Office Depot Inc, Barnes & Noble Education, Inc., Dick'S Sporting Goods, Inc., Michaels Companies, Inc.",
+  "fwd12": 2.334628582694213,
+  "fwd36": 1.6461457002178044,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A16": {
+  "date": "2020-06-30",
+  "sic3": 451,
+  "leaders": "Fedex Corp, Delta Air Lines, Inc., American Airlines Group Inc., United Airlines Holdings, Inc., Southwest Airlines Co",
+  "fwd12": 0.5770794908986997,
+  "fwd36": 0.3304805085387033,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A17": {
+  "date": "2020-06-30",
+  "sic3": 355,
+  "leaders": "Lam Research Corp, Pentair Plc, Nvent Electric Plc, John Bean Technologies Corp, Brooks Automation, Inc.",
+  "fwd12": 0.828508902140081,
+  "fwd36": 1.0705055636433993,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A18": {
+  "date": "2020-06-30",
+  "sic3": 512,
+  "leaders": "Mckesson Corp, Cardinal Health Inc, Amerisourcebergen Corp, Herbalife Nutrition Ltd., Nu Skin Enterprises, Inc.",
+  "fwd12": 0.22048836931514018,
+  "fwd36": 0.23909261687486244,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A19": {
+  "date": "2020-06-30",
+  "sic3": 291,
+  "leaders": "Exxon Mobil Corp, Chevron Corp, Marathon Petroleum Corp, Valero Energy Corp/Tx, Phillips 66",
+  "fwd12": 0.3641453243193307,
+  "fwd36": 1.1533531126259224,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A20": {
+  "date": "2020-06-30",
+  "sic3": 620,
+  "leaders": "Intl Fcstone Inc., Intercontinental Exchange, Inc., Cme Group Inc., Lpl Financial Holdings Inc., Price T Rowe Group Inc",
+  "fwd12": 0.44612886601572477,
+  "fwd36": 0.4643587396027718,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A21": {
+  "date": "2020-06-30",
+  "sic3": 550,
+  "leaders": "Carmax Inc, Caseys General Stores Inc, Penske Automotive Group, Inc., Autonation, Inc., Murphy Usa Inc.",
+  "fwd12": 0.7659113923049236,
+  "fwd36": 1.1594085655512276,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A22": {
+  "date": "2020-06-30",
+  "sic3": 807,
+  "leaders": "Laboratory Corp Of America Holdings, Quest Diagnostics Inc, Radnet, Inc., Natera, Inc., Guardant Health, Inc.",
+  "fwd12": 1.2873357071156641,
+  "fwd36": 0.11784473271843132,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A23": {
+  "date": "2020-06-30",
+  "sic3": 631,
+  "leaders": "Metlife Inc, Prudential Financial Inc, Metropolitan Life Insurance Co, Brighthouse Financial, Inc., Brighthouse Life Insurance Co",
+  "fwd12": 0.5237191311714863,
+  "fwd36": 0.6016800217708475,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A24": {
+  "date": "2020-06-30",
+  "sic3": 481,
+  "leaders": "At&T Inc., Verizon Communications Inc, Sprint Corp, T-Mobile Us, Inc., Centurylink, Inc",
+  "fwd12": 0.16358761588436468,
+  "fwd36": -0.16142216185158237,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A25": {
+  "date": "2020-06-30",
+  "sic3": 651,
+  "leaders": "Piedmont Office Realty Trust, Inc., Spirit Realty Capital, Inc., Intergroup Corp, Safehold Inc., Gladstone Commercial Corp",
+  "fwd12": 0.35293906918212575,
+  "fwd36": -0.08029647844474012,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A26": {
+  "date": "2020-06-30",
+  "sic3": 366,
+  "leaders": "Qualcomm Inc/De, Viasat Inc, Commscope Holding Company, Inc., Ciena Corp, Plantronics Inc /Ca/",
+  "fwd12": 0.5472585291999355,
+  "fwd36": 0.2837128603772289,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A27": {
+  "date": "2020-06-30",
+  "sic3": 874,
+  "leaders": "Booz Allen Hamilton Holding Corp, Gartner Inc, Premier, Inc., Genpact Ltd, Mantech International Corp",
+  "fwd12": 0.5142988719116309,
+  "fwd36": 0.7917298602331975,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A28": {
+  "date": "2020-06-30",
+  "sic3": 352,
+  "leaders": "Deere & Co, Agco Corp /De, Toro Co, Alamo Group Inc, Lindsay Corp",
+  "fwd12": 0.906315036232658,
+  "fwd36": 0.9132549488480739,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A29": {
+  "date": "2020-06-30",
+  "sic3": 251,
+  "leaders": "La-Z-Boy Inc, Leggett & Platt Inc, Tempur Sealy International, Inc., Hooker Furniture Corp, Kimball International Inc",
+  "fwd12": 0.6859218445035561,
+  "fwd36": -0.2062465195704247,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A30": {
+  "date": "2020-06-30",
+  "sic3": 603,
+  "leaders": "E Trade Financial Corp, Berkshire Hills Bancorp Inc, Capitol Federal Financial, Inc., New York Community Bancorp Inc, Bankunited, Inc.",
+  "fwd12": 0.528055937375297,
+  "fwd36": 0.37610396900125537,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A31": {
+  "date": "2020-06-30",
+  "sic3": 653,
+  "leaders": "Jones Lang Lasalle Inc, Realogy Holdings Corp., Marriott Vacations Worldwide Corp, Newmark Group, Inc., Exp World Holdings, Inc.",
+  "fwd12": 1.4693194149270412,
+  "fwd36": 0.31507557340298226,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A32": {
+  "date": "2020-06-30",
+  "sic3": 635,
+  "leaders": "Old Republic International Corp, Radian Group Inc, Mgic Investment Corp, Essent Group Ltd., Nmi Holdings, Inc.",
+  "fwd12": 0.5317251313136239,
+  "fwd36": 0.6392598028311964,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A33": {
+  "date": "2020-06-30",
+  "sic3": 820,
+  "leaders": "Tal Education Group, Adtalem Global Education Inc., K12 Inc, Graham Holdings Co, Laureate Education, Inc.",
+  "fwd12": -0.05861098411211694,
+  "fwd36": -0.2638321865651589,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A34": {
+  "date": "2020-06-30",
+  "sic3": 331,
+  "leaders": "Ak Steel Holding Corp, Nucor Corp, Commercial Metals Co, United States Steel Corp, Steel Dynamics Inc",
+  "fwd12": 1.0951701785347845,
+  "fwd36": 1.8870088303137957,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A35": {
+  "date": "2020-06-30",
+  "sic3": 344,
+  "leaders": "Mcdermott International Inc, Griffon Corp, Cornerstone Building Brands, Inc., Valmont Industries Inc, Arcosa, Inc.",
+  "fwd12": 0.660645867829332,
+  "fwd36": 0.7926527140426833,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A36": {
+  "date": "2020-06-30",
+  "sic3": 131,
+  "leaders": "Occidental Petroleum Corp /De/, Eog Resources Inc, Ovintiv Inc., Chesapeake Energy Corp, Pioneer Natural Resources Co",
+  "fwd12": 1.2294173839081248,
+  "fwd36": 1.9662211587956138,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A37": {
+  "date": "2020-06-30",
+  "sic3": 308,
+  "leaders": "Berry Global Group, Inc., Newell Brands Inc., Advanced Drainage Systems, Inc., Aptargroup Inc, Entegris Inc",
+  "fwd12": 0.7128611163882929,
+  "fwd36": 0.35940906571838144,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A38": {
+  "date": "2020-06-30",
+  "sic3": 504,
+  "leaders": "Hewlett Packard Enterprise Co, Tech Data Corp, Patterson Companies, Inc., Synnex Corp, Scansource, Inc.",
+  "fwd12": 0.9950398037276383,
+  "fwd36": 0.6126902665387746,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A39": {
+  "date": "2020-06-30",
+  "sic3": 286,
+  "leaders": "Lyondellbasell Industries N.V., Westlake Chemical Corp, International Flavors & Fragrances Inc, Green Plains Inc., Newmarket Corp",
+  "fwd12": 0.8389063999028917,
+  "fwd36": 0.6457843542066156,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A40": {
+  "date": "2020-06-30",
+  "sic3": 736,
+  "leaders": "Manpowergroup Inc., Korn Ferry, Robert Half International Inc., Kelly Services Inc, Insperity, Inc.",
+  "fwd12": 0.8012678454094778,
+  "fwd36": 0.5335218339845437,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A41": {
+  "date": "2020-06-30",
+  "sic3": 679,
+  "leaders": "American Tower Corp /Ma/, Weyerhaeuser Co, Equinix Inc, Crown Castle International Corp, Simon Property Group Inc /De/",
+  "fwd12": 0.4344467707465904,
+  "fwd36": 0.13255087271212762,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A42": {
+  "date": "2020-06-30",
+  "sic3": 153,
+  "leaders": "Horton D R Inc /De/, Toll Brothers, Inc., Pultegroup Inc/Mi/, Nvr Inc, Taylor Morrison Home Corp",
+  "fwd12": 0.5974265444922772,
+  "fwd36": 1.095815860211292,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A43": {
+  "date": "2020-06-30",
+  "sic3": 720,
+  "leaders": "H&R Block Inc, Unifirst Corp, Service Corp International, Regis Corp, Ww International, Inc.",
+  "fwd12": 0.3995997708915268,
+  "fwd36": 0.1327434167390366,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A44": {
+  "date": "2020-06-30",
+  "sic3": 628,
+  "leaders": "Ameriprise Financial Inc, Legg Mason, Inc., Franklin Resources Inc, Invesco Ltd., Houlihan Lokey, Inc.",
+  "fwd12": 0.6943873857744775,
+  "fwd36": 0.48329432058616245,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A45": {
+  "date": "2020-06-30",
+  "sic3": 873,
+  "leaders": "Icon Plc, Iqvia Holdings Inc., Syneos Health, Inc., Ppd, Inc., Pra Health Sciences, Inc.",
+  "fwd12": 0.4885692963287292,
+  "fwd36": 0.27686183305740114,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A46": {
+  "date": "2020-06-30",
+  "sic3": 809,
+  "leaders": "Davita Inc., Acadia Healthcare Company, Inc., Tivity Health, Inc., Hanger, Inc., American Renal Associates Holdings, Inc.",
+  "fwd12": 0.8745248231648809,
+  "fwd36": 0.9702721367963101,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A47": {
+  "date": "2020-06-30",
+  "sic3": 357,
+  "leaders": "Apple Inc, Cisco Systems, Inc., Hp Inc, Dell Technologies Inc., International Business Machines Corp",
+  "fwd12": 0.6337548961488465,
+  "fwd36": 0.8782942612887786,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A48": {
+  "date": "2020-06-30",
+  "sic3": 362,
+  "leaders": "Woodward, Inc., Ametek Inc/, Regal Beloit Corp, Generac Holdings Inc., Thermon Group Holdings, Inc.",
+  "fwd12": 1.0301777884463177,
+  "fwd36": 0.3594903844346601,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A49": {
+  "date": "2020-06-30",
+  "sic3": 632,
+  "leaders": "Unitedhealth Group Inc, Cigna Corp, Anthem, Inc., Centene Corp, Humana Inc",
+  "fwd12": 0.5199659228979556,
+  "fwd36": 0.5764403539829634,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A50": {
+  "date": "2020-06-30",
+  "sic3": 356,
+  "leaders": "Illinois Tool Works Inc, Rexnord Corp, Donaldson Co Inc, Xylem Inc., Zebra Technologies Corp",
+  "fwd12": 0.6023428464253328,
+  "fwd36": 0.5562100670285146,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A51": {
+  "date": "2020-06-30",
+  "sic3": 284,
+  "leaders": "Procter & Gamble Co, Estee Lauder Companies Inc, Coty Inc., Clorox Co /De/, Colgate Palmolive Co",
+  "fwd12": 0.244855300114143,
+  "fwd36": 0.7429882402447049,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A52": {
+  "date": "2020-06-30",
+  "sic3": 394,
+  "leaders": "Hasbro, Inc., Mattel Inc /De/, Callaway Golf Co, Acushnet Holdings Corp., Johnson Outdoors Inc",
+  "fwd12": 1.0839640245955449,
+  "fwd36": 0.3941155118764758,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A53": {
+  "date": "2020-06-30",
+  "sic3": 565,
+  "leaders": "Tjx Companies Inc /De/, Nordstrom Inc, Gap Inc, Ross Stores, Inc., Lands' End, Inc.",
+  "fwd12": 1.6655909432527765,
+  "fwd36": 0.6276818737955229,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A54": {
+  "date": "2020-06-30",
+  "sic3": 204,
+  "leaders": "General Mills Inc, Kellogg Co, Post Holdings, Inc., Ingredion Inc, Freshpet, Inc.",
+  "fwd12": 0.2476675927176296,
+  "fwd36": 0.16772625180383455,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A55": {
+  "date": "2020-06-30",
+  "sic3": 208,
+  "leaders": "Pepsico Inc, Constellation Brands, Inc., Coca Cola Co, Brown Forman Corp, Keurig Dr Pepper Inc.",
+  "fwd12": 0.761908517941257,
+  "fwd36": 1.3090304657119833,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A56": {
+  "date": "2020-06-30",
+  "sic3": 493,
+  "leaders": "Exelon Corp, Pg&E Corp, Ugi Corp /Pa/, Consolidated Edison Inc, Public Service Enterprise Group Inc",
+  "fwd12": 0.20588913404261766,
+  "fwd36": 0.11911190524875603,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A57": {
+  "date": "2020-06-30",
+  "sic3": 806,
+  "leaders": "Hca Healthcare, Inc., Tenet Healthcare Corp, Community Health Systems Inc, Universal Health Services Inc, Magellan Health Inc",
+  "fwd12": 1.5432909677338458,
+  "fwd36": 1.3245235689298567,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A58": {
+  "date": "2020-06-30",
+  "sic3": 401,
+  "leaders": "Burlington Northern Santa Fe, Llc, Union Pacific Corp, Csx Corp, Norfolk Southern Corp, Kansas City Southern",
+  "fwd12": 0.5193317205132821,
+  "fwd36": 0.5033802632570011,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A59": {
+  "date": "2020-06-30",
+  "sic3": 353,
+  "leaders": "Cnh Industrial N.V., Caterpillar Inc, Baker Hughes Co, Baker Hughes Holdings Llc, Technipfmc Plc",
+  "fwd12": 0.6244114385893197,
+  "fwd36": 0.8613345867432102,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A60": {
+  "date": "2020-06-30",
+  "sic3": 381,
+  "leaders": "Raytheon Co/, Northrop Grumman Corp /De/, L3Harris Technologies, Inc. /De/, Garmin Ltd, Teledyne Technologies Inc",
+  "fwd12": 0.3399687969294122,
+  "fwd36": 0.28830080757722526,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A61": {
+  "date": "2020-06-30",
+  "sic3": 473,
+  "leaders": "C. H. Robinson Worldwide, Inc., Expeditors International Of Washington Inc, Roadrunner Transportation Systems, Inc., Brinks Co, Hub Group, Inc.",
+  "fwd12": 0.43116005942601054,
+  "fwd36": 0.5162383387393467,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A62": {
+  "date": "2020-06-30",
+  "sic3": 494,
+  "leaders": "Essential Utilities, Inc., Aquaventure Holdings Ltd, Sjw Group, American States Water Co, Consolidated Water Co. Ltd.",
+  "fwd12": 0.09504483864265348,
+  "fwd36": 0.07439881090005747,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A63": {
+  "date": "2020-06-30",
+  "sic3": 506,
+  "leaders": "Avnet Inc, Arrow Electronics Inc, Te Connectivity Ltd., Enersys, Anixter International Inc",
+  "fwd12": 0.6997931993123944,
+  "fwd36": 1.233057610713889,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A64": {
+  "date": "2020-06-30",
+  "sic3": 384,
+  "leaders": "Medtronic Plc, Becton Dickinson & Co, 3M Co, Stryker Corp, Steris Plc",
+  "fwd12": 0.391883411502746,
+  "fwd36": 0.17787585187829602,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A65": {
+  "date": "2020-06-30",
+  "sic3": 138,
+  "leaders": "Schlumberger Limited/Nv, Halliburton Co, Propetro Holding Corp., Helmerich & Payne, Inc., Transocean Ltd.",
+  "fwd12": 1.1249612648165503,
+  "fwd36": 1.2070170688938378,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A66": {
+  "date": "2020-06-30",
+  "sic3": 283,
+  "leaders": "Johnson & Johnson, Merck & Co., Inc., Pfizer Inc, Bristol Myers Squibb Co, Abbvie Inc.",
+  "fwd12": 0.22497034511380526,
+  "fwd36": -0.06256150265480755,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A67": {
+  "date": "2020-06-30",
+  "sic3": 483,
+  "leaders": "Fox Corp, Viacomcbs Inc., Liberty Media Corp, Sirius Xm Holdings Inc., Sinclair Broadcast Group Inc",
+  "fwd12": 0.5437351560769892,
+  "fwd36": 0.17789365655487155,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A68": {
+  "date": "2020-06-30",
+  "sic3": 358,
+  "leaders": "Carrier Global Corp, Lennox International Inc, Evoqua Water Technologies Corp., Middleby Corp, Standex International Corp/De/",
+  "fwd12": 1.1096699311421439,
+  "fwd36": 1.3133292090882278,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A69": {
+  "date": "2020-06-30",
+  "sic3": 533,
+  "leaders": "Walmart Inc., Costco Wholesale Corp /New, Target Corp, Dollar General Corp, Dollar Tree, Inc.",
+  "fwd12": 0.3513183852311397,
+  "fwd36": 0.3307778890329598,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A70": {
+  "date": "2020-06-30",
+  "sic3": 441,
+  "leaders": "Teekay Corp, Frontline Ltd /, Star Bulk Carriers Corp., Tsakos Energy Navigation Ltd, Navios Maritime Holdings Inc.",
+  "fwd12": 0.2485682686938019,
+  "fwd36": 1.0606367199713158,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A71": {
+  "date": "2020-06-30",
+  "sic3": 421,
+  "leaders": "United Parcel Service Inc, Hunt J B Transport Services Inc, Yrc Worldwide Inc., Knight-Swift Transportation Holdings Inc., Schneider National, Inc.",
+  "fwd12": 0.319598707854491,
+  "fwd36": 0.673516272920454,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A72": {
+  "date": "2020-06-30",
+  "sic3": 599,
+  "leaders": "Sally Beauty Holdings, Inc., Iac/Interactivecorp, Ulta Beauty, Inc., 1 800 Flowers Com Inc, Star Group, L.P.",
+  "fwd12": 0.7134913827478349,
+  "fwd36": 0.029428222033965758,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A73": {
+  "date": "2020-06-30",
+  "sic3": 203,
+  "leaders": "J M Smucker Co, Kraft Heinz Co, Lamb Weston Holdings, Inc., Treehouse Foods, Inc., Seneca Foods Corp",
+  "fwd12": 0.20599744301340045,
+  "fwd36": 0.3509087290560684,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A74": {
+  "date": "2020-06-30",
+  "sic3": 282,
+  "leaders": "Dow Inc., Dupont De Nemours, Inc., Eastman Chemical Co, Celanese Corp, Sealed Air Corp/De",
+  "fwd12": 0.7690155240453076,
+  "fwd36": 0.7351038066902901,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A75": {
+  "date": "2020-06-30",
+  "sic3": 633,
+  "leaders": "Berkshire Hathaway Inc, American International Group Inc, Allstate Corp, Progressive Corp/Oh/, Travelers Companies, Inc.",
+  "fwd12": 0.34599266798869466,
+  "fwd36": 0.45266746741253505,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A76": {
+  "date": "2020-06-30",
+  "sic3": 514,
+  "leaders": "Sysco Corp, Performance Food Group Co, United Natural Foods Inc, Us Foods Holding Corp., Core-Mark Holding Company, Inc.",
+  "fwd12": 0.6726281191218864,
+  "fwd36": 0.6454045473070866,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A77": {
+  "date": "2020-06-30",
+  "sic3": 650,
+  "leaders": "Cbre Group, Inc., Colliers International Group Inc., Firstservice Corp, Cushman & Wakefield Plc, Forestar Group Inc.",
+  "fwd12": 0.5547607183796625,
+  "fwd36": 0.10743791765938948,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A78": {
+  "date": "2020-06-30",
+  "sic3": 100,
+  "leaders": "Freeport-Mcmoran Inc, Southern Copper Corp/, Dynaresource Inc, Opiant Pharmaceuticals, Inc., Paramount Gold Nevada Corp.",
+  "fwd12": 1.2377223201163492,
+  "fwd36": 0.9232458297283587,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A79": {
+  "date": "2020-06-30",
+  "sic3": 581,
+  "leaders": "Starbucks Corp, Aramark, Darden Restaurants Inc, Mcdonalds Corp, Arcos Dorados Holdings Inc.",
+  "fwd12": 0.8363894067322829,
+  "fwd36": 0.6406697073063841,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A80": {
+  "date": "2020-06-30",
+  "sic3": 349,
+  "leaders": "Parker Hannifin Corp, Crane Co /De/, Mueller Water Products, Inc., Watts Water Technologies Inc, Barnes Group Inc",
+  "fwd12": 0.5704432889492675,
+  "fwd36": 0.578245313204517,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A81": {
+  "date": "2020-06-30",
+  "sic3": 372,
+  "leaders": "Raytheon Technologies Corp, Boeing Co, Honeywell International Inc, Elbit Systems Ltd, Transdigm Group Inc",
+  "fwd12": 0.7143457229789278,
+  "fwd36": 0.7613774583854482,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A82": {
+  "date": "2020-06-30",
+  "sic3": 737,
+  "leaders": "Microsoft Corp, Alphabet Inc., Oracle Corp, Dxc Technology Co, Facebook Inc",
+  "fwd12": 0.5566172001111904,
+  "fwd36": 0.14247198129807181,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A83": {
+  "date": "2020-06-30",
+  "sic3": 596,
+  "leaders": "Amazon Com Inc, Cdw Corp, Qurate Retail, Inc., Qvc Inc, Wayfair Inc.",
+  "fwd12": 0.7534823869185687,
+  "fwd36": -0.10545574778102076,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A84": {
+  "date": "2020-06-30",
+  "sic3": 200,
+  "leaders": "Conagra Brands Inc., Mondelez International, Inc., Campbell Soup Co, Hain Celestial Group Inc, Flowers Foods Inc",
+  "fwd12": 0.2874788325462152,
+  "fwd36": 0.0320814802957866,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A85": {
+  "date": "2020-06-30",
+  "sic3": 371,
+  "leaders": "Magna International Inc, Ford Motor Co, General Motors Co, Adient Plc, Tesla, Inc.",
+  "fwd12": 0.7215361709563112,
+  "fwd36": 0.4334808950160164,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A86": {
+  "date": "2020-06-30",
+  "sic3": 140,
+  "leaders": "Mdu Resources Group Inc, Vulcan Materials Co, Martin Marietta Materials Inc, Compass Minerals International Inc, Summit Materials, Inc.",
+  "fwd12": 0.6361681952940399,
+  "fwd36": 0.9055704983510992,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A87": {
+  "date": "2020-06-30",
+  "sic3": 335,
+  "leaders": "Novelis Inc., Howmet Aerospace Inc., Corning Inc /Ny, Arconic Corp, Mueller Industries Inc",
+  "fwd12": 0.8619021583508472,
+  "fwd36": 1.2997528807172845,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A88": {
+  "date": "2020-06-30",
+  "sic3": 367,
+  "leaders": "Flex Ltd., Jabil Inc, Intel Corp, Micron Technology Inc, Broadcom Inc.",
+  "fwd12": 0.732928131062156,
+  "fwd36": 0.874568570298119,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A89": {
+  "date": "2020-06-30",
+  "sic3": 461,
+  "leaders": "Energy Transfer Operating, L.P., Plains Gp Holdings Lp, Plains All American Pipeline Lp, Mplx Lp, Magellan Midstream Partners, L.P.",
+  "fwd12": 0.37608101514081627,
+  "fwd36": 0.4877941420487722,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A90": {
+  "date": "2020-06-30",
+  "sic3": 619,
+  "leaders": "General Motors Financial Company, Inc., Green Dot Corp, Mr. Cooper Group Inc., Blucora, Inc., Walker & Dunlop, Inc.",
+  "fwd12": 1.0206608902341623,
+  "fwd36": 0.644757134462465,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A91": {
+  "date": "2020-06-30",
+  "sic3": 614,
+  "leaders": "World Acceptance Corp, Credit Acceptance Corp, Enova International, Inc., Lendingclub Corp, Regional Management Corp.",
+  "fwd12": 1.1020821076070686,
+  "fwd36": 1.2142478483342811,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A92": {
+  "date": "2020-06-30",
+  "sic3": 495,
+  "leaders": "Waste Management Inc, Republic Services, Inc., Waste Connections, Inc., Clean Harbors Inc, Stericycle Inc",
+  "fwd12": 0.28419347820943336,
+  "fwd36": 0.6198394260163047,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A93": {
+  "date": "2020-06-30",
+  "sic3": 738,
+  "leaders": "Accenture Plc, Visa Inc., Johnson Controls International Plc, Paypal Holdings, Inc., Mastercard Inc",
+  "fwd12": 0.4734126985406714,
+  "fwd36": 0.14875838775762948,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A94": {
+  "date": "2020-06-30",
+  "sic3": 641,
+  "leaders": "Equitable Holdings, Inc., Axa Equitable Life Insurance Co, Marsh & Mclennan Companies, Inc., Aon Plc, Willis Towers Watson Plc",
+  "fwd12": 0.33991766034152493,
+  "fwd36": 0.515075809672213,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A95": {
+  "date": "2020-06-30",
+  "sic3": 230,
+  "leaders": "Levi Strauss & Co, Under Armour, Inc., Carters Inc, Lululemon Athletica Inc., Columbia Sportswear Co",
+  "fwd12": 0.8582036751541349,
+  "fwd36": 0.14747182891374572,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ },
+ "A96": {
+  "date": "2020-06-30",
+  "sic3": 735,
+  "leaders": "Aercap Holdings N.V., United Rentals, Inc., Aaron'S Inc, Rent A Center Inc De, Fly Leasing Ltd",
+  "fwd12": 1.0674573366905917,
+  "fwd36": 1.5318711678104038,
+  "u_fwd12": 0.5986780428128502,
+  "u_fwd36": 0.45142157239546155
+ }
+}

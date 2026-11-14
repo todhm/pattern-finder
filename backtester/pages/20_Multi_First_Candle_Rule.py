@@ -23,6 +23,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.wikipedia_universe import default_universe_provider
@@ -373,7 +375,7 @@ eq_fig.update_layout(
     margin=dict(l=10, r=10, t=10, b=10),
     yaxis_title="Equity ($)",
 )
-st.plotly_chart(eq_fig, use_container_width=True)
+st_candles(eq_fig, use_container_width=True)
 
 st.subheader("Trades")
 render_trade_table(result, market_tz=NY.tz)
@@ -548,4 +550,4 @@ for i, t in enumerate(result.trades):
             margin=dict(l=10, r=10, t=10, b=10),
             title=f"{t.ticker} — {t.entry_date} (1m)",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st_candles(fig, use_container_width=True)

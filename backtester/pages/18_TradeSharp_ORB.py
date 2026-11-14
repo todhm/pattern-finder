@@ -25,6 +25,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
@@ -340,7 +342,7 @@ daily_fig.update_layout(
     xaxis_rangeslider_visible=False,
     margin=dict(l=10, r=10, t=10, b=10),
 )
-st.plotly_chart(daily_fig, use_container_width=True)
+st_candles(daily_fig, use_container_width=True)
 st.caption(
     "🟢 음영 = 전날 daily가 bullish였던 세션 (bias 통과)  ·  "
     "🔺 초록 = win 트레이드, 🔻 빨강 = loss 트레이드"
@@ -515,7 +517,7 @@ five_fig.update_layout(
     ],
     margin=dict(l=10, r=10, t=10, b=10),
 )
-st.plotly_chart(five_fig, use_container_width=True)
+st_candles(five_fig, use_container_width=True)
 st.caption(
     "🟧 박스 (15분 OR)  ·  🟪 작은 보라 박스 = rejection candle 영역  ·  "
     "▲ 보라 = 첫 박스 돌파 (트랩)  ·  ▽ 파랑 = pullback low (liquidity grab)  ·  "

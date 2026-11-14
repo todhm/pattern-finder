@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.exhaustion_extension_top import ExhaustionExtensionTopDetector
 from pattern.adapters.wedge_pop import WedgePopDetector
@@ -957,7 +959,7 @@ for t in perf.trades:
 # Zoom the chart to the user's date range while keeping the warmup
 # bars accessible via scroll/pan (needed for converged 50/200 SMA).
 trade_fig.update_xaxes(range=[str(start_date), str(end_date)])
-st.plotly_chart(trade_fig, use_container_width=True)
+st_candles(trade_fig, use_container_width=True)
 
 # --- Weekly & Yearly context charts ---
 st.subheader("주봉 / 연봉 컨텍스트")
@@ -979,7 +981,7 @@ w_fig = chart_builder.build_candlestick_with_trades(
     title=f"{ticker} — Weekly",
 )
 w_fig.update_xaxes(range=[str(start_date), str(end_date)])
-st.plotly_chart(w_fig, use_container_width=True)
+st_candles(w_fig, use_container_width=True)
 
 # Yearly: needs a longer history (~10y) to have enough bars to be
 # meaningful. Plain candlestick — no trades/volume (one year per bar
@@ -995,7 +997,7 @@ with st.spinner(f"Fetching {ticker} long history for yearly chart..."):
 if df_long is not None and not df_long.empty:
     df_yearly = df_long.resample("YE").agg(agg).dropna()
     y_fig = chart_builder.build_simple_candlestick(df_yearly, title=f"{ticker} — Yearly")
-    st.plotly_chart(y_fig, use_container_width=True)
+    st_candles(y_fig, use_container_width=True)
 
 if not perf.trades:
     st.info("이 기간엔 Wedge Pop 신호가 발생하지 않았어.")
@@ -1004,7 +1006,7 @@ if not perf.trades:
 # --- Equity curve ---
 if len(result.equity_curve) > 1:
     eq_fig = chart_builder.build_equity_curve(result.equity_curve, title="Equity Curve")
-    st.plotly_chart(eq_fig, use_container_width=True)
+    st_candles(eq_fig, use_container_width=True)
 
 # --- Trade table with dollar values ---
 st.subheader("Trades")

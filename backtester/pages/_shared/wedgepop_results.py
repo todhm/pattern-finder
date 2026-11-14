@@ -26,6 +26,8 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.domain.ports import MarketDataPort
 from strategy.domain.models import (
     MultiStrategyResult,
@@ -86,7 +88,7 @@ def render_equity_curve(
 ) -> None:
     st.subheader("Portfolio Equity Curve")
     fig = chart_builder.build_equity_curve(result.equity_curve, title=title)
-    st.plotly_chart(fig, use_container_width=True)
+    st_candles(fig, use_container_width=True)
 
 
 def render_top_trades(
@@ -97,7 +99,7 @@ def render_top_trades(
 ) -> None:
     st.subheader("Best Trades")
     fig = chart_builder.build_top_trades_bar(result.trades, title=title)
-    st.plotly_chart(fig, use_container_width=True)
+    st_candles(fig, use_container_width=True)
 
 
 def render_ticker_contribution(
@@ -108,7 +110,7 @@ def render_ticker_contribution(
 ) -> None:
     st.subheader("P&L by Ticker")
     fig = chart_builder.build_ticker_contribution_bar(result.trades, title=title)
-    st.plotly_chart(fig, use_container_width=True)
+    st_candles(fig, use_container_width=True)
 
 
 def render_trade_table(
@@ -209,7 +211,7 @@ def render_per_trade_charts(
                 **chart_kwargs,
             )
             fig.update_xaxes(range=[str(chart_start), str(chart_end)])
-            st.plotly_chart(fig, use_container_width=True)
+            st_candles(fig, use_container_width=True)
 
 
 def render_failed_tickers(result: MultiStrategyResult) -> None:

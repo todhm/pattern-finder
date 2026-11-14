@@ -29,6 +29,8 @@ from datetime import date, time, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.composed_market_data import build_default_market_data
@@ -536,7 +538,7 @@ if result.equity_curve:
         yaxis_title="Equity ($)",
         height=300,
     )
-    st.plotly_chart(fig_eq, use_container_width=True)
+    st_candles(fig_eq, use_container_width=True)
 
 if all_signals:
     st.markdown("### Intraday chart with signals")
@@ -621,7 +623,7 @@ if all_signals:
             xaxis_rangeslider_visible=False,
             showlegend=False,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st_candles(fig, use_container_width=True)
 
         st.markdown("#### Signal details")
         sigs_df = pd.DataFrame(

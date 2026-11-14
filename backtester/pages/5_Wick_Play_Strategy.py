@@ -2,6 +2,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.macro_calendar import blackout_dates as build_blackout_dates
 from data.adapters.yfinance_adapter import YFinanceAdapter
 from pattern.adapters.exhaustion_extension_top import (
@@ -593,12 +595,12 @@ trade_fig = chart_builder.build_candlestick_with_trades(
     df, perf.trades, title=f"{ticker} — Buy / Sell / Stop"
 )
 trade_fig.update_xaxes(range=[str(start_date), str(end_date)])
-st.plotly_chart(trade_fig, use_container_width=True)
+st_candles(trade_fig, use_container_width=True)
 
 # --- Equity curve ---
 if len(result.equity_curve) > 1:
     eq_fig = chart_builder.build_equity_curve(result.equity_curve, title="Equity Curve")
-    st.plotly_chart(eq_fig, use_container_width=True)
+    st_candles(eq_fig, use_container_width=True)
 
 # --- Trades table ---
 if not perf.trades:

@@ -17,6 +17,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from pages._shared.wedgepop_results import (
@@ -265,7 +267,7 @@ else:
         result.equity_curve,
         title=f"{ticker.upper()} 15m Wedge Pop equity (gross)",
     )
-    st.plotly_chart(eq_fig, use_container_width=True)
+    st_candles(eq_fig, use_container_width=True)
     st.caption(
         "Equity curve는 전략의 gross PnL 기반이야. Toss 수수료는 위 metric과 "
         "trade table에서 차감돼서 표시돼."
@@ -293,4 +295,4 @@ else:
         title=f"{ticker.upper()} — {start_date} → {end_date} (15m)",
     )
     full_fig.update_xaxes(range=[str(start_date), str(end_date)])
-    st.plotly_chart(full_fig, use_container_width=True)
+    st_candles(full_fig, use_container_width=True)

@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.cached_market_data import CachedMarketDataAdapter
@@ -1045,7 +1047,7 @@ intra_fig.update_layout(
 )
 intra_fig.update_yaxes(title_text="Price ($)", row=1, col=1)
 intra_fig.update_yaxes(title_text="Volume", row=2, col=1)
-st.plotly_chart(intra_fig, use_container_width=True)
+st_candles(intra_fig, use_container_width=True)
 
 # ---- 5m Multi-Timeframe Alignment chart -----------------------------
 if df_5m is not None and not df_5m.empty:
@@ -1205,7 +1207,7 @@ if df_5m is not None and not df_5m.empty:
     )
     mtf_fig.update_yaxes(title_text="Price ($)", row=1, col=1)
     mtf_fig.update_yaxes(title_text="Volume", row=2, col=1)
-    st.plotly_chart(mtf_fig, use_container_width=True)
+    st_candles(mtf_fig, use_container_width=True)
 else:
     st.info("5m 데이터 없음 — Multi-Timeframe Alignment 차트 생략.")
 
@@ -1230,7 +1232,7 @@ if len(result.equity_curve) > 1:
         margin=dict(l=10, r=10, t=10, b=10),
         yaxis_title="Equity ($)",
     )
-    st.plotly_chart(eq_fig, use_container_width=True)
+    st_candles(eq_fig, use_container_width=True)
 
 # ---- Trade table ---------------------------------------------------
 st.subheader("Trades")

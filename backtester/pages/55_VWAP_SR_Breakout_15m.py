@@ -10,9 +10,8 @@ from dataclasses import fields
 from datetime import date, timedelta
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
+from visualization.adapters.lightweight_charts import Pane, render as render_lwc
 
 from data.adapters.alphavantage_adapter import AlphaVantageAdapter
 from data.adapters.composed_market_data import build_default_market_data
@@ -169,80 +168,77 @@ if sel_trade is not None:
 else:
     g = f.iloc[-max_bars:]
 x = g.index.tz_convert("America/New_York").tz_localize(None)
-fig = make_subplots(rows=3, cols=1, shared_xaxes=True, row_heights=[0.62, 0.18, 0.20], vertical_spacing=0.02,
-                    subplot_titles=("15분봉 · VWAP(주황) · 저항선(파랑)/지지선(노랑: 수평 박스 또는 기울어진 추세선) · 손절선(빨강 점선) · 진입▲ · 청산✕", "거래량", "자본 곡선"))
-fig.add_trace(go.Candlestick(x=x, open=g["Open"], high=g["High"], low=g["Low"], close=g["Close"], name="15m",
-                             increasing_line_color="#26a69a", decreasing_line_color="#ef5350", showlegend=False), row=1, col=1)
-fig.add_trace(go.Scatter(x=x, y=g["vwap"], mode="lines", name="세션 VWAP", line=dict(color="#ff9100", width=2.5)), row=1, col=1)
-vol_color = ["#26a69a" if c >= o else "#ef5350" for o, c in zip(g["Open"], g["Close"])]
-fig.add_trace(go.Bar(x=x, y=g["Volume"], marker_color=vol_color, name="거래량", showlegend=False), row=2, col=1)
-fig.add_trace(go.Scatter(x=x, y=g["vol_avg"] * P.tp_volume_mult if P.tp_volume_mult > 0 else g["vol_avg"], mode="lines",
-                         name="스파이크 기준", line=dict(color="orange", width=1, dash="dot")), row=2, col=1)
-fig.add_trace(go.Scatter(x=x, y=g["equity"], mode="lines", name="자본", line=dict(color="#42a5f5", width=1.5)), row=3, col=1)
-bh_curve = capital * g["Close"] / f["Close"].iloc[0]
-fig.add_trace(go.Scatter(x=x, y=bh_curve, mode="lines", name="단순 보유", line=dict(color="gray", width=1, dash="dot")), row=3, col=1)
+_ny = lambda ts: pd.Timestamp(ts).tz_convert("America/New_York").tz_localize(None)
+gx = g.copy(); gx.index = x
+vol_color = ["rgba(38,166,154,0.7)" if c >= o else "rgba(239,83,80,0.7)" for o, c in zip(g["Open"], g["Close"])]
+bh_curve = capital * gx["Close"] / f["Close"].iloc[0]
+segs_main: list[dict] = []; marks: list[dict] = []
 
 t0 = g.index[0]
-_ny = lambda ts: pd.Timestamp(ts).tz_convert("America/New_York").tz_localize(None)
 i_t0 = f.index.get_loc(t0); t1 = g.index[-1]; i_t1 = f.index.get_loc(t1)
 if show_all:
     segs = [sg for sg in structure_segments(f, P) if sg["i1"] >= i_t0 and sg["i0"] <= i_t1 and (show_box_cand or sg["kind"] != "box")]
-    buckets = {}
+    style = {"res": "100,181,246", "sup": "253,216,53", "box": "176,190,197"}
     for sg in segs:
-        i0 = max(sg["i0"], i_t0); i1 = min(sg["i1"], i_t1); y0 = sg["y0"] + sg["slope"] * (i0 - sg["i0"]); y1 = sg["y0"] + sg["slope"] * (i1 - sg["i0"])
-        xs = [_ny(f.index[i0]), _ny(f.index[i1]), None]
-        ys_list = [[y0, y1, None]] + ([[sg["y_low"], sg["y_low"], None]] if sg["kind"] == "box" else [])
-        for ys in ys_list:
-            b = buckets.setdefault((sg["kind"], sg["ok"]), {"x": [], "y": []}); b["x"] += xs; b["y"] += ys
-    style = {"res": ("#64b5f6", "저항 추세선 후보"), "sup": ("#fdd835", "지지 추세선 후보"), "box": ("#b0bec5", "좁은 박스 후보")}
-    for (kind, ok), b in buckets.items():
-        color, nm = style[kind]
-        fig.add_trace(go.Scatter(x=b["x"], y=b["y"], mode="lines", name=nm + ("" if ok else " (터치 미달)"), opacity=0.9 if ok else 0.35,
-                                 line=dict(color=color, width=1.2 if ok else 0.8, dash="solid" if kind != "box" else "dot"), hoverinfo="skip"), row=1, col=1)
+        i0 = max(sg["i0"], i_t0); i1 = min(sg["i1"], i_t1)
+        if i1 <= i0:
+            continue
+        y0 = sg["y0"] + sg["slope"] * (i0 - sg["i0"]); y1 = sg["y0"] + sg["slope"] * (i1 - sg["i0"])
+        col = f"rgba({style[sg['kind']]},{0.9 if sg['ok'] else 0.35})"; ls = "solid" if sg["kind"] != "box" else "dot"
+        segs_main.append(dict(points=[(_ny(f.index[i0]), y0), (_ny(f.index[i1]), y1)], color=col, width=1, style=ls))
+        if sg["kind"] == "box":
+            segs_main.append(dict(points=[(_ny(f.index[i0]), sg["y_low"]), (_ny(f.index[i1]), sg["y_low"])], color=col, width=1, style=ls))
     n_res = sum(sg["kind"] == "res" for sg in segs); n_sup = sum(sg["kind"] == "sup" for sg in segs); n_ok = sum(sg["ok"] and sg["kind"] != "box" for sg in segs)
     st.caption(f"표시 구간 후보: 저항 추세선 {n_res} · 지지 추세선 {n_sup} (터치 ≥{P.min_touches} 통과 {n_ok})"
-               + (f" · 좁은 박스 {sum(sg['kind'] == 'box' for sg in segs)}" if show_box_cand else "") + f" · 실제 진입 {sum(t['exit_time'] >= t0 for t in trades)}")
+               + (f" · 좁은 박스 {sum(sg['kind'] == 'box' for sg in segs)}" if show_box_cand else "") + f" · 실제 진입 {sum(t['exit_time'] >= t0 for t in trades)}"
+               + " — 실선 = 터치 수 통과, 흐린 선 = 미달")
 for t in trades:
     if t["exit_time"] < t0 or t["signal_time"] > t1:
         continue
     for geo, color in ((t["res_geo"], "#64b5f6"), (t["sup_geo"], "#fdd835")):
         i0 = max(int(geo["i0"]), i_t0); i1 = min(int(t["exit_i"]), i_t1)
+        if i1 <= i0:
+            continue
         y0 = geo["v0"] + geo["slope"] * (i0 - geo["i0"]); y1 = geo["v0"] + geo["slope"] * (i1 - geo["i0"])
-        fig.add_trace(go.Scatter(x=[_ny(f.index[i0]), _ny(f.index[i1])], y=[y0, y1], mode="lines", line=dict(color=color, width=3),
-                                 showlegend=False, hovertemplate=f"{t['kind']} {'저항' if color == '#64b5f6' else '지지'} {y1:.2f}<extra></extra>"), row=1, col=1)
-    xe = [_ny(t["entry_time"]), _ny(min(t["exit_time"], t1))]
-    fig.add_trace(go.Scatter(x=xe, y=[t["stop"], t["stop_last"]], mode="lines", line=dict(color="#ff1744", width=3, dash="dash"),
-                             name="손절선", showlegend=False, hovertemplate=f"손절 {t['stop']:.2f}<extra></extra>"), row=1, col=1)
+        segs_main.append(dict(points=[(_ny(f.index[i0]), y0), (_ny(f.index[i1]), y1)], color=color, width=3))
+    te = max(pd.Timestamp(t["entry_time"]), t0); tx = min(pd.Timestamp(t["exit_time"]), t1)
+    if tx > te:
+        segs_main.append(dict(points=[(_ny(te), t["stop"]), (_ny(tx), t["stop_last"])], color="#ff1744", width=2, style="dash"))
     up = t["side"] == "롱"
-    fig.add_trace(go.Scatter(x=[xe[0]], y=[t["entry"]], mode="markers", marker=dict(symbol="triangle-up" if up else "triangle-down", size=13, color="#00e676" if up else "#ff1744"),
-                             showlegend=False, hovertemplate=f"{t['side']} 진입 {t['entry']:.2f}<extra></extra>"), row=1, col=1)
-    if t["exit_time"] > t1:
-        continue
-    fig.add_trace(go.Scatter(x=[xe[1]], y=[t["exit"]], mode="markers+text", marker=dict(symbol="x", size=11, color="#ffeb3b"),
-                             text=[f"{t['kind']}·{t['why']} {t['ret']:+.1%}"], textposition="top center" if up else "bottom center", textfont=dict(size=10),
-                             showlegend=False, hovertemplate=f"청산 {t['exit']:.2f} ({t['why']}) {t['ret']:+.2%}<extra></extra>"), row=1, col=1)
+    if t["entry_time"] >= t0:
+        marks.append(dict(time=_ny(t["entry_time"]), position="below" if up else "above", shape="arrowUp" if up else "arrowDown",
+                          color="#00e676" if up else "#ff1744", text=f"{t['side']} {t['entry']:.2f}"))
+    if t["exit_time"] <= t1:
+        marks.append(dict(time=_ny(t["exit_time"]), position="above" if up else "below", shape="square", color="#ffeb3b",
+                          text=f"{t['kind']}·{t['why']} {t['ret']:+.1%}"))
 
 # 현재(마지막 봉) 박스
 cur = current_setup(f)
 if cur and len(g) > P.box_bars and t1 == f.index[-1]:
     xs = [x[-P.box_bars - 1], x[-1]]
-    fig.add_trace(go.Scatter(x=xs, y=[cur["저항(박스 위)"]] * 2, mode="lines", line=dict(color="#64b5f6", width=1, dash="dot"), name="현재 박스 저항"), row=1, col=1)
-    fig.add_trace(go.Scatter(x=xs, y=[cur["지지(박스 아래)"]] * 2, mode="lines", line=dict(color="#fdd835", width=1, dash="dot"), name="현재 박스 지지"), row=1, col=1)
+    segs_main.append(dict(points=[(xs[0], cur["저항(박스 위)"]), (xs[1], cur["저항(박스 위)"])], color="#64b5f6", width=1, style="dot", name="현재 박스 저항"))
+    segs_main.append(dict(points=[(xs[0], cur["지지(박스 아래)"]), (xs[1], cur["지지(박스 아래)"])], color="#fdd835", width=1, style="dot", name="현재 박스 지지"))
     last = f.iloc[-1]; n_last = len(f) - 1
     for key, color, nm in (("res", "#64b5f6", "현재 저항 추세선"), ("sup", "#fdd835", "현재 지지 추세선")):
         if not pd.isna(last[key]):
             i0 = int(last[key + "_i"]); i0v = max(i0, f.index.get_loc(g.index[0]))
             y0 = last[key + "_v"] + last[key + "_slope"] * (i0v - i0)
-            fig.add_trace(go.Scatter(x=[_ny(f.index[i0v]), _ny(f.index[n_last])], y=[y0, last[key]], mode="lines", line=dict(color=color, width=1.2, dash="dashdot"), name=nm), row=1, col=1)
+            if n_last > i0v:
+                segs_main.append(dict(points=[(_ny(f.index[i0v]), y0), (_ny(f.index[n_last]), last[key])], color=color, width=1, style="dashdot", name=nm))
 
-# 세션 경계
-days = pd.Series(x.normalize()).drop_duplicates()
-for d in days.iloc[1:]:
-    fig.add_vline(x=d, line=dict(color="rgba(255,255,255,0.15)", width=1, dash="dot"), row=1, col=1)
-fig.update_layout(height=900, template="plotly_dark", xaxis_rangeslider_visible=False, hovermode="x unified", margin=dict(l=40, r=20, t=60, b=30),
-                  legend=dict(orientation="h", y=1.02, x=0))
-fig.update_xaxes(range=[x[0], x[-1]], rangebreaks=[dict(bounds=["sat", "mon"]), dict(bounds=[20, 4], pattern="hour") if "시간외" in source else dict(bounds=[16, 9.5], pattern="hour")])
-st.plotly_chart(fig, width="stretch")
+# 세션 경계: 각 거래일 첫 봉에 옅은 세로 띠
+first_of_day = pd.Series(x, index=x).groupby(x.normalize()).first()
+shades = [(d, d, "rgba(128,128,128,0.16)") for d in first_of_day.iloc[1:]]
+st.caption("15분봉 · VWAP(주황) · 저항선(파랑)/지지선(노랑: 수평 박스 또는 기울어진 추세선) · 손절선(빨강 점선) · 진입 ▲ · 청산 ■ — "
+           "휠 = 확대, 끌기 = 이동, 가격축·시간축을 끌면 눈금 조절, 더블클릭 = 초기화. 세로 띠 = 거래일 첫 봉.")
+render_lwc([
+    Pane(height=560, title=f"{ticker} 15분", candles=gx, lines=[dict(name="세션 VWAP", data=gx["vwap"], color="#ff9100", width=2)],
+         segments=segs_main, markers=marks, shades=shades),
+    Pane(height=140, title="거래량", hist=[dict(name="거래량", data=gx["Volume"], colors=vol_color)],
+         lines=[dict(name="스파이크 기준", data=(gx["vol_avg"] * P.tp_volume_mult if P.tp_volume_mult > 0 else gx["vol_avg"]), color="orange", width=1, style="dot")]),
+    Pane(height=190, title="자본 곡선", lines=[dict(name="자본", data=gx["equity"], color="#42a5f5", width=2),
+                                            dict(name="단순 보유", data=bh_curve, color="gray", width=1, style="dot")]),
+], index=x, intraday=True, theme="dark")
 
 # ---------------------------------------------------------------------------
 # 현재 상태 · 거래 표

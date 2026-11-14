@@ -1,0 +1,740 @@
+{
+ "A01": {
+  "date": "2017-06-30",
+  "sic3": 533,
+  "leaders": "Wal Mart Stores Inc, Costco Wholesale Corp /New, Target Corp, Dollar General Corp, Dollar Tree Inc",
+  "fwd12": 0.3989616463904099,
+  "fwd36": 0.8608481064552453,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A02": {
+  "date": "2017-06-30",
+  "sic3": 806,
+  "leaders": "Universal Health Services Inc, Magellan Health Inc, Select Medical Holdings Corp, Surgery Partners, Inc., Nobilis Health Corp.",
+  "fwd12": 0.013519106816709644,
+  "fwd36": -0.18386236336302872,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A03": {
+  "date": "2017-06-30",
+  "sic3": 286,
+  "leaders": "Lyondellbasell Industries N.V., Westlake Chemical Corp, Green Plains Inc., International Flavors & Fragrances Inc, Momentive Performance Materials Inc.",
+  "fwd12": 0.04878269852406154,
+  "fwd36": -0.25295370587262106,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A04": {
+  "date": "2017-06-30",
+  "sic3": 291,
+  "leaders": "Chevron Corp, Phillips 66, Conocophillips, Cvr Energy Inc, Cvr Refining, Lp",
+  "fwd12": 0.4671925214568736,
+  "fwd36": -0.09740317678170135,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A05": {
+  "date": "2017-06-30",
+  "sic3": 483,
+  "leaders": "Cbs Corp, Liberty Media Corp, Iheartcommunications, Inc., Iheartmedia, Inc., Sirius Xm Holdings Inc.",
+  "fwd12": 0.09050133509263351,
+  "fwd36": -0.044616517374336674,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A06": {
+  "date": "2017-06-30",
+  "sic3": 440,
+  "leaders": "Carnival Corp, Royal Caribbean Cruises Ltd, Teekay Offshore Partners L.P., Norwegian Cruise Line Holdings Ltd., Ncl Corp Ltd.",
+  "fwd12": -0.004605738738543274,
+  "fwd36": -0.46439621320577806,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A07": {
+  "date": "2017-06-30",
+  "sic3": 621,
+  "leaders": "Raymond James Financial Inc, Schwab Charles Corp, Jefferies Group Llc, Stifel Financial Corp, Interactive Brokers Group, Inc.",
+  "fwd12": 0.14934792422144974,
+  "fwd36": -0.0009985866552435893,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A08": {
+  "date": "2017-06-30",
+  "sic3": 632,
+  "leaders": "Unitedhealth Group Inc, Anthem, Inc., Aetna Inc /Pa/, Humana Inc, Centene Corp",
+  "fwd12": 0.16672599953295894,
+  "fwd36": 0.3155977633834805,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A09": {
+  "date": "2017-06-30",
+  "sic3": 372,
+  "leaders": "Boeing Co, United Technologies Corp /De/, Triumph Group Inc, Elbit Systems Ltd, Textron Inc",
+  "fwd12": 0.3833789907876955,
+  "fwd36": 0.23697081833880043,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A10": {
+  "date": "2017-06-30",
+  "sic3": 232,
+  "leaders": "Ralph Lauren Corp, Cintas Corp, V F Corp, Pvh Corp. /De/, Oxford Industries Inc",
+  "fwd12": 0.44452698242605687,
+  "fwd36": 0.06869155622501229,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A11": {
+  "date": "2017-06-30",
+  "sic3": 362,
+  "leaders": "Ametek Inc/, Woodward, Inc., Regal Beloit Corp, Generac Holdings Inc., Thermon Group Holdings, Inc.",
+  "fwd12": 0.1864501433846452,
+  "fwd36": 0.6090566232540608,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A12": {
+  "date": "2017-06-30",
+  "sic3": 289,
+  "leaders": "Cabot Corp, Fuller H B Co, Platform Specialty Products Corp, Versum Materials, Inc., Csw Industrials, Inc.",
+  "fwd12": -0.008182459034156209,
+  "fwd36": 0.008543190266695366,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A13": {
+  "date": "2017-06-30",
+  "sic3": 208,
+  "leaders": "Pepsico Inc, Coca Cola Co, Brown Forman Corp, Molson Coors Brewing Co, Constellation Brands, Inc.",
+  "fwd12": 0.1755737730169714,
+  "fwd36": 0.25987294848121895,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A14": {
+  "date": "2017-06-30",
+  "sic3": 506,
+  "leaders": "Avnet Inc, Te Connectivity Ltd., Arrow Electronics Inc, Enersys, Anixter International Inc",
+  "fwd12": 0.007322302321546422,
+  "fwd36": -0.10293860962647616,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A15": {
+  "date": "2017-06-30",
+  "sic3": 633,
+  "leaders": "Berkshire Hathaway Inc, American International Group Inc, Allstate Corp, Chubb Ltd, Travelers Companies, Inc.",
+  "fwd12": 0.023505315595640383,
+  "fwd36": -0.0538573321337513,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A16": {
+  "date": "2017-06-30",
+  "sic3": 381,
+  "leaders": "Northrop Grumman Corp /De/, Raytheon Co/, Harris Corp /De/, Garmin Ltd, Teledyne Technologies Inc",
+  "fwd12": 0.3290398294817396,
+  "fwd36": 0.49908202437123955,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A17": {
+  "date": "2017-06-30",
+  "sic3": 799,
+  "leaders": "International Game Technology Plc, Vail Resorts Inc, Madison Square Garden Co, Intrawest Resorts Holdings, Inc., Clubcorp Holdings, Inc.",
+  "fwd12": 0.3438831550159639,
+  "fwd36": 0.05423523336186994,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A18": {
+  "date": "2017-06-30",
+  "sic3": 596,
+  "leaders": "Amazon Com Inc, Cdw Corp, Liberty Interactive Corp, Liberty Expedia Holdings, Inc., Qvc Inc",
+  "fwd12": 0.33543281554220733,
+  "fwd36": 0.5583602802485227,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A19": {
+  "date": "2017-06-30",
+  "sic3": 353,
+  "leaders": "Cnh Industrial N.V., Caterpillar Inc, Technipfmc Plc, Baker Hughes Inc, Dover Corp",
+  "fwd12": 0.12392767477617798,
+  "fwd36": -0.4385368649178103,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A20": {
+  "date": "2017-06-30",
+  "sic3": 492,
+  "leaders": "Energy Transfer Equity, L.P., Enterprise Products Partners L P, Energy Transfer, Lp, Spectra Energy Corp., Kinder Morgan, Inc.",
+  "fwd12": -0.02819012544575114,
+  "fwd36": -0.2690466755915627,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A21": {
+  "date": "2017-06-30",
+  "sic3": 820,
+  "leaders": "Devry Education Group Inc., Tal Education Group, Laureate Education, Inc., K12 Inc, Graham Holdings Co",
+  "fwd12": 0.39492266294956135,
+  "fwd36": 0.9415295939216429,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A22": {
+  "date": "2017-06-30",
+  "sic3": 594,
+  "leaders": "Staples Inc, Barnes & Noble Inc, Office Depot Inc, Toys R Us Inc, Dicks Sporting Goods Inc",
+  "fwd12": -0.06198401795123375,
+  "fwd36": -0.2697333572510963,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A23": {
+  "date": "2017-06-30",
+  "sic3": 366,
+  "leaders": "Qualcomm Inc/De, L3 Technologies, Inc., Viasat Inc, Arris International Plc, Ciena Corp",
+  "fwd12": 0.13253124118835938,
+  "fwd36": 0.32510673879164653,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A24": {
+  "date": "2017-06-30",
+  "sic3": 614,
+  "leaders": "World Acceptance Corp, Credit Acceptance Corp, Enova International, Inc., Regional Management Corp., Western Capital Resources, Inc.",
+  "fwd12": 0.30566197656468336,
+  "fwd36": 0.060274490896344075,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A25": {
+  "date": "2017-06-30",
+  "sic3": 230,
+  "leaders": "Under Armour, Inc., Levi Strauss & Co, Carters Inc, Gymboree Corp, Columbia Sportswear Co",
+  "fwd12": 0.45743540533823573,
+  "fwd36": 0.4904698873056493,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A26": {
+  "date": "2017-06-30",
+  "sic3": 550,
+  "leaders": "Carmax Inc, Caseys General Stores Inc, Autonation, Inc., Penske Automotive Group, Inc., Murphy Usa Inc.",
+  "fwd12": 0.1330568721152218,
+  "fwd36": 0.3172205816334595,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A27": {
+  "date": "2017-06-30",
+  "sic3": 514,
+  "leaders": "Sysco Corp, Supervalu Inc, Performance Food Group Co, United Natural Foods Inc, Us Foods Holding Corp.",
+  "fwd12": 0.17472865633520343,
+  "fwd36": -0.04469050725956243,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A28": {
+  "date": "2017-06-30",
+  "sic3": 628,
+  "leaders": "Franklin Resources Inc, Ameriprise Financial Inc, Legg Mason, Inc., Blackstone Group L.P., Invesco Ltd.",
+  "fwd12": 0.09636789932230717,
+  "fwd36": 0.09803307235496311,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A29": {
+  "date": "2017-06-30",
+  "sic3": 493,
+  "leaders": "Exelon Corp, Pg&E Corp, Ugi Corp /Pa/, Consolidated Edison Inc, Xcel Energy Inc",
+  "fwd12": 0.04623502655353593,
+  "fwd36": 0.034316876539026576,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A30": {
+  "date": "2017-06-30",
+  "sic3": 384,
+  "leaders": "Medtronic Plc, 3M Co, Becton Dickinson & Co, Stryker Corp, Steris Plc",
+  "fwd12": 0.28153600586283356,
+  "fwd36": 0.4869151165940868,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A31": {
+  "date": "2017-06-30",
+  "sic3": 720,
+  "leaders": "H&R Block Inc, Regis Corp, Service Corp International, Unifirst Corp, G&K Services Inc",
+  "fwd12": 0.40611566084386386,
+  "fwd36": -0.036605912176766016,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A32": {
+  "date": "2017-06-30",
+  "sic3": 401,
+  "leaders": "Burlington Northern Santa Fe, Llc, Union Pacific Corp, Bnsf Railway Co, Csx Corp, Norfolk Southern Corp",
+  "fwd12": 0.17487676949513808,
+  "fwd36": 0.487261226357774,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A33": {
+  "date": "2017-06-30",
+  "sic3": 335,
+  "leaders": "Novelis Inc., Arconic Inc., Alcoa Corp, Corning Inc /Ny, General Cable Corp /De/",
+  "fwd12": 0.005291041096930932,
+  "fwd36": -0.2791822326578008,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A34": {
+  "date": "2017-06-30",
+  "sic3": 631,
+  "leaders": "Metlife Inc, Prudential Financial Inc, Metropolitan Life Insurance Co, Lincoln National Corp, Reinsurance Group Of America Inc",
+  "fwd12": 0.058414342676452735,
+  "fwd36": -0.14151549170122538,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A35": {
+  "date": "2017-06-30",
+  "sic3": 701,
+  "leaders": "Marriott International Inc /Md/, Melco Resorts & Entertainment Ltd, Las Vegas Sands Corp, Mgm Resorts International, Hilton Worldwide Holdings Inc.",
+  "fwd12": 0.2951890184282208,
+  "fwd36": -0.09626030108965392,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A36": {
+  "date": "2017-06-30",
+  "sic3": 283,
+  "leaders": "Teva Pharmaceutical Industries Ltd, Johnson & Johnson, Pfizer Inc, Merck & Co., Inc., Abbvie Inc.",
+  "fwd12": 0.22466338115004178,
+  "fwd36": 0.3086468391467644,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A37": {
+  "date": "2017-06-30",
+  "sic3": 679,
+  "leaders": "Weyerhaeuser Co, American Tower Corp /Ma/, Host Hotels & Resorts, Inc., Simon Property Group Inc /De/, Welltower Inc.",
+  "fwd12": -0.014686349306977204,
+  "fwd36": -0.1859816089495994,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A38": {
+  "date": "2017-06-30",
+  "sic3": 473,
+  "leaders": "C H Robinson Worldwide Inc, Expeditors International Of Washington Inc, Hub Group, Inc., Brinks Co, Forward Air Corp",
+  "fwd12": 0.14026097974464904,
+  "fwd36": -0.011973594373380123,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A39": {
+  "date": "2017-06-30",
+  "sic3": 369,
+  "leaders": "Hrg Group, Inc., Spectrum Brands Holdings, Inc., Energizer Holdings, Inc., Atkore International Group Inc., Integer Holdings Corp",
+  "fwd12": 0.2220578062249202,
+  "fwd36": 0.44475129009919073,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A40": {
+  "date": "2017-06-30",
+  "sic3": 367,
+  "leaders": "Flex Ltd., Intel Corp, Micron Technology Inc, Jabil Inc, Broadcom Cayman L.P.",
+  "fwd12": 0.09729016278459161,
+  "fwd36": 0.42474500243095936,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A41": {
+  "date": "2017-06-30",
+  "sic3": 140,
+  "leaders": "Mdu Resources Group Inc, Martin Marietta Materials Inc, Vulcan Materials Co, New Enterprise Stone & Lime Co., Inc., Compass Minerals International Inc",
+  "fwd12": -0.0960645910180558,
+  "fwd36": -0.43631130202736934,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A42": {
+  "date": "2017-06-30",
+  "sic3": 461,
+  "leaders": "Plains Gp Holdings Lp, Plains All American Pipeline Lp, Energy Transfer Partners, L.P., Enbridge Energy Partners Lp, Mplx Lp",
+  "fwd12": -0.16392921270247787,
+  "fwd36": -0.38323201041154215,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A43": {
+  "date": "2017-06-30",
+  "sic3": 619,
+  "leaders": "General Motors Financial Company, Inc., Blackhawk Network Holdings, Inc, Green Dot Corp, Everi Holdings Inc., Walker & Dunlop, Inc.",
+  "fwd12": 0.1941590943370071,
+  "fwd36": -0.15640290868615359,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A44": {
+  "date": "2017-06-30",
+  "sic3": 736,
+  "leaders": "Manpowergroup Inc., Korn Ferry International, Kelly Services Inc, Half Robert International Inc /De/, Insperity, Inc.",
+  "fwd12": 0.4267538614892157,
+  "fwd36": 0.06732986297191634,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A45": {
+  "date": "2017-06-30",
+  "sic3": 620,
+  "leaders": "Intl Fcstone Inc., Intercontinental Exchange, Inc., Lpl Financial Holdings Inc., Nasdaq, Inc., Cme Group Inc.",
+  "fwd12": 0.2633401911483159,
+  "fwd36": 0.31811766136875885,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A46": {
+  "date": "2017-06-30",
+  "sic3": 284,
+  "leaders": "Procter & Gamble Co, Estee Lauder Companies Inc, Coty Inc., Clorox Co /De/, Colgate Palmolive Co",
+  "fwd12": -0.07758203085667399,
+  "fwd36": 0.14244876327014455,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A47": {
+  "date": "2017-06-30",
+  "sic3": 131,
+  "leaders": "Anadarko Petroleum Corp, Devon Energy Corp/De, Occidental Petroleum Corp /De/, Chesapeake Energy Corp, Eog Resources Inc",
+  "fwd12": 0.26573848775485465,
+  "fwd36": -0.5666429575721768,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A48": {
+  "date": "2017-06-30",
+  "sic3": 565,
+  "leaders": "Tjx Companies Inc /De/, Gap Inc, Nordstrom Inc, Ross Stores Inc, American Eagle Outfitters Inc",
+  "fwd12": 0.5930007116611262,
+  "fwd36": -0.15515364101065057,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A49": {
+  "date": "2017-06-30",
+  "sic3": 280,
+  "leaders": "Huntsman Corp, Olin Corp, Chemours Co, Fmc Corp, W R Grace & Co",
+  "fwd12": 0.1792140475782154,
+  "fwd36": -0.0753709580176406,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A50": {
+  "date": "2017-06-30",
+  "sic3": 421,
+  "leaders": "United Parcel Service Inc, Hunt J B Transport Services Inc, Yrc Worldwide Inc., Schneider National, Inc., Swift Transportation Co",
+  "fwd12": 0.25706106624150304,
+  "fwd36": 0.5813909629899117,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A51": {
+  "date": "2017-06-30",
+  "sic3": 153,
+  "leaders": "Pultegroup Inc/Mi/, Hovnanian Enterprises Inc, Kb Home, M I Homes Inc, William Lyon Homes",
+  "fwd12": 0.1302148435368791,
+  "fwd36": 0.3062530362779915,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A52": {
+  "date": "2017-06-30",
+  "sic3": 732,
+  "leaders": "S&P Global Inc., Moodys Corp /De/, Equifax Inc, Transunion, Dun & Bradstreet Corp/Nw",
+  "fwd12": 0.2760008725748582,
+  "fwd36": 0.7590377306152513,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A53": {
+  "date": "2017-06-30",
+  "sic3": 357,
+  "leaders": "Apple Inc, Cisco Systems, Inc., Hp Inc, International Business Machines Corp, Dell Technologies Inc.",
+  "fwd12": 0.17912757301380144,
+  "fwd36": 0.2272006588365535,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A54": {
+  "date": "2017-06-30",
+  "sic3": 356,
+  "leaders": "Illinois Tool Works Inc, Rexnord Corp, Donaldson Co Inc, Xylem Inc., Nordson Corp",
+  "fwd12": 0.10231209630914512,
+  "fwd36": 0.23558405976784258,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A55": {
+  "date": "2017-06-30",
+  "sic3": 738,
+  "leaders": "Accenture Plc, Accenture Holdings Plc, Johnson Controls International Plc, Visa Inc., Paypal Holdings, Inc.",
+  "fwd12": 0.2614680179890101,
+  "fwd36": 0.5691403614658643,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A56": {
+  "date": "2017-06-30",
+  "sic3": 308,
+  "leaders": "Berry Global Group Inc, Newell Brands Inc, Advanced Drainage Systems, Inc., Aep Industries Inc, Aptargroup Inc",
+  "fwd12": 0.12217842139867048,
+  "fwd36": 0.4073445206084395,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A57": {
+  "date": "2017-06-30",
+  "sic3": 331,
+  "leaders": "Nucor Corp, Commercial Metals Co, United States Steel Corp, Steel Dynamics Inc, Worthington Industries Inc",
+  "fwd12": 0.16780087895050727,
+  "fwd36": -0.33351803466716695,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A58": {
+  "date": "2017-06-30",
+  "sic3": 138,
+  "leaders": "Schlumberger Limited/Nv, Halliburton Co, Seadrill Ltd, Noble Corp, Seadrill Partners Llc",
+  "fwd12": 0.09768431147449197,
+  "fwd36": -0.6800727258362607,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A59": {
+  "date": "2017-06-30",
+  "sic3": 521,
+  "leaders": "Home Depot Inc, Lowes Companies Inc, Builders Firstsource, Inc., Bmc Stock Holdings, Inc., Floor & Decor Holdings, Inc.",
+  "fwd12": 0.18182305065605608,
+  "fwd36": 0.46920455799362387,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A60": {
+  "date": "2017-06-30",
+  "sic3": 344,
+  "leaders": "Griffon Corp, Nci Building Systems Inc, Valmont Industries Inc, Global Power Equipment Group Inc., Mcdermott International Inc",
+  "fwd12": 0.4074328900313756,
+  "fwd36": -0.03021494060467701,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A61": {
+  "date": "2017-06-30",
+  "sic3": 203,
+  "leaders": "J M Smucker Co, Kraft Heinz Co, Lamb Weston Holdings, Inc., Treehouse Foods, Inc., Seneca Foods Corp",
+  "fwd12": -0.006175288892855057,
+  "fwd36": -0.09632771191403026,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A62": {
+  "date": "2017-06-30",
+  "sic3": 737,
+  "leaders": "Microsoft Corp, Oracle Corp, Alphabet Inc., Automatic Data Processing Inc, Facebook Inc",
+  "fwd12": 0.36977124022707547,
+  "fwd36": 1.0606650095372923,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A63": {
+  "date": "2017-06-30",
+  "sic3": 495,
+  "leaders": "Waste Management Inc, Republic Services, Inc., Waste Connections, Inc., Stericycle Inc, Clean Harbors Inc",
+  "fwd12": 0.048468684929596155,
+  "fwd36": 0.22040337385144335,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A64": {
+  "date": "2017-06-30",
+  "sic3": 484,
+  "leaders": "Walt Disney Co/, Twenty-First Century Fox, Inc., Comcast Corp, Charter Communications, Inc. /Mo/, Cco Holdings Llc",
+  "fwd12": -0.039820127807296636,
+  "fwd36": 0.009283982295089924,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A65": {
+  "date": "2017-06-30",
+  "sic3": 650,
+  "leaders": "Cbre Group, Inc., Colliers International Group Inc., Firstservice Corp, Leju Holdings Ltd, Bbx Capital Corp",
+  "fwd12": 0.07805004093818758,
+  "fwd36": -0.16450655744738216,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A66": {
+  "date": "2017-06-30",
+  "sic3": 873,
+  "leaders": "Quintiles Ims Holdings, Inc., Parexel International Corp, Icon Plc, Pra Health Sciences, Inc., Charles River Laboratories International Inc",
+  "fwd12": 0.03351943703519094,
+  "fwd36": 0.30879140071117483,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A67": {
+  "date": "2017-06-30",
+  "sic3": 200,
+  "leaders": "Mondelez International, Inc., Campbell Soup Co, Conagra Brands Inc., Hain Celestial Group Inc, Flowers Foods Inc",
+  "fwd12": -0.052571728846778285,
+  "fwd36": 0.00421505531945087,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A68": {
+  "date": "2017-06-30",
+  "sic3": 451,
+  "leaders": "Fedex Corp, American Airlines Group Inc., Delta Air Lines, Inc., United Continental Holdings, Inc., Southwest Airlines Co",
+  "fwd12": -0.06574350086050154,
+  "fwd36": -0.42049576616188367,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A69": {
+  "date": "2017-06-30",
+  "sic3": 602,
+  "leaders": "Bank Of America Corp /De/, Citigroup Inc, Pnc Financial Services Group, Inc., State Street Corp, Bank Of N.T. Butterfield & Son Ltd",
+  "fwd12": 0.08196203466588423,
+  "fwd36": -0.28196863098853253,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A70": {
+  "date": "2017-06-30",
+  "sic3": 382,
+  "leaders": "Thermo Fisher Scientific Inc., Danaher Corp /De/, Rockwell Automation Inc, Ingersoll-Rand Plc, Kla Tencor Corp",
+  "fwd12": 0.17394234370329437,
+  "fwd36": 0.5308696431084449,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A71": {
+  "date": "2017-06-30",
+  "sic3": 481,
+  "leaders": "At&T Inc., Sprint Corp, Verizon Communications Inc, T-Mobile Us, Inc., Centurylink, Inc",
+  "fwd12": -0.019870295848394,
+  "fwd36": -0.05884011218414861,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A72": {
+  "date": "2017-06-30",
+  "sic3": 735,
+  "leaders": "Aercap Holdings N.V., United Rentals Inc /De, Aaron'S Inc, Rent A Center Inc De, Textainer Group Holdings Ltd",
+  "fwd12": 0.13568156579138177,
+  "fwd36": 0.06285608693063556,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A73": {
+  "date": "2017-06-30",
+  "sic3": 349,
+  "leaders": "Parker Hannifin Corp, Crane Co /De/, Mueller Water Products, Inc., Watts Water Technologies Inc, Barnes Group Inc",
+  "fwd12": 0.010761178494725826,
+  "fwd36": 0.13561319989578496,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A74": {
+  "date": "2017-06-30",
+  "sic3": 355,
+  "leaders": "Lam Research Corp, Pentair Plc, John Bean Technologies Corp, Brooks Automation Inc, Milacron Holdings Corp.",
+  "fwd12": 0.07838088856335892,
+  "fwd36": 0.4559604937626218,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A75": {
+  "date": "2017-06-30",
+  "sic3": 504,
+  "leaders": "Tech Data Corp, Patterson Companies, Inc., Synnex Corp, Henry Schein Inc, Scansource, Inc.",
+  "fwd12": -0.18706914611405817,
+  "fwd36": -0.15528120064525305,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A76": {
+  "date": "2017-06-30",
+  "sic3": 591,
+  "leaders": "Walgreens Boots Alliance, Inc., Cvs Health Corp, Rite Aid Corp, Express Scripts Holding Co., Diplomat Pharmacy, Inc.",
+  "fwd12": 0.11752991499041252,
+  "fwd36": -0.21136662629345984,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A77": {
+  "date": "2017-06-30",
+  "sic3": 581,
+  "leaders": "Starbucks Corp, Aramark, Mcdonalds Corp, Darden Restaurants Inc, Arcos Dorados Holdings Inc.",
+  "fwd12": 0.1104856617335014,
+  "fwd36": 0.08596094839324252,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A78": {
+  "date": "2017-06-30",
+  "sic3": 243,
+  "leaders": "Masco Corp /De/, American Woodmark Corp, Jeld-Wen Holding, Inc., Masonite International Corp, Ply Gem Holdings Inc",
+  "fwd12": -0.01191004176225755,
+  "fwd36": -0.021311827583719623,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A79": {
+  "date": "2017-06-30",
+  "sic3": 371,
+  "leaders": "General Motors Co, Ford Motor Co, Magna International Inc, Honeywell International Inc, Adient Plc",
+  "fwd12": 0.056220491812602844,
+  "fwd36": -0.08677199520121527,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A80": {
+  "date": "2017-06-30",
+  "sic3": 491,
+  "leaders": "Southern Co, Tennessee Valley Authority, American Electric Power Co Inc, Firstenergy Corp, Dominion Resources Inc /Va/",
+  "fwd12": 0.04686301310036049,
+  "fwd36": 0.10107402822761892,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A81": {
+  "date": "2017-06-30",
+  "sic3": 282,
+  "leaders": "Dow Chemical Co /De/, Dupont E I De Nemours & Co, Eastman Chemical Co, Schulman A Inc, Chemtura Corp",
+  "fwd12": 0.14466950511348464,
+  "fwd36": -0.24398713144571949,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ },
+ "A82": {
+  "date": "2017-06-30",
+  "sic3": 874,
+  "leaders": "Booz Allen Hamilton Holding Corp, Premier, Inc., Ceb Inc., Servicemaster Global Holdings Inc, Gartner Inc",
+  "fwd12": 0.2799199563743895,
+  "fwd36": 0.6218543633578155,
+  "u_fwd12": 0.14553130427861183,
+  "u_fwd36": 0.13094383212769822
+ }
+}

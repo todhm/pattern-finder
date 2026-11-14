@@ -2,6 +2,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.wikipedia_universe import default_universe_provider
 from data.adapters.yfinance_adapter import YFinanceAdapter
@@ -716,7 +718,7 @@ eq_fig = chart_builder.build_equity_curve(
     result.equity_curve,
     title=f"Single-position portfolio across {universe.upper()}",
 )
-st.plotly_chart(eq_fig, use_container_width=True)
+st_candles(eq_fig, use_container_width=True)
 
 # --- Best individual trades ---
 st.subheader("Best Trades")
@@ -724,7 +726,7 @@ trades_fig = chart_builder.build_top_trades_bar(
     result.trades,
     title="Top trades by % return",
 )
-st.plotly_chart(trades_fig, use_container_width=True)
+st_candles(trades_fig, use_container_width=True)
 
 # --- Per-ticker contribution ---
 st.subheader("P&L by Ticker")
@@ -732,7 +734,7 @@ contrib_fig = chart_builder.build_ticker_contribution_bar(
     result.trades,
     title="Total P&L contribution per ticker",
 )
-st.plotly_chart(contrib_fig, use_container_width=True)
+st_candles(contrib_fig, use_container_width=True)
 
 # --- Trade table ---
 st.subheader("Trades — Details")
@@ -796,7 +798,7 @@ for i, t in enumerate(result.trades):
             title=f"{t.ticker} — {t.entry_date} → {t.exit_date}",
         )
         trade_fig.update_xaxes(range=[str(chart_start), str(chart_end)])
-        st.plotly_chart(trade_fig, use_container_width=True)
+        st_candles(trade_fig, use_container_width=True)
 
 if result.failed_tickers:
     with st.expander(f"Failed tickers ({len(result.failed_tickers)})"):

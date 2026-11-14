@@ -22,6 +22,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.domain.market_calendar import CRYPTO
 from pages._shared.wedgepop_results import (
@@ -290,7 +292,7 @@ else:
     )
 
     st.subheader("Equity Curve")
-    st.plotly_chart(
+    st_candles(
         chart_builder.build_equity_curve(
             result.equity_curve,
             title=f"{ticker.upper()} {interval} FVG equity (gross)",
@@ -319,7 +321,7 @@ else:
         market=CRYPTO,
     )
     full_fig.update_xaxes(range=[str(start_date), str(end_date)])
-    st.plotly_chart(full_fig, use_container_width=True)
+    st_candles(full_fig, use_container_width=True)
     st.caption(
         "🟩 FVG zone (light green box)  ·  ━━ midpoint hold/break level "
         "(dashed)  ·  ChoCH (purple dashdot)  ·  BOS (orange dotted)  ·  "

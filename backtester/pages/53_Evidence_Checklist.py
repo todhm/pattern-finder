@@ -15,6 +15,8 @@ from pathlib import Path
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.composed_market_data import build_default_market_data
@@ -139,14 +141,14 @@ def _auto_panel(rep: TimeframeReport):
 
 tabs = st.tabs([f"주봉 (예 {weekly.yes_count}/5)", f"일봉 (예 {daily.yes_count}/5)"] + ([f"4시간봉 (예 {h4.yes_count}/5)"] if h4 else []))
 with tabs[0]:
-    st.plotly_chart(_chart(weekly, 200), use_container_width=True)
+    st_candles(_chart(weekly, 200), use_container_width=True)
     _auto_panel(weekly)
 with tabs[1]:
-    st.plotly_chart(_chart(daily, 260), use_container_width=True)
+    st_candles(_chart(daily, 260), use_container_width=True)
     _auto_panel(daily)
 if h4:
     with tabs[2]:
-        st.plotly_chart(_chart(h4, 300), use_container_width=True)
+        st_candles(_chart(h4, 300), use_container_width=True)
         _auto_panel(h4)
 
 
@@ -266,7 +268,7 @@ if reveal:
         fig = go.Figure(go.Scatter(x=seg.index, y=seg["Close"], name="종가"))
         fig.add_vline(x=pd.Timestamp(as_of), line=dict(color="red", dash="dash"))
         fig.update_layout(height=300, margin=dict(l=40, r=20, t=20, b=20), title="기준일(빨간 선) 전후 종가")
-        st.plotly_chart(fig, use_container_width=True)
+        st_candles(fig, use_container_width=True)
 
 log = st.session_state["evidence_log"]
 if log:

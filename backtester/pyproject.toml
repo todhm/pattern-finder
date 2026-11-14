@@ -19,6 +19,8 @@ dependencies = [
     "plotly>=5.18.0",
     "beautifulsoup4>=4.12.0",
     "pymongo>=4.6.0",
+    "matplotlib>=3.9.0",
+    "anthropic>=2.8.0",
 ]
 
 [project.optional-dependencies]

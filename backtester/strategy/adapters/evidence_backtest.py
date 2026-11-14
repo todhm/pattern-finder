@@ -55,6 +55,12 @@ class SimRules:
     final_ext: float = 1.618
     max_hold_days: int = 0           # 0 = 제한 없음
     weekly_trend_exit: bool = False  # 책의 매도 계획은 MA 제외 4요소
+    # ---- 베팅(사이징·청산) 실험 손잡이 (2026-11-13, 기본값 = 책 그대로)
+    second_buy: bool = True          # False 면 2차 없이 1차에 position_frac 전부
+    breakeven_on_tp1: bool = True    # 1:1 도달 시 손절을 본전으로 (tp1_frac 0 이면 매도 없이 스탑만 올림)
+    use_final: bool = True           # False 면 최종 목표 청산 없음(손절·추세 이탈·구간 종료까지 보유)
+    stop_mode: str = "daily"         # daily: 매일 종가 근거선 이탈 / weekly: 주 마지막 거래일 종가만 / none: 가격 손절 없음
+    trend_exit_any: bool = False     # 금요일 종가 < 주봉 20주선이면 1:1 여부와 무관하게 청산
     exclude_worst_quadrant: bool = True
     fee: float = 0.0015              # 편도 수수료+슬리피지
     position_frac: float = 0.2
@@ -208,6 +214,7 @@ class SimResult:
     trades: list[Trade]
     signals: dict[str, list[str]]        # 금요일 → 후보
     stats: dict
+    cash: pd.Series | None = None        # 일별 현금 비중(자산 대비) — 남는 현금 운용 대조용
 
 
 def index_gate_open(index_data, day: pd.Timestamp, p: EvidenceParams, rules: SimRules) -> bool:
@@ -247,6 +254,7 @@ def run_sim(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]], calendar: pd.Dat
     pending_sell: list[tuple[str, float, str]] = []                   # (ticker, 수량, 사유)
     watch: dict[str, tuple[pd.Timestamp, TimeframeReport]] = {}      # 주봉 신호 뒤 일봉 확인 대기
     equity = []
+    cash_hist = []
     signals: dict[str, list[str]] = {}
     trades: list[Trade] = []
     tickers = list(data)
@@ -310,21 +318,25 @@ def run_sim(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]], calendar: pd.Dat
                         cash -= amt
                         tr.entry_px = (tr.entry_px * tr.qty + fill * q2) / (tr.qty + q2)
                         tr.qty += q2; tr.cost += amt; tr.second_done = True; tr.second_px = fill
-            if c <= tr.stop:
+            week_end = i + 1 >= len(days) or days[i + 1].isocalendar()[:2] != day.isocalendar()[:2]
+            stop_on = rules.stop_mode == "daily" or (rules.stop_mode == "weekly" and week_end)
+            if stop_on and c <= tr.stop:
                 pending_sell.append((t, tr.open_qty, "손절(근거선 몸통 이탈)" if not tr.tp1_done else "본전 스탑"))
                 continue
             if not tr.tp1_done and c >= tr.target1:
                 tr.tp1_done = True
-                tr.stop = max(tr.stop, tr.entry_px)
-                pending_sell.append((t, tr.open_qty * rules.tp1_frac, "1:1 익절 75%"))
+                if rules.breakeven_on_tp1:
+                    tr.stop = max(tr.stop, tr.entry_px)
+                if rules.tp1_frac > 0:
+                    pending_sell.append((t, tr.open_qty * rules.tp1_frac, "1:1 익절 75%"))
                 continue
-            if tr.tp1_done and c >= tr.final_target:
+            if rules.use_final and tr.tp1_done and c >= tr.final_target:
                 pending_sell.append((t, tr.open_qty, f"최종 목표 {rules.final_ext}"))
                 continue
             if rules.max_hold_days > 0 and held >= rules.max_hold_days:
                 pending_sell.append((t, tr.open_qty, "최대 보유일"))
                 continue
-            if rules.weekly_trend_exit and day.weekday() == 4 and tr.tp1_done:
+            if (rules.weekly_trend_exit and tr.tp1_done or rules.trend_exit_any) and day.weekday() == 4:
                 w = data[t][1]
                 if day in w.index and c < float(w.at[day, "EMA20"]):
                     pending_sell.append((t, tr.open_qty, "주봉 20주선 이탈"))
@@ -359,6 +371,8 @@ def run_sim(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]], calendar: pd.Dat
                 if lv is None:
                     continue
                 stop, second, t1, fin = lv
+                if not rules.second_buy:
+                    second = None
                 if rules.candle_low_stop:
                     cl = px(t, day, "Low")
                     if cl is not None and cl * 0.995 > stop:
@@ -403,6 +417,7 @@ def run_sim(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]], calendar: pd.Dat
         # ---- 5) 자산 기록
         eq = cash + sum(tr.open_qty * (px(t, day, "Close") or tr.entry_px) for t, tr in positions.items())
         equity.append((day, eq))
+        cash_hist.append((day, cash / eq if eq > 0 else 0.0))
 
     # 종료: 남은 포지션 마지막 종가로 평가 청산
     last = days[-1]
@@ -413,7 +428,7 @@ def run_sim(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]], calendar: pd.Dat
         tr.proceeds += q * c * (1 - rules.fee)
     eq_s = pd.Series(dict(equity))
     stats = summarize(eq_s, trades, rules)
-    return SimResult(days[0].date().isoformat(), last.date().isoformat(), eq_s, trades, signals, stats)
+    return SimResult(days[0].date().isoformat(), last.date().isoformat(), eq_s, trades, signals, stats, pd.Series(dict(cash_hist)))
 
 
 def summarize(eq: pd.Series, trades: list[Trade], rules: SimRules) -> dict:

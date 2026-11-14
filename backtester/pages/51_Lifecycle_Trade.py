@@ -12,6 +12,8 @@ from datetime import date, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.composed_ipo_calendar import build_default_ipo_calendar
@@ -366,7 +368,7 @@ with tab_port:
             for rule, res in runs.items():
                 fig.add_trace(go.Scatter(x=res.equity.index, y=res.equity.values, name=rule))
             fig.update_layout(height=420, margin=dict(l=10, r=10, t=30, b=10), yaxis_title="계좌 가치 $", title=f"{sc_name} — 계좌 곡선")
-            st.plotly_chart(fig, use_container_width=True)
+            st_candles(fig, use_container_width=True)
             pick = st.selectbox("연도별·거래 내역 규칙", list(runs), index=min(2, len(runs) - 1))
             res = runs[pick]
             st.dataframe(res.yearly().reset_index(), hide_index=True, use_container_width=True,
@@ -384,7 +386,7 @@ with tab_detail:
     sel = st.selectbox("종목", sorted(by))
     r = by[sel]
     lc = r.lifecycle
-    st.plotly_chart(_chart(r, p), use_container_width=True)
+    st_candles(_chart(r, p), use_container_width=True)
     st.markdown(f"**패턴(사후)**: {lc.pattern} — {lc.pattern_note} · **지금 단계**: {lc.phase_now} · 회색선 {lc.gray:,.2f} · "
                 f"IPO-AP {lc.ap_gain:+.0%} (고점 {lc.ap_peak:,.2f}) · 난기류 지대 {lc.turbulence:,.2f}"
                 + (f" · 돌파 {r.frames.w.index[lc.turbulence_cleared_i].date()}" if lc.turbulence_cleared_i is not None else " · 미돌파")

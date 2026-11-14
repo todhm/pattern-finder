@@ -19,6 +19,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.domain.market_calendar import KR, NY, market_for_ticker
@@ -477,7 +479,7 @@ else:
     render_single_ticker_headline_metrics(perf, fee_rows, subtitle=f"{ticker.upper()} — {interval}")
 
     st.subheader("Equity Curve")
-    st.plotly_chart(
+    st_candles(
         chart_builder.build_equity_curve(
             result.equity_curve,
             title=f"{ticker.upper()} {interval} FVG equity (gross)",
@@ -509,7 +511,7 @@ else:
         market=market,
     )
     full_fig.update_xaxes(range=[str(start_date), str(end_date)])
-    st.plotly_chart(full_fig, use_container_width=True)
+    st_candles(full_fig, use_container_width=True)
     st.caption(
         "🟩 FVG zone (light green box)  ·  ━━ midpoint hold/break level "
         "(dashed)  ·  ChoCH (purple dashdot, H1→break bar)  ·  "

@@ -3,6 +3,8 @@ from datetime import date, timedelta
 import plotly.graph_objects as go
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.cached_market_data import CachedMarketDataAdapter
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from data.adapters.yfinance_adapter import YFinanceAdapter
@@ -707,7 +709,7 @@ if run_btn:
             take_profit_r=float(fvg_take_profit_r),
         )
         fig.update_xaxes(range=[str(start_date), str(end_date)])
-        st.plotly_chart(fig, use_container_width=True)
+        st_candles(fig, use_container_width=True)
         st.caption(
             "🟩 FVG zone  ·  ━━ midpoint  ·  ChoCH 보라 dashdot = 깨진 swing-high 레벨 (H1→break)  ·  "
             "🟠 BOS dotted = ChoCH 이후 close가 같은 레벨을 다시 돌파한 시점 (BOS trail이 stop을 FVG mid로 올리는 트리거)  ·  "
@@ -945,7 +947,7 @@ if run_btn:
 
             first_group = False
 
-    st.plotly_chart(fig, use_container_width=True)
+    st_candles(fig, use_container_width=True)
 
     if signals:
         st.subheader("Detected Signals")

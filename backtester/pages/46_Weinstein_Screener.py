@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from datetime import timedelta
@@ -290,7 +292,7 @@ st.subheader("종목별 상세 — 주봉·30주 MA·베이스·RS + 체크리�
 by_t = {c.ticker: c for c in res.candidates}
 sel = st.selectbox("종목 선택", list(view["티커"]))
 c = by_t[sel]
-st.plotly_chart(_chart(c), use_container_width=True)
+st_candles(_chart(c), use_container_width=True)
 st.caption(f"단계 이력(최근): {_stage_strip(c)} · 베이스 {c.base.start.date()} ~ {c.base.end.date()} "
            f"({c.base.weeks}주, 폭 {c.base.width:.0%}, 상단 터치 {c.base.touches}회, MA 교차 {c.base.ma_crosses}회) · "
            f"스윙 목표가(7-8) ≈ {c.resistance + (c.resistance - c.support):,.2f} (저항 + 베이스 폭)")

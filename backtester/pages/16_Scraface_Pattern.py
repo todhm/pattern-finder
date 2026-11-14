@@ -24,6 +24,8 @@ from datetime import date, time, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from visualization.adapters.plotly_bridge import st_candles
 from plotly.subplots import make_subplots
 
 from data.adapters.composed_market_data import build_default_market_data
@@ -424,7 +426,7 @@ daily_fig.update_layout(
     xaxis_rangeslider_visible=False,
     margin=dict(l=10, r=10, t=30, b=10),
 )
-st.plotly_chart(daily_fig, use_container_width=True)
+st_candles(daily_fig, use_container_width=True)
 st.caption("🟢 shaded = 해당 당일 + 직전 N일 중 ≥M일이 50 SMA 아래인 qualifying day.")
 
 # ---- 5-minute chart -------------------------------------------------
@@ -484,7 +486,7 @@ if _render_5m_context:
         ],
         margin=dict(l=10, r=10, t=30, b=10),
     )
-    st.plotly_chart(five_fig, use_container_width=True)
+    st_candles(five_fig, use_container_width=True)
     st.caption("🟩 첫 5분봉 (qualifying day, signal fired)  ·  🟧 첫 5분봉 (qualifying, no retest)")
 
 # ---- 1 minute chart with precise box overlays ----------------------
@@ -642,7 +644,7 @@ one_fig.update_layout(
     ],
     margin=dict(l=10, r=10, t=30, b=10),
 )
-st.plotly_chart(one_fig, use_container_width=True)
+st_candles(one_fig, use_container_width=True)
 st.caption(
     "🟧 첫 박스 (개장 N분, y=[box_low, box_high])  ·  "
     "🟪 두번째 박스 (breakout→retest 구간, y=[retest low, peak])  ·  "

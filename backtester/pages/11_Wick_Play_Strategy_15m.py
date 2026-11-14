@@ -14,6 +14,8 @@ from datetime import date, timedelta
 
 import streamlit as st
 
+from visualization.adapters.plotly_bridge import st_candles
+
 from data.adapters.composed_market_data import build_default_market_data
 from data.adapters.regular_session_filter import RegularSessionFilterAdapter
 from pages._shared.wedgepop_results import (
@@ -180,7 +182,7 @@ else:
     )
 
     st.subheader("Equity Curve")
-    st.plotly_chart(
+    st_candles(
         chart_builder.build_equity_curve(
             result.equity_curve,
             title=f"{ticker.upper()} 15m Wick Play equity (gross)",
@@ -216,4 +218,4 @@ else:
         title=f"{ticker.upper()} — {start_date} → {end_date} (15m Wick Play)",
     )
     full_fig.update_xaxes(range=[str(start_date), str(end_date)])
-    st.plotly_chart(full_fig, use_container_width=True)
+    st_candles(full_fig, use_container_width=True)
