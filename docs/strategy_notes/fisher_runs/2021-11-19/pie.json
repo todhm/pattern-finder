@@ -1,0 +1,235 @@
+{
+ "as_of": "2021-11-19",
+ "end": "2026-11-19",
+ "panel_end": "2026-11-10",
+ "y10": 0.015360000133514405,
+ "wacc": 0.06536000013351441,
+ "qqq": 0.6451154245074266,
+ "qqq_to_panel_end": 0.7209135112875102,
+ "universe": {
+  "n": 491,
+  "excluded": {
+   "n": 57,
+   "mean": 0.041156419489854365,
+   "median": -0.34092812281926044,
+   "beat_qqq": 0.17543859649122806
+  },
+  "kept": {
+   "n": 434,
+   "mean": 0.24538934379107522,
+   "median": -0.03112114880829797,
+   "beat_qqq": 0.22350230414746544
+  },
+  "all": {
+   "n": 491,
+   "mean": 0.22168002264001704,
+   "median": -0.05294872510182436,
+   "beat_qqq": 0.21792260692464357
+  },
+  "spearman_p_vs_ret": [
+   0.0999734264502503,
+   491
+  ],
+  "quintiles": [
+   {
+    "q": "가장 비쌈(P 최저)",
+    "n": 99,
+    "p_median": 0.03433821101246701,
+    "g_real_median": 0.2018564458798302,
+    "mean": 0.055271731570269565,
+    "median": -0.25893302310121324
+   },
+   {
+    "q": "2",
+    "n": 98,
+    "p_median": 0.2015481448482585,
+    "g_real_median": 0.11138492599300998,
+    "mean": 0.06281468240512883,
+    "median": -0.07660097770577223
+   },
+   {
+    "q": "3",
+    "n": 98,
+    "p_median": 0.5104818171971477,
+    "g_real_median": 0.040316820103472706,
+    "mean": 0.1823471016949396,
+    "median": -0.020499202107559233
+   },
+   {
+    "q": "4",
+    "n": 98,
+    "p_median": 0.8372791485636779,
+    "g_real_median": -0.0051090467897746406,
+    "mean": 0.1923077445421283,
+    "median": -0.1456678970699089
+   },
+   {
+    "q": "가장 쌈(P 최고)",
+    "n": 98,
+    "p_median": 0.9819393665290155,
+    "g_real_median": -0.07793973734933457,
+    "mean": 0.6173568967740447,
+    "median": 0.24273655969861152
+   }
+  ],
+  "top_quality": {
+   "excluded": {
+    "n": 22,
+    "mean": 0.04510011407448867,
+    "median": -0.40424530333321707,
+    "beat_qqq": 0.18181818181818182
+   },
+   "kept": {
+    "n": 101,
+    "mean": 0.33252596043303656,
+    "median": 0.11906158357771246,
+    "beat_qqq": 0.24752475247524752
+   }
+  }
+ },
+ "fisher": {
+  "passed_n": 24,
+  "dropped": [
+   "ADBE",
+   "FTNT",
+   "MPWR"
+  ],
+  "orig_picks": [
+   "ODFL",
+   "ASML",
+   "ADBE",
+   "VRTX",
+   "FTNT",
+   "MSFT",
+   "GOOG",
+   "CPRT",
+   "ALGN",
+   "REGN"
+  ],
+  "new_picks": [
+   "ODFL",
+   "ASML",
+   "VRTX",
+   "MSFT",
+   "GOOG",
+   "CPRT",
+   "ALGN",
+   "REGN",
+   "CDNS",
+   "QDEL"
+  ],
+  "orig": {
+   "n": 10,
+   "mean": 0.35678224605000003,
+   "median": 0.47072056930000006,
+   "beat_qqq": 0.4
+  },
+  "new": {
+   "n": 10,
+   "mean": 0.30058777002000003,
+   "median": 0.47072056930000006,
+   "beat_qqq": 0.3
+  },
+  "dropped_stat": {
+   "n": 3,
+   "mean": 0.53231173,
+   "median": 0.9190681852,
+   "beat_qqq": 0.6666666666666666
+  },
+  "kept_all": {
+   "n": 21,
+   "mean": 0.05951185397142859,
+   "median": 0.0139353189,
+   "beat_qqq": 0.19047619047619047
+  }
+ },
+ "sensitivity": {
+  "자본비용 8% 고정": {
+   "dropped": [
+    "ASML",
+    "ADBE",
+    "FTNT",
+    "MSFT",
+    "ALGN",
+    "CDNS",
+    "LULU",
+    "MPWR",
+    "NFLX"
+   ],
+   "new_picks": [
+    "ODFL",
+    "VRTX",
+    "GOOG",
+    "CPRT",
+    "REGN",
+    "QDEL",
+    "LGIH",
+    "MBUU",
+    "CROX",
+    "OLED"
+   ],
+   "new_mean": -0.002211721579999959,
+   "universe_excluded_n": 97,
+   "universe_excluded_mean": 0.006601621416694042,
+   "universe_kept_mean": 0.2746307965452513
+  },
+  "제외 문턱 P < 10%": {
+   "dropped": [
+    "ASML",
+    "ADBE",
+    "FTNT",
+    "ALGN",
+    "CDNS",
+    "LULU",
+    "MPWR",
+    "NFLX"
+   ],
+   "new_picks": [
+    "ODFL",
+    "VRTX",
+    "MSFT",
+    "GOOG",
+    "CPRT",
+    "REGN",
+    "QDEL",
+    "LGIH",
+    "MBUU",
+    "CROX"
+   ],
+   "new_mean": 0.09194280697,
+   "universe_excluded_n": 93,
+   "universe_excluded_mean": 0.04852721639287721,
+   "universe_kept_mean": 0.26214035173796674
+  },
+  "자본비용 +2%p": {
+   "dropped": [
+    "ASML",
+    "ADBE",
+    "FTNT",
+    "MSFT",
+    "ALGN",
+    "CDNS",
+    "LULU",
+    "MPWR",
+    "NFLX",
+    "FIVE"
+   ],
+   "new_picks": [
+    "ODFL",
+    "VRTX",
+    "GOOG",
+    "CPRT",
+    "REGN",
+    "QDEL",
+    "LGIH",
+    "MBUU",
+    "CROX",
+    "OLED"
+   ],
+   "new_mean": -0.002211721579999959,
+   "universe_excluded_n": 110,
+   "universe_excluded_mean": 0.08705799673965942,
+   "universe_kept_mean": 0.2605472742122988
+  }
+ }
+}

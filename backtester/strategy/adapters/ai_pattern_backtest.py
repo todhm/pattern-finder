@@ -39,6 +39,8 @@ class BtConfig:
     min_history: int = 40            # 판단에 필요한 최소 앞 봉 수
     chunk: int = 6                   # 진입 판단을 한 번에 몇 장씩 받아 둘지
     max_calls: int = 200             # 호출 상한 (넘으면 거기서 멈춘다)
+    t1_frac: float = 0.0             # 목표1 에서 팔 비중 (0 = 기본: 목표2 가 있으면 절반, 없으면 전량)
+    be_after_t1: bool = False        # 목표1 뒤 손절을 진입가(본전)로 올림
 
 
 # ---------------------------------------------------------------------------
@@ -74,7 +76,8 @@ def find_fill(j: Judgement, F: pd.DataFrame, i0: int, valid: int) -> dict:
 
 
 def walk_position(F: pd.DataFrame, fill: dict, j: Judgement, *, fee_bps: float = 5.0, max_hold: int = 0, flat_last: Optional[np.ndarray] = None,
-                  manage_step: int = 0, manage_cb: Optional[Callable[[int, dict], Optional[Manage]]] = None) -> dict:
+                  manage_step: int = 0, manage_cb: Optional[Callable[[int, dict], Optional[Manage]]] = None,
+                  t1_frac: float = 0.0, be_after_t1: bool = False) -> dict:
     """체결된 포지션을 봉마다 걸어 청산까지. ``flat_last[t]`` 가 참인 봉은 그날 마지막 봉(종가 청산). ``manage_cb(t, pos)`` 는 t 봉 마감 뒤 묻는다."""
     i0, entry = fill["i"], fill["entry"]
     stop, t1, t2 = float(j.stop), j.target1, j.target2
@@ -97,8 +100,10 @@ def walk_position(F: pd.DataFrame, fill: dict, j: Judgement, *, fee_bps: float =
             legs.append((left, min(o, stop) if not same_bar_limit else stop, "손절", t)); left = 0.0; break
         if not same_bar_limit:
             if not t1_done and h >= t1:
-                part = left if t2 is None else left / 2
+                part = left * t1_frac if 0 < t1_frac < 1 else (left if t2 is None else left / 2)
                 legs.append((part, max(o, t1), "목표1", t)); left -= part; t1_done = True
+                if be_after_t1:
+                    stop = max(stop, entry)
             if left > 0 and t1_done and t2 is not None and h >= t2:
                 legs.append((left, max(o, t2), "목표2", t)); left = 0.0; break
             if left <= 0:
@@ -223,7 +228,8 @@ def run_backtest(bars: pd.DataFrame, spec: ChartSpec, cfg: BtConfig, *, start, e
             if not fill["filled"]:
                 continue
             r = walk_position(F, fill, j, fee_bps=cfg.fee_bps, max_hold=cfg.max_hold, flat_last=flat_last,
-                              manage_step=cfg.step if cfg.manage else 0, manage_cb=manage_cb if cfg.manage else None)
+                              manage_step=cfg.step if cfg.manage else 0, manage_cb=manage_cb if cfg.manage else None,
+                              t1_frac=cfg.t1_frac, be_after_t1=cfg.be_after_t1)
             r.update({"decision_i": i, "decision_time": f.index[i], "setup": j.setup, "confidence": j.confidence, "judgement": j})
             trades.append(r); d["why"] = r["why"]; d["ret"] = r["ret"]
             q = p + k + 1
@@ -282,10 +288,11 @@ def _finish(f: pd.DataFrame, trades: list[dict], decisions: list[dict], cps: lis
 # ---------------------------------------------------------------------------
 def run_scan(bars: pd.DataFrame, spec: ChartSpec, cfg: BtConfig, *, start, end, ask_scan: Callable[[Packet, str, str], tuple[ScanResult, dict]],
              context: pd.DataFrame | None = None, ticker: str = "", window: int = 300, lead: int = 60, use_ai_exit: bool = True,
-             progress: Optional[Callable[[float, str], None]] = None) -> dict:
+             roll_runner: bool = False, progress: Optional[Callable[[float, str], None]] = None) -> dict:
     """기간 [start, end] 를 ``window`` 봉씩 잘라 창마다 한 번 호출한다. 모델은 **창 전체(뒤 봉 포함)** 를 보고 자리를 고르므로 사후 판독이다 —
     결과는 "AI 눈에 이 패턴이 어디서 보이나"이지 실전 성적이 아니다. 창 앞 ``lead`` 봉은 맥락용(신호 금지).
-    진입 = 신호 봉 다음 봉 시가, 청산 = 손절·목표(기계적) + (use_ai_exit) 모델이 찍은 청산 봉 종가 + 장 마감·최대 보유. 한 번에 한 포지션(겹치는 신호는 건너뜀)."""
+    진입 = 신호 봉 다음 봉 시가, 청산 = 손절·목표(기계적) + (use_ai_exit) 모델이 찍은 청산 봉 종가 + 장 마감·최대 보유. 한 번에 한 포지션(겹치는 신호는 건너뜀).
+    ``roll_runner``(기본 끔 = 책대로 손절·목표가 나올 때까지 보유): 켜면 앞 거래가 목표1 을 채우고 남은 조각만 들고 있을 때 새 자리가 나오면, 그 신호 봉 종가에 남은 조각을 정리하고 갈아탄다."""
     f = bars[["Open", "High", "Low", "Close", "Volume"]].astype(float).sort_index()
     F = f[["Open", "High", "Low", "Close"]]
     idx = f.index
@@ -337,20 +344,37 @@ def run_scan(bars: pd.DataFrame, spec: ChartSpec, cfg: BtConfig, *, start, end, 
         rec = {"i": i, "time": idx[i], "close": float(f["Close"].iloc[i]), "judgement": j, "usage": d["usage"], "filled": False, "why": ""}
         decisions.append(rec)
         if i < busy_until:
-            rec["why"] = "앞 거래 보유 중 (건너뜀)"
-            continue
+            prev = trades[-1]
+            t1_i = next((lg["i"] for lg in prev["legs"] if lg["사유"] == "목표1"), None)
+            if t1_i is None or t1_i > i or not roll_runner:
+                rec["why"] = "앞 거래 보유 중 (건너뜀)"
+                continue
+            # 앞 거래는 목표1 을 이미 채우고 남은 조각(러너)만 들고 있다 → 새 자리가 나오면 그 봉 종가에 남은 조각을 정리하고 새 자리로 갈아탄다.
+            # (러너에 최종 목표·청산 봉이 없으면 기간 끝까지 남아 뒤 자리를 전부 막던 문제 — DBC 2021-03 진입이 5년 넘게 '보유 중'으로 나옴)
+            pj = prev["judgement"]
+            r0 = walk_position(F.iloc[: i + 1], prev["_fill"], pj, fee_bps=cfg.fee_bps, max_hold=cfg.max_hold, flat_last=flat_last, t1_frac=cfg.t1_frac, be_after_t1=cfg.be_after_t1)
+            if r0["legs"][-1]["사유"] in ("기간 끝", "시간 청산"):
+                r0["legs"][-1]["사유"] = "새 자리로 교체"; r0["why"] = " → ".join(lg["사유"] for lg in r0["legs"])
+            prev.update(r0)
+            prev_rec = next(x for x in decisions if x.get("_trade") is prev)
+            prev_rec["why"] = prev["why"]; prev_rec["ret"] = prev["ret"]
         fill = find_fill(j, F, i + 1, 1)
         if not fill["filled"]:
             rec["why"] = fill["why"]
             continue
         x_ai = d["exit_i_ai"] if use_ai_exit else None
         Fw = F.iloc[: x_ai + 1] if x_ai is not None else F
-        r = walk_position(Fw, fill, j, fee_bps=cfg.fee_bps, max_hold=cfg.max_hold, flat_last=flat_last)
+        r = walk_position(Fw, fill, j, fee_bps=cfg.fee_bps, max_hold=cfg.max_hold, flat_last=flat_last, t1_frac=cfg.t1_frac, be_after_t1=cfg.be_after_t1)
         if x_ai is not None and r["legs"][-1]["i"] == x_ai and r["legs"][-1]["사유"] in ("기간 끝", "시간 청산"):
             r["legs"][-1]["사유"] = "AI 청산"; r["why"] = " → ".join(lg["사유"] for lg in r["legs"])
         r.update({"decision_i": i, "decision_time": idx[i], "setup": sg.setup, "confidence": sg.confidence, "judgement": j, "exit_reason": sg.exit_reason})
-        trades.append(r); rec["filled"] = True; rec["why"] = r["why"]; rec["ret"] = r["ret"]
+        r["_fill"] = fill
+        trades.append(r); rec["filled"] = True; rec["why"] = r["why"]; rec["ret"] = r["ret"]; rec["_trade"] = r
         busy_until = r["exit_i"]
+    for r in trades:
+        r.pop("_fill", None)
+    for rec in decisions:
+        rec.pop("_trade", None)
     out = _finish(f, trades, decisions, [a0, b0], max(1, b0 - a0), calls, cost, stopped)
     out["range"] = (a0, max(b0, trades[-1]["exit_i"]) if trades else b0)
     out["stats"]["기간"] = (idx[a0], idx[out["range"][1]])

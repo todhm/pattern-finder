@@ -96,6 +96,9 @@ def render_page(key: str) -> None:
                              "'AI 눈에 패턴이 어디서 보이나'를 그려 보는 용도. 걸어가기: 시점마다 그때까지의 차트만 주고 묻는다(미래 차단, 호출 수십~수백 번)")
         window = st.slider("훑기: 한 장에 넣을 봉 수", 100, 500, 300, 50, key=f"{key}_win", help="기간이 이보다 길면 여러 장으로 나눠 장마다 한 번 호출한다. 봉이 많을수록 한 봉이 작게 보인다")
         ai_exit = st.checkbox("훑기: AI 가 찍은 청산 봉도 쓰기", value=True, key=f"{key}_aix", help="끄면 손절·목표·장 마감·최대 보유로만 청산한다")
+        roll = st.checkbox("훑기: 남은 조각만 들고 있을 때 새 자리가 나오면 갈아타기", value=False, key=f"{key}_roll",
+                           help="기본(끔): 목표1 에서 일부를 판 뒤 남은 조각은 손절·최종 목표·AI 청산이 나올 때까지 들고, 그동안 나온 새 자리는 건너뛴다(한 번에 한 포지션). "
+                                "켜면: 남은 조각만 있을 때 새 자리가 나오면 그 신호 봉 종가에 정리하고 새 자리에 전액 진입한다. 최종 목표가 없는 거래가 몇 해씩 이어져 뒤 자리가 전부 '건너뜀'이 될 때 비교용")
 
         st.header("모델")
         model = st.selectbox("Claude 모델", list(MODELS), index=list(MODELS).index(DEFAULT_MODEL), key=f"{key}_m",
@@ -147,7 +150,8 @@ def render_page(key: str) -> None:
             context = pd.DataFrame()
 
     cfg = BtConfig(step=int(step), max_hold=int(max_hold), fee_bps=float(fee_bps), blind=blind, manage=manage, flat_at_close=flat, regular_only=regular_only,
-                   ask_from=ask_from, ask_until=ask_until, max_calls=int(max_calls), chunk=max(2, int(workers) * 2))
+                   ask_from=ask_from, ask_until=ask_until, max_calls=int(max_calls), chunk=max(2, int(workers) * 2),
+                   t1_frac=float(P.extra.get("t1_frac", 0.0)), be_after_t1=bool(P.extra.get("be_after_t1", False)))
     t_start = pd.Timestamp(start); t_end = pd.Timestamp(end) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
     if intraday:
         t_start, t_end = t_start.tz_localize(NY), t_end.tz_localize(NY)
@@ -179,7 +183,7 @@ def render_page(key: str) -> None:
     have_key = has_credentials()
     if not have_key:
         st.warning("**ANTHROPIC_API_KEY 가 컨테이너에 없습니다.** `secrets/secret.env` 에 넣고 `docker compose up -d backtester` 로 다시 만들어 주세요.")
-    rkey = f"ai_bt|{key}|{mode}|{window}|{ai_exit}|{ticker}|{start}|{end}|{source}|{model}|{effort}|{blind}|{note}|{cfg}"
+    rkey = f"ai_bt|{key}|{mode}|{window}|{ai_exit}|{roll}|{ticker}|{start}|{end}|{source}|{model}|{effort}|{blind}|{note}|{cfg}"
     cache_dir = ROOT / "cache" / key
     b1, b2 = st.columns([1, 5])
     go = b1.button("▶ AI 로 패턴 찾기" if scan else "▶ AI 백테스트 실행", type="primary", disabled=not have_key, key=f"{key}_go")
@@ -191,7 +195,7 @@ def render_page(key: str) -> None:
         try:
             if scan:
                 res = run_scan(bars, spec, cfg, start=t_start, end=t_end, ask_scan=judge.ask_scan, context=context if len(context) else None, ticker=ticker,
-                               window=int(window), use_ai_exit=ai_exit, progress=lambda f, m: prog.progress(min(1.0, f), text=m))
+                               window=int(window), use_ai_exit=ai_exit, roll_runner=roll, progress=lambda f, m: prog.progress(min(1.0, f), text=m))
             else:
                 res = run_backtest(bars, spec, cfg, start=t_start, end=t_end, ask_entry=judge.ask_entry, ask_manage=judge.ask_manage if manage else None,
                                    context=context if len(context) else None, ticker=ticker, progress=lambda f, m: prog.progress(min(1.0, f), text=m))

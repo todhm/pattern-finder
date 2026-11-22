@@ -77,6 +77,8 @@ def test_blind_hides_identity_and_roundtrips_prices():
     assert j.stop == pytest.approx(99.0 / p.scale) and j.levels[0].price_start == pytest.approx(101.0 / p.scale)
     t = _j(summary="저항 100.5~101.2 를 3번 두드림, 거래량 2.5배, 확신 60, +1.5% 위, 최근 90봉, EMA 100봉, 102 위 마감이면 매수").to_real(0.25, text_ref=100.0)
     assert t.summary == "저항 402.00~404.80 를 3번 두드림, 거래량 2.5배, 확신 60, +1.5% 위, 최근 90봉, EMA 100봉, 408.00 위 마감이면 매수"
+    t2 = _j(summary="⟦100.5⟧ 위 마감, RSI 68.7, 최근 120봉, 손절 ⟦ 98 ⟧").to_real(0.25, text_ref=100.0)
+    assert t2.summary == "402.00 위 마감, RSI 68.7, 최근 120봉, 손절 392.00"
     open_p = build_packet(bars, as_of, ticker="QQQ", blind=False)
     assert open_p.scale == 1.0 and open_p.labels[-1].startswith("03-06")
 
@@ -91,6 +93,30 @@ def test_daily_packet_weekly_context_and_position():
     earlier = build_packet(d.iloc[:-1], d.index[-2], spec=spec, blind=True)
     again = build_packet(d, d.index[-2], spec=spec, blind=True)
     assert earlier.chart_png == again.chart_png and earlier.context_png == again.context_png
+
+
+def test_evidence_packet_has_weekly_emas_rsi_and_same_scale():
+    d = _daily(1400, end="2024-03-06")
+    spec = PATTERNS["evidence"].chart
+    p = build_packet(d, d.index[-1], spec=spec, ticker="AAPL", blind=True)
+    head = p.bars_csv.splitlines()[0]
+    assert head.endswith("ema20,ema50,ema100,ema200,sma365,rsi") and p.context_same_scale and p.context_png
+    wk = p.context_csv.splitlines()
+    assert wk[0].startswith("week,open") and wk[-1].startswith("W0,") and len(wk) == 81 and "AAPL" not in p.context_csv and "2024" not in p.context_csv
+    assert p.facts["주봉 이동평균선 배열"] in ("정배열", "역배열", "혼조") and 0 <= p.facts["주봉 RSI(14)"] <= 100 and 0 <= p.facts["RSI(14)"] <= 100
+    last_week_close = float(wk[-1].split(",")[4])                 # 완성된 마지막 주(금요일 03-01) 종가, 본 차트와 같은 눈금
+    assert last_week_close == pytest.approx(d.loc["2024-03-01", "Close"] * p.scale, abs=0.01)
+    again = build_packet(pd.concat([d, d.iloc[-3:].set_axis(pd.bdate_range("2024-03-07", periods=3)) * 9]), d.index[-1], spec=spec, blind=True)
+    assert again.context_csv == p.context_csv and again.chart_png == p.chart_png
+
+
+def test_t1_fraction_and_breakeven():
+    from strategy.adapters.ai_pattern_backtest import find_fill, walk_position
+    F = _fut([(100, 100.5, 99.8, 100.4), (100.4, 102.3, 100.2, 102.1), (102, 102.2, 99.5, 99.7), (99.7, 100, 99, 99.2)])
+    j = _j(stop=98.0, target1=102.0, target2=110.0)
+    r = walk_position(F, find_fill(j, F, 0, 1), j, fee_bps=0, t1_frac=0.75, be_after_t1=True)
+    assert r["why"] == "목표1 → 손절" and r["legs"][0]["비중"] == pytest.approx(0.75) and r["stop_last"] == 100.0
+    assert r["ret"] == pytest.approx(0.75 * 0.02 + 0.25 * (99.7 / 100 - 1))     # 본전 아래 마감한 봉(99.7)에서 나머지 청산
 
 
 def test_opening_range_facts_for_1m():
@@ -273,7 +299,7 @@ def test_cache_roundtrip(tmp_path):
 # 페이지
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize("page,key", [("56_VWAP_SR_Breakout_AI", "vwap_sr"), ("57_Wedge_Pop_AI", "wedge_pop"), ("63_Scraface_AI", "scraface"),
-                                      ("62_Bitcoin_Fair_Value_Gap_AI", "fvg_btc")])
+                                      ("62_Bitcoin_Fair_Value_Gap_AI", "fvg_btc"), ("68_Evidence_Based_AI", "evidence"), ("69_Evidence_AI_Today", "evidence")])
 def test_page_smoke_without_key(monkeypatch, page, key):
     """키가 없어도 페이지가 뜨고(데이터는 가짜) 실행 버튼만 꺼진다."""
     from streamlit.testing.v1 import AppTest
@@ -286,7 +312,7 @@ def test_page_smoke_without_key(monkeypatch, page, key):
     class _Fake:
         def fetch_ohlcv(self, sym, s, e, interval="1d"):
             if interval == "1d":
-                return _daily(500, end=str(e))
+                return _daily(2600, end=str(e))
             days = pd.bdate_range(end=str(e), periods=8)
             b = _bars(days=8, freq={"1m": "1min", "5m": "5min"}.get(interval, "15min"))
             b.index = b.index + (days[0] - b.index[0].tz_localize(None).normalize())
@@ -294,6 +320,15 @@ def test_page_smoke_without_key(monkeypatch, page, key):
 
     for mod, name in ((av, "AlphaVantageAdapter"), (cm, "build_default_market_data"), (yf, "YFinanceAdapter")):
         monkeypatch.setattr(mod, name, lambda *a, **k: _Fake())
+    import data.adapters.wikipedia_universe as wu
+    import data.adapters.yfinance_bulk as yb
+
+    class _Prov:
+        def get_tickers(self, name):
+            return ["AAA", "BBB"]
+
+    monkeypatch.setattr(wu, "default_universe_provider", lambda: _Prov())
+    monkeypatch.setattr(yb, "download_many", lambda tickers, s, e, **k: {t: _daily(2600, end=str(e)) for t in tickers})
     assert key in PATTERNS
     at = AppTest.from_file(f"../pages/{page}.py", default_timeout=90)
     at.run()
@@ -302,9 +337,61 @@ def test_page_smoke_without_key(monkeypatch, page, key):
     assert at.button[0].disabled and at.metric[1].value != "0"
 
 
+def test_today_scan_two_stage_and_completed_bars():
+    from strategy.adapters.ai_today_scan import completed_bars, plan, scan_today
+
+    d = _daily(1400, end="2024-03-06")
+    assert len(completed_bars(d, pd.Timestamp("2024-03-06 11:00", tz=NY))) == len(d) - 1        # 장중이면 오늘 봉을 뺀다
+    assert len(completed_bars(d, pd.Timestamp("2024-03-06 16:30", tz=NY))) == len(d)
+    assert len(completed_bars(d, pd.Timestamp("2024-03-07 09:00", tz=NY))) == len(d)
+    prices = {"AAA": d, "BBB": d * 2, "CCC": d * 3, "NEW": d.iloc[-50:]}
+    conf = {"AAA": 80, "BBB": 60, "CCC": 0}
+    seen1, seen2 = [], []
+
+    def triage(pks):
+        seen1.extend(pk.name for pk in pks)
+        return [((_j(confidence=conf[pk.name], stop=pk.last * 0.9, target1=pk.last * 1.2) if conf[pk.name] else SKIP), {"cost_usd": 0.001}) for pk in pks]
+
+    def confirm(pks):
+        seen2.extend(pk.name for pk in pks)
+        return [((_j(stop=pk.last * 0.9, target1=pk.last * 1.2) if pk.name == "AAA" else SKIP), {"cost_usd": 0.1}) for pk in pks]
+
+    r = scan_today(prices, PATTERNS["evidence"].chart, triage, confirm, max_confirm=1, chunk=2)
+    assert sorted(seen1) == ["AAA", "BBB", "CCC"] and r["skipped"] == ["NEW"] and r["n_candidates"] == 2
+    assert seen2 == ["AAA"] and r["confirmed"][0]["symbol"] == "AAA" and r["confirmed"][0]["triage"]["confidence"] == 80
+    assert r["cost_usd"] == pytest.approx(0.103) and r["as_of"] == "2024-03-06"
+    row = r["confirmed"][0]; pl = plan(row["judgement"], row["close"])
+    assert pl["entry_how"] == "다음 봉 시가" and pl["stop_pct"] == pytest.approx(-0.1) and pl["rr"] == pytest.approx(2.0)
+    r2 = scan_today(prices, PATTERNS["evidence"].chart, triage, None, max_confirm=5, chunk=4)
+    assert [c["symbol"] for c in r2["confirmed"]] == ["AAA", "BBB"]
+
+
 def test_every_pattern_has_a_page():
     from pathlib import Path
 
     pages = "\n".join(p.read_text() for p in (Path(__file__).parent.parent / "pages").glob("*_AI.py"))
     for key in PATTERNS:
         assert f'render_page("{key}")' in pages
+
+
+def test_scan_rolls_runner_into_new_signal():
+    """목표1 뒤 남은 조각만 들고 있을 때 새 자리가 나오면 갈아탄다(러너가 기간 끝까지 뒤 자리를 막지 않는다)."""
+    bars = _trend_bars(260)
+    spec = ChartSpec("15m", vwap=True, session="crypto")
+    cfg = BtConfig(blind=False, fee_bps=0, max_hold=0, t1_frac=0.75, be_after_t1=True)
+
+    def ask_scan(pk, first, last):
+        labs = pk.labels; k0 = labs.index(first)
+        hi = float(bars["High"].iloc[100:112].max())
+        mk = lambda k, t1: Signal(bar=labs[k], setup="s", confidence=70, stop=float(bars["Low"].min()) * 0.5, target1=t1, note="n")  # noqa: E731
+        return ScanResult(overview="o", signals=[mk(k0 + 2, hi), mk(k0 + 40, None), mk(k0 + 5, None)]), {}
+
+    kw = dict(start=bars.index[100], end=bars.index[-1], ask_scan=ask_scan, window=200, lead=40)
+    res = run_scan(bars, spec, cfg, roll_runner=True, **kw)
+    a, b = res["trades"][0], res["trades"][-1]
+    t1_i = next(lg["i"] for lg in a["legs"] if lg["사유"] == "목표1")
+    assert a["why"].endswith("새 자리로 교체") and a["legs"][-1]["비중"] == pytest.approx(0.25)
+    roll_i = a["exit_i"]
+    assert roll_i > t1_i and b["entry_i"] == roll_i + 1 and all("_fill" not in t for t in res["trades"])
+    old = run_scan(bars, spec, cfg, **kw)                                  # 기본: 남은 조각을 끝까지 들고 뒤 자리는 건너뜀
+    assert len(old["trades"]) == 1 and old["trades"][0]["exit_i"] == len(bars) - 1

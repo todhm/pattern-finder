@@ -109,12 +109,15 @@ def _user_content(p: Packet, question: str, note: str = "") -> list[dict]:
     img = lambda b: {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": base64.standard_b64encode(b).decode("ascii")}}  # noqa: E731
     parts: list[dict] = []
     if p.context_png:
-        parts += [{"type": "text", "text": "그림 1 — 큰 그림 (기준 봉 전에 완성된 상위 주기 봉. 가격 눈금은 아래 차트와 별개이니 모양만 보세요):"}, img(p.context_png)]
+        parts += [{"type": "text", "text": "그림 1 — 큰 그림 (기준 봉 전에 완성된 상위 주기 봉. "
+                   + ("가격 눈금은 아래 차트와 같습니다" if p.context_same_scale else "가격 눈금은 아래 차트와 별개이니 모양만 보세요") + "):"}, img(p.context_png)]
     parts += [{"type": "text", "text": f"그림 {2 if p.context_png else 1} — {p.interval} 봉 {p.n_bars}개 (맨 오른쪽 봉이 방금 마감된 기준 봉 {p.labels[-1]}):"}, img(p.chart_png)]
-    scale_note = ("가격은 지수화되어 있습니다(차트 첫 봉 종가 = 100). 거래량은 중앙값 = 1 인 상대값입니다. 답의 가격도 이 눈금으로 쓰세요."
+    scale_note = ("가격은 지수화되어 있습니다(차트 첫 봉 종가 = 100). 거래량은 중앙값 = 1 인 상대값입니다. 답의 가격도 이 눈금으로 쓰세요. "
+                  "설명 글(문장) 안에서 가격을 쓸 때는 ⟦101.25⟧ 처럼 반드시 ⟦ ⟧ 로 감싸세요 — 도구가 그 숫자만 실제 가격으로 바꿉니다. RSI·봉 수·퍼센트 같은 가격이 아닌 숫자는 감싸지 않습니다."
                   if p.blind else "가격은 실제 가격, 시각은 뉴욕 시각입니다.")
     text = (f"종목: {p.name}\n{scale_note}\n\n요약 (모두 기준 봉까지의 값):\n{json.dumps(p.facts, ensure_ascii=False, indent=1)}\n\n"
-            f"최근 봉 표 (마지막 줄이 기준 봉):\n{p.bars_csv}\n\n"
+            + (f"큰 그림 봉 표 (완성된 봉만, 마지막 줄이 가장 최근):\n{p.context_csv}\n\n" if p.context_csv else "")
+            + f"최근 봉 표 (마지막 줄이 기준 봉):\n{p.bars_csv}\n\n"
             + (f"사용자 메모: {note.strip()}\n\n" if note and note.strip() else "") + question)
     parts.append({"type": "text", "text": text})
     return parts

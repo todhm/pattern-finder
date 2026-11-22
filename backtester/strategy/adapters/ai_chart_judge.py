@@ -35,6 +35,13 @@ class ChartSpec:
     session: str = "us"                   # "us" = 미국 주식(정규장 09:30~16:00, 시간외 음영) | "crypto" = 24시간
     view_bars: int = 160                  # 차트에 보일 봉 수
     table_bars: int = 64                  # 표로 줄 봉 수
+    smas: tuple[int, ...] = ()            # 차트에 그릴 SMA 기간
+    rsi: bool = False                     # RSI(14) 패널·표 열
+    context_emas: tuple[int, ...] = ()    # 큰 그림(주봉)에 그릴 EMA. 비면 SMA20·50
+    context_smas: tuple[int, ...] = ()
+    context_rsi: bool = False
+    context_bars: int = 0                 # 큰 그림 봉 수 (0 = 기본 78/90)
+    context_table: int = 0                # 큰 그림 봉 표를 몇 줄 줄지 (0 = 안 줌)
 
     @property
     def intraday(self) -> bool:
@@ -60,7 +67,11 @@ _TEXT_FIELDS = ("setup", "market_read", "structure_read", "indicator_read", "vol
 def _txt_converter(k: float, text_ref: float | None):
     """설명 글 속의 지수 눈금 가격을 실제 가격으로: text_ref 의 0.8~1.25 배 안인 숫자만 (단위가 붙은 봉 수·퍼센트는 그대로)."""
     def txt(s: str) -> str:
-        if not text_ref or not s:
+        if not s:
+            return s
+        if "⟦" in s:                                   # 모델이 가격을 ⟦ ⟧ 로 감싸 줬으면 그것만 정확히 바꾼다
+            return re.sub(r"⟦\s*(-?\d+(?:\.\d+)?)\s*⟧", lambda m: f"{float(m.group(1)) * k:.2f}", s).replace("⟦", "").replace("⟧", "")
+        if not text_ref:
             return s
         def rep(m):
             v = float(m.group(0))
@@ -173,6 +184,8 @@ class Packet:
     n_bars: int = 0
     interval: str = "15m"
     last: float = 0.0              # packet 눈금의 기준 봉 종가
+    context_csv: str = ""          # 큰 그림 봉 표 (ChartSpec.context_table)
+    context_same_scale: bool = False   # 큰 그림 가격 눈금이 본 차트와 같은가
 
 
 def _naive(idx: pd.DatetimeIndex, intraday: bool) -> pd.DatetimeIndex:
@@ -225,7 +238,11 @@ def _png(fig) -> bytes:
 def _chart_png(v: pd.DataFrame, x: pd.DatetimeIndex, labels: list[str], title: str, spec: ChartSpec, marks: list[tuple[float, str, str]] | None = None) -> bytes:
     o, h, l, c = (v[k].to_numpy(dtype=float) for k in ("Open", "High", "Low", "Close"))
     n = len(v); xs = np.arange(n)
-    fig, (ax, av) = _figure([4, 1], (15.6, 8.8))
+    has_rsi = spec.rsi and "rsi" in v
+    if has_rsi:
+        fig, (ax, av, ar) = _figure([4, 1, 1.2], (15.6, 10.2))
+    else:
+        fig, (ax, av) = _figure([4, 1], (15.6, 8.8))
     new_day = np.array([], dtype=int)
     if spec.intraday:
         day = x.normalize().to_numpy()
@@ -248,6 +265,9 @@ def _chart_png(v: pd.DataFrame, x: pd.DatetimeIndex, labels: list[str], title: s
     for k, n_ema in enumerate(spec.emas):
         if f"ema{n_ema}" in v:
             ax.plot(xs, v[f"ema{n_ema}"].to_numpy(dtype=float), color=EMA_COLORS[k % len(EMA_COLORS)], linewidth=1.3, zorder=4, label=f"EMA{n_ema}")
+    for k, n_sma in enumerate(spec.smas):
+        if f"sma{n_sma}" in v:
+            ax.plot(xs, v[f"sma{n_sma}"].to_numpy(dtype=float), color="#212121", linewidth=1.3, linestyle="--", zorder=4, label=f"SMA{n_sma}")
     for price, lab, col in marks or []:
         ax.axhline(price, color=col, linewidth=1.1, linestyle="--", zorder=1)
         ax.annotate(f"{lab} {price:.{_prec(price)}f}", (0, price), xytext=(4, 3), textcoords="offset points", fontsize=9, color=col)
@@ -268,24 +288,53 @@ def _chart_png(v: pd.DataFrame, x: pd.DatetimeIndex, labels: list[str], title: s
     av.legend(loc="upper left", fontsize=8, frameon=False); av.yaxis.tick_right(); av.grid(True, color="#cfd8dc", linewidth=0.5, alpha=0.7)
     step = max(1, n // 24)
     ticks = sorted(set(list(range(0, n, step)) + [n - 1]))
-    av.set_xticks(ticks); av.set_xticklabels([labels[i] for i in ticks], rotation=60, ha="right", fontsize=8)
+    last_ax = av
+    if has_rsi:
+        _rsi_panel(ar, xs, v["rsi"].to_numpy(dtype=float)); last_ax = ar
+    last_ax.set_xticks(ticks); last_ax.set_xticklabels([labels[i] for i in ticks], rotation=60, ha="right", fontsize=8)
     return _png(fig)
 
 
-def _context_png(d: pd.DataFrame, title: str, unit: str) -> bytes:
+def _rsi_panel(ar, xs, r) -> None:
+    ar.plot(xs, r, color="#6a1b9a", linewidth=1.2, label="RSI(14)")
+    for lvl, col in ((70, "#c62828"), (30, "#2e7d32")):
+        ar.axhline(lvl, color=col, linewidth=0.8, linestyle="--")
+    ar.set_ylim(0, 100); ar.set_yticks([30, 50, 70]); ar.yaxis.tick_right()
+    ar.grid(True, color="#cfd8dc", linewidth=0.5, alpha=0.7); ar.legend(loc="upper left", fontsize=8, frameon=False)
+
+
+def _context_png(d: pd.DataFrame, title: str, unit: str, labels: list[str] | None = None) -> bytes:
     o, h, l, c = (d[k].to_numpy(dtype=float) for k in ("Open", "High", "Low", "Close"))
     n = len(d); xs = np.arange(n)
-    fig, (ax, av) = _figure([4, 1], (12.0, 6.4))
+    has_rsi = "rsi" in d
+    if has_rsi:
+        fig, (ax, av, ar) = _figure([4, 1, 1.2], (14.0, 8.6))
+    else:
+        fig, (ax, av) = _figure([4, 1], (12.0, 6.4))
     _candles(ax, o, h, l, c)
-    for w, col in ((20, "#ff9100"), (50, "#5c6bc0")):
+    line_cols = [c_ for c_ in d.columns if c_.startswith("ema") or c_.startswith("sma")]
+    palette = ("#ff9100", "#5c6bc0", "#6d4c41", "#00897b", "#212121")
+    for k, name in enumerate(line_cols):
+        ax.plot(xs, d[name].to_numpy(dtype=float), color=palette[k % len(palette)], linewidth=1.3, linestyle="--" if name.startswith("sma") and len(line_cols) > 2 else "-", label=name.upper())
+    for w, col in ():
         if "sma%d" % w in d:
             ax.plot(xs, d["sma%d" % w].to_numpy(dtype=float), color=col, linewidth=1.3, label=f"SMA{w}")
     ax.legend(loc="upper left", fontsize=9, frameon=False); ax.grid(True, color="#cfd8dc", linewidth=0.5, alpha=0.7); ax.yaxis.tick_right()
     ax.set_title(title, fontsize=11, loc="left")
     av.bar(xs, d["Volume"].to_numpy(dtype=float), width=0.7, color=np.where(c >= o, "#26a69a", "#ef5350"), linewidth=0); av.yaxis.tick_right()
     step = max(1, n // 12); ticks = list(range(n - 1, -1, -step))[::-1]
-    av.set_xticks(ticks); av.set_xticklabels([f"{i - n}{unit}" for i in ticks], fontsize=8)
+    last_ax = av
+    if has_rsi:
+        _rsi_panel(ar, xs, d["rsi"].to_numpy(dtype=float)); last_ax = ar
+    last_ax.set_xticks(ticks); last_ax.set_xticklabels([(labels[i] if labels else f"{i - n}{unit}") for i in ticks], fontsize=8, rotation=45 if labels else 0)
     return _png(fig)
+
+
+def rsi_wilder(close: pd.Series, n: int = 14) -> pd.Series:
+    d = close.diff()
+    up = d.clip(lower=0).ewm(alpha=1 / n, adjust=False, min_periods=n).mean()
+    dn = (-d.clip(upper=0)).ewm(alpha=1 / n, adjust=False, min_periods=n).mean()
+    return 100 - 100 / (1 + up / dn.replace(0, np.nan))
 
 
 def prepare(bars: pd.DataFrame, spec: ChartSpec | None = None) -> pd.DataFrame:
@@ -296,6 +345,10 @@ def prepare(bars: pd.DataFrame, spec: ChartSpec | None = None) -> pd.DataFrame:
         f["vwap"] = session_vwap(f)
     for n in spec.emas:
         f[f"ema{n}"] = f["Close"].ewm(span=n, adjust=False, min_periods=min(n, 5)).mean()
+    for n in spec.smas:
+        f[f"sma{n}"] = f["Close"].rolling(n, min_periods=n).mean()
+    if spec.rsi:
+        f["rsi"] = rsi_wilder(f["Close"])
     f["atr"] = atr_series(f, 20)
     f["vol_avg"] = f["Volume"].rolling(20, min_periods=5).mean().shift(1)
     return f
@@ -322,7 +375,7 @@ def build_packet(bars: pd.DataFrame, as_of, *, spec: ChartSpec | None = None, co
     v = f.iloc[-spec.view_bars:]
     x = _naive(v.index, spec.intraday)
     scale = 100.0 / float(v["Close"].iloc[0]) if blind else 1.0
-    px = [c for c in v.columns if c in ("Open", "High", "Low", "Close", "vwap", "atr") or c.startswith("ema")]
+    px = [c for c in v.columns if c in ("Open", "High", "Low", "Close", "vwap", "atr") or c.startswith("ema") or c.startswith("sma")]
     vs = v.copy(); vs[px] = vs[px] * scale
     vol_unit = float(vs["Volume"].replace(0, np.nan).median()) if blind else 1.0   # blind 면 거래량도 중앙값 = 1 로
     vol_unit = vol_unit if np.isfinite(vol_unit) and vol_unit > 0 else 1.0
@@ -340,13 +393,13 @@ def build_packet(bars: pd.DataFrame, as_of, *, spec: ChartSpec | None = None, co
             marks.append((position["target"] * scale, "target", "#00838f"))
     chart_png = _chart_png(vs, x, labels, title, spec, marks)
 
-    extra = [c for c in vs.columns if c == "vwap" or c.startswith("ema")]
+    extra = [c for c in vs.columns if c == "vwap" or c.startswith("ema") or c.startswith("sma") or c == "rsi"]
     tb = vs.iloc[-spec.table_bars:]
     rows = ["bar,open,high,low,close,volume" + "".join("," + c for c in extra)]
     vfmt = (lambda q: f"{q:.2f}") if blind else (lambda q: f"{q:.0f}")
     for lab, (_, r) in zip(labels[-spec.table_bars:], tb.iterrows()):
         rows.append(f"{lab},{r.Open:.{p}f},{r.High:.{p}f},{r.Low:.{p}f},{r.Close:.{p}f},{vfmt(r.Volume)}"
-                    + "".join(f",{r[c]:.{p}f}" if np.isfinite(r[c]) else "," for c in extra))
+                    + "".join((f",{r[c]:.1f}" if c == "rsi" else f",{r[c]:.{p}f}") if np.isfinite(r[c]) else "," for c in extra))
 
     # 요약 사실 — 전부 기준 봉까지의 값
     atr = float(vs["atr"].iloc[-1]) if np.isfinite(vs["atr"].iloc[-1]) else float("nan")
@@ -360,6 +413,12 @@ def build_packet(bars: pd.DataFrame, as_of, *, spec: ChartSpec | None = None, co
         e = vs[f"ema{n}"].iloc[-1]
         if np.isfinite(e):
             facts[f"EMA{n}"] = round(float(e), p)
+    for n in spec.smas:
+        e = vs[f"sma{n}"].iloc[-1]
+        if np.isfinite(e):
+            facts[f"SMA{n}"] = round(float(e), p)
+    if "rsi" in vs and np.isfinite(vs["rsi"].iloc[-1]):
+        facts["RSI(14)"] = round(float(vs["rsi"].iloc[-1]), 1)
     today = x.normalize()[-1]
     if spec.intraday:
         day = x.normalize(); mins = x.hour * 60 + x.minute
@@ -399,7 +458,7 @@ def build_packet(bars: pd.DataFrame, as_of, *, spec: ChartSpec | None = None, co
                           "현재 목표": round(position["target"] * scale, p) if position.get("target") else None,
                           "보유 봉 수": int(position.get("bars_held", 0)), "평가 손익": f"{(last / (position['entry'] * scale) - 1):+.2%}"}
 
-    context_png = None
+    context_png = None; context_csv = ""; same_scale = False
     if spec.intraday and context is not None and len(context):
         d = context[["Open", "High", "Low", "Close", "Volume"]].astype(float).sort_index()
         d = d[np.asarray(_naive(d.index, False) < today)]       # 기준일 당일 일봉은 그날 종가를 담고 있으므로 뺀다
@@ -410,20 +469,56 @@ def build_packet(bars: pd.DataFrame, as_of, *, spec: ChartSpec | None = None, co
         if len(d) and d.index[-1] > today:                      # 아직 안 끝난 주는 뺀다
             d = d.iloc[:-1]
         unit, word = "w", "weekly"
+        same_scale = True                                       # 같은 봉에서 만든 주봉이라 눈금이 같다
     else:
         d = pd.DataFrame()
     if len(d) >= 20:
         d = d.copy()
-        d["sma20"] = d["Close"].rolling(20).mean(); d["sma50"] = d["Close"].rolling(50).mean()
-        d = d.iloc[-(90 if unit == "d" else 78):]
-        ds = 100.0 / float(d["Close"].iloc[0]) if blind else 1.0   # 큰 그림은 조정가라 눈금이 다를 수 있다 — 모양만 본다
-        for k in ("Open", "High", "Low", "Close", "sma20", "sma50"):
+        c_emas = spec.context_emas if unit == "w" else (); c_smas = (spec.context_smas if unit == "w" else ()) or (() if c_emas else (20, 50))
+        for n in c_emas:
+            d[f"ema{n}"] = d["Close"].ewm(span=n, adjust=False, min_periods=min(n, 10)).mean()
+        for n in c_smas:
+            d[f"sma{n}"] = d["Close"].rolling(n).mean()
+        if unit == "w" and spec.context_rsi:
+            d["rsi"] = rsi_wilder(d["Close"])
+        ref20 = d["ema20"] if "ema20" in d else d["sma20"] if "sma20" in d else None
+        d = d.iloc[-(spec.context_bars or (90 if unit == "d" else 78)):]
+        ds = scale if same_scale else (100.0 / float(d["Close"].iloc[0]) if blind else 1.0)   # 분봉의 큰 그림(일봉)은 조정가라 눈금이 다를 수 있다 — 모양만 본다
+        for k in [c_ for c_ in d.columns if c_ in ("Open", "High", "Low", "Close") or c_.startswith("ema") or c_.startswith("sma")]:
             d[k] = d[k] * ds
-        context_png = _context_png(d, f"{en_name} - {word} bars, last {len(d)} COMPLETED before the decision bar (separate price scale, shape only)", unit)
-        if np.isfinite(d["sma20"].iloc[-1]):
-            facts[f"큰 그림({'일봉' if unit == 'd' else '주봉'}): 직전 종가가 20선 대비"] = f"{(d['Close'].iloc[-1] / d['sma20'].iloc[-1] - 1):+.1%}"
+        if blind:                                               # 거래량 크기로 종목을 짐작하지 못하게
+            mv = float(d["Volume"].replace(0, np.nan).median())
+            if np.isfinite(mv) and mv > 0:
+                d["Volume"] = d["Volume"] / mv
+        nd = len(d)
+        c_labels = None
+        if unit == "w":
+            c_labels = [("W0" if i == nd - 1 else f"W-{nd - 1 - i}") for i in range(nd)] if blind else [f"{t:%Y-%m-%d}" for t in d.index]
+        note = "same price scale as the main chart" if same_scale else "separate price scale, shape only"
+        context_png = _context_png(d, f"{en_name} - {word} bars, last {nd} COMPLETED before the decision bar ({note})", unit, c_labels)
+        if ref20 is not None and np.isfinite(ref20.iloc[-1]):
+            facts[f"큰 그림({'일봉' if unit == 'd' else '주봉'}): 직전 종가가 20선 대비"] = f"{(d['Close'].iloc[-1] / (ref20.iloc[-1] * ds) - 1):+.1%}"
+        if unit == "w":
+            ev = [(n, float(d[f"ema{n}"].iloc[-1])) for n in c_emas if np.isfinite(d[f"ema{n}"].iloc[-1])]
+            if len(ev) >= 3:
+                vals = [x_ for _, x_ in ev]
+                facts["주봉 이동평균선 배열"] = "정배열" if all(a > b for a, b in zip(vals, vals[1:])) else "역배열" if all(a < b for a, b in zip(vals, vals[1:])) else "혼조"
+                facts["주봉 EMA"] = {f"EMA{n}": round(x_, p) for n, x_ in ev}
+            for n in c_smas:
+                if np.isfinite(d[f"sma{n}"].iloc[-1]):
+                    facts[f"주봉 SMA{n}"] = round(float(d[f"sma{n}"].iloc[-1]), p)
+            if "rsi" in d and np.isfinite(d["rsi"].iloc[-1]):
+                facts["주봉 RSI(14)"] = round(float(d["rsi"].iloc[-1]), 1)
+            if spec.context_table:
+                cols = [c_ for c_ in d.columns if c_.startswith("ema") or c_.startswith("sma") or c_ == "rsi"]
+                rows_c = ["week,open,high,low,close" + "".join("," + c_ for c_ in cols)]
+                for lab, (_, r) in zip(c_labels[-spec.context_table:], d.iloc[-spec.context_table:].iterrows()):
+                    rows_c.append(f"{lab},{r.Open:.{p}f},{r.High:.{p}f},{r.Low:.{p}f},{r.Close:.{p}f}"
+                                  + "".join((f",{r[c_]:.1f}" if c_ == "rsi" else f",{r[c_]:.{p}f}") if np.isfinite(r[c_]) else "," for c_ in cols))
+                context_csv = "\n".join(rows_c)
     return Packet(as_of=pd.Timestamp(v.index[-1]), scale=scale, blind=blind, name=name, chart_png=chart_png, context_png=context_png,
-                  bars_csv="\n".join(rows), facts=facts, labels=labels, n_bars=len(v), interval=spec.interval, last=last)
+                  bars_csv="\n".join(rows), facts=facts, labels=labels, n_bars=len(v), interval=spec.interval, last=last,
+                  context_csv=context_csv, context_same_scale=same_scale)
 
 
 # ---------------------------------------------------------------------------

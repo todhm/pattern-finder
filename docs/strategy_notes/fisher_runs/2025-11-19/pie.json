@@ -1,0 +1,217 @@
+{
+ "as_of": "2025-11-19",
+ "end": "2026-11-18",
+ "panel_end": "2026-11-10",
+ "y10": 0.041329998970031735,
+ "wacc": 0.09132999897003174,
+ "qqq": 0.10458717922191774,
+ "qqq_to_panel_end": 0.13012879987013282,
+ "universe": {
+  "n": 597,
+  "excluded": {
+   "n": 108,
+   "mean": 0.1350016003117466,
+   "median": 0.07811047889852796,
+   "beat_qqq": 0.4351851851851852
+  },
+  "kept": {
+   "n": 489,
+   "mean": 0.21702180135612797,
+   "median": 0.13971912135397901,
+   "beat_qqq": 0.5112474437627812
+  },
+  "all": {
+   "n": 597,
+   "mean": 0.20218397604156654,
+   "median": 0.12874779541446202,
+   "beat_qqq": 0.49748743718592964
+  },
+  "spearman_p_vs_ret": [
+   0.08936476668095482,
+   597
+  ],
+  "quintiles": [
+   {
+    "q": "가장 비쌈(P 최저)",
+    "n": 120,
+    "p_median": 0.016390137087164133,
+    "g_real_median": 0.2383157540477504,
+    "mean": 0.12375870603376683,
+    "median": 0.05540775197156689
+   },
+   {
+    "q": "2",
+    "n": 119,
+    "p_median": 0.11823184603337983,
+    "g_real_median": 0.13106070303507655,
+    "mean": 0.17170558364603344,
+    "median": 0.13946299775743976
+   },
+   {
+    "q": "3",
+    "n": 119,
+    "p_median": 0.2868534727998142,
+    "g_real_median": 0.08993655196104067,
+    "mean": 0.22640870086802867,
+    "median": 0.11356537260151711
+   },
+   {
+    "q": "4",
+    "n": 119,
+    "p_median": 0.6266844593833427,
+    "g_real_median": 0.03335748285869178,
+    "mean": 0.23269022403835465,
+    "median": 0.14420231369383907
+   },
+   {
+    "q": "가장 쌈(P 최고)",
+    "n": 120,
+    "p_median": 0.9441285220206419,
+    "g_real_median": -0.04589791919670433,
+    "mean": 0.2565587704585467,
+    "median": 0.18680193069582673
+   }
+  ],
+  "top_quality": {
+   "excluded": {
+    "n": 43,
+    "mean": 0.03635493831344275,
+    "median": -0.018544448618558085,
+    "beat_qqq": 0.32558139534883723
+   },
+   "kept": {
+    "n": 118,
+    "mean": 0.1447130340406004,
+    "median": 0.11502552934123234,
+    "beat_qqq": 0.4745762711864407
+   }
+  }
+ },
+ "fisher": {
+  "passed_n": 13,
+  "dropped": [
+   "NVDA",
+   "MSFT",
+   "ASML",
+   "MELI",
+   "APP",
+   "CDNS",
+   "NFLX",
+   "APPF",
+   "PANW"
+  ],
+  "orig_picks": [
+   "NVDA",
+   "MSFT",
+   "ASML",
+   "FTNT",
+   "MELI",
+   "APP",
+   "PTC",
+   "NBIX",
+   "CDNS",
+   "NFLX"
+  ],
+  "new_picks": [
+   "FTNT",
+   "PTC",
+   "NBIX",
+   "FSLR"
+  ],
+  "orig": {
+   "n": 10,
+   "mean": 0.01492967636000001,
+   "median": 0.024490249300000003,
+   "beat_qqq": 0.4
+  },
+  "new": {
+   "n": 4,
+   "mean": 0.142833225725,
+   "median": 0.15934611295,
+   "beat_qqq": 0.75
+  },
+  "dropped_stat": {
+   "n": 9,
+   "mean": -0.019654004955555544,
+   "median": -0.054736461300000004,
+   "beat_qqq": 0.2222222222222222
+  },
+  "kept_all": {
+   "n": 4,
+   "mean": 0.142833225725,
+   "median": 0.15934611295,
+   "beat_qqq": 0.75
+  }
+ },
+ "sensitivity": {
+  "자본비용 8% 고정": {
+   "dropped": [
+    "NVDA",
+    "MELI",
+    "APP",
+    "CDNS",
+    "NFLX",
+    "PANW"
+   ],
+   "new_picks": [
+    "MSFT",
+    "ASML",
+    "FTNT",
+    "PTC",
+    "NBIX",
+    "APPF",
+    "FSLR"
+   ],
+   "new_mean": 0.13133435504285715,
+   "universe_excluded_n": 78,
+   "universe_excluded_mean": 0.0935586003183019,
+   "universe_kept_mean": 0.21850917701731729
+  },
+  "제외 문턱 P < 10%": {
+   "dropped": [
+    "NVDA",
+    "MSFT",
+    "ASML",
+    "FTNT",
+    "MELI",
+    "APP",
+    "CDNS",
+    "NFLX",
+    "APPF",
+    "PANW"
+   ],
+   "new_picks": [
+    "PTC",
+    "NBIX",
+    "FSLR"
+   ],
+   "new_mean": -0.02729052076666666,
+   "universe_excluded_n": 168,
+   "universe_excluded_mean": 0.1359127462542616,
+   "universe_kept_mean": 0.2281363457484831
+  },
+  "자본비용 +2%p": {
+   "dropped": [
+    "NVDA",
+    "MSFT",
+    "ASML",
+    "FTNT",
+    "MELI",
+    "APP",
+    "NBIX",
+    "CDNS",
+    "NFLX",
+    "APPF",
+    "PANW"
+   ],
+   "new_picks": [
+    "PTC",
+    "FSLR"
+   ],
+   "new_mean": -0.1307518158,
+   "universe_excluded_n": 188,
+   "universe_excluded_mean": 0.14605392797493644,
+   "universe_kept_mean": 0.22798458493282928
+  }
+ }
+}

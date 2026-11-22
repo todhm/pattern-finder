@@ -1,0 +1,907 @@
+[
+ {
+  "symbol":"FTNT",
+  "group":"top",
+  "name":"Fortinet, Inc.",
+  "sic_desc":"Computer Peripheral Equipment, NEC",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-21",
+  "proxy_date":"2025-04-25",
+  "chars":90625,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-25) 중 특수관계자 거래"
+  ],
+  "n_502":5,
+  "n_402":0
+ },
+ {
+  "symbol":"RMBS",
+  "group":"top",
+  "name":"RAMBUS INC",
+  "sic_desc":"Semiconductors & Related Devices",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-24",
+  "proxy_date":"2025-03-07",
+  "chars":88926,
+  "sections":[
+   "10-K 본문 앞부분(사업·위험)",
+   "10-K 중 경영진의 논의·분석(MD&A)"
+  ],
+  "n_502":3,
+  "n_402":0
+ },
+ {
+  "symbol":"CALM",
+  "group":"top",
+  "name":"CAL-MAINE FOODS INC",
+  "sic_desc":"Agricultural Prod-Livestock & Animal Specialties",
+  "annual_form":"10-K",
+  "annual_date":"2025-07-22",
+  "proxy_date":"2025-08-19",
+  "chars":56613,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-08-19) 중 특수관계자 거래"
+  ],
+  "n_502":4,
+  "n_402":0
+ },
+ {
+  "symbol":"USLM",
+  "group":"top",
+  "name":"UNITED STATES LIME & MINERALS INC",
+  "sic_desc":"Mining & Quarrying of  Nonmetallic Minerals (No Fuels)",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-27",
+  "proxy_date":"2025-03-28",
+  "chars":79740,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"NVDA",
+  "group":"top",
+  "name":"NVIDIA CORP",
+  "sic_desc":"Semiconductors & Related Devices",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-26",
+  "proxy_date":"2025-05-13",
+  "chars":98722,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-05-13) 중 특수관계자 거래"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"PODD",
+  "group":"top",
+  "name":"INSULET CORP",
+  "sic_desc":"Surgical & Medical Instruments & Apparatus",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-21",
+  "proxy_date":"2025-04-29",
+  "chars":95061,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-29) 중 특수관계자 거래"
+  ],
+  "n_502":13,
+  "n_402":0
+ },
+ {
+  "symbol":"PCTY",
+  "group":"top",
+  "name":"Paylocity Holding Corp",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-08-06",
+  "proxy_date":"2025-10-23",
+  "chars":95426,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-10-23) 중 특수관계자 거래"
+  ],
+  "n_502":8,
+  "n_402":0
+ },
+ {
+  "symbol":"ASML",
+  "group":"top",
+  "name":"ASML HOLDING NV",
+  "sic_desc":"Special Industry Machinery, NEC",
+  "annual_form":"20-F",
+  "annual_date":"2025-03-05",
+  "proxy_date":null,
+  "chars":87728,
+  "sections":[
+   "20-F 본문 앞부분(사업·위험)",
+   "20-F 중 경영진의 논의·분석(MD&A)"
+  ],
+  "n_502":0,
+  "n_402":0
+ },
+ {
+  "symbol":"MSFT",
+  "group":"top",
+  "name":"MICROSOFT CORP",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-07-30",
+  "proxy_date":"2025-10-21",
+  "chars":94492,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-10-21) 중 특수관계자 거래"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"FTAI",
+  "group":"top",
+  "name":"FTAI Aviation Ltd.",
+  "sic_desc":"Services-Miscellaneous Equipment Rental & Leasing",
+  "annual_form":"10-K",
+  "annual_date":"2025-03-03",
+  "proxy_date":"2025-04-16",
+  "chars":79781,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-16) 중 특수관계자 거래"
+  ],
+  "n_502":3,
+  "n_402":0
+ },
+ {
+  "symbol":"LULU",
+  "group":"top",
+  "name":"lululemon athletica inc.",
+  "sic_desc":"Apparel & Other Finishd Prods of  Fabrics & Similar Matl",
+  "annual_form":"10-K",
+  "annual_date":"2025-03-27",
+  "proxy_date":"2025-04-29",
+  "chars":77535,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-29) 중 특수관계자 거래"
+  ],
+  "n_502":3,
+  "n_402":0
+ },
+ {
+  "symbol":"MELI",
+  "group":"top",
+  "name":"MERCADOLIBRE INC",
+  "sic_desc":"Services-Business Services, NEC",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-21",
+  "proxy_date":"2025-04-28",
+  "chars":94938,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-28) 중 특수관계자 거래"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"HRMY",
+  "group":"top",
+  "name":"Harmony Biosciences Holdings, Inc.",
+  "sic_desc":"Pharmaceutical Preparations",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-25",
+  "proxy_date":"2025-04-04",
+  "chars":94308,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-04) 중 특수관계자 거래"
+  ],
+  "n_502":9,
+  "n_402":0
+ },
+ {
+  "symbol":"IDCC",
+  "group":"top",
+  "name":"InterDigital, Inc.",
+  "sic_desc":"Patent Owners & Lessors",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-06",
+  "proxy_date":"2025-04-25",
+  "chars":93756,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-25) 중 특수관계자 거래"
+  ],
+  "n_502":4,
+  "n_402":0
+ },
+ {
+  "symbol":"APPF",
+  "group":"top",
+  "name":"APPFOLIO INC",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-06",
+  "proxy_date":"2025-04-28",
+  "chars":78980,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-28) 중 특수관계자 거래"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"FSLR",
+  "group":"top",
+  "name":"FIRST SOLAR, INC.",
+  "sic_desc":"Semiconductors & Related Devices",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-25",
+  "proxy_date":"2025-04-04",
+  "chars":99498,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-04) 중 특수관계자 거래"
+  ],
+  "n_502":3,
+  "n_402":0
+ },
+ {
+  "symbol":"NBIX",
+  "group":"top",
+  "name":"NEUROCRINE BIOSCIENCES INC",
+  "sic_desc":"Biological Products, (No Diagnostic Substances)",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-10",
+  "proxy_date":"2025-04-09",
+  "chars":92097,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-09) 중 특수관계자 거래"
+  ],
+  "n_502":9,
+  "n_402":0
+ },
+ {
+  "symbol":"TTD",
+  "group":"top",
+  "name":"Trade Desk, Inc.",
+  "sic_desc":"Services-Computer Programming, Data Processing, Etc.",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-21",
+  "proxy_date":"2025-07-24",
+  "chars":86718,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":8,
+  "n_402":0
+ },
+ {
+  "symbol":"APP",
+  "group":"top",
+  "name":"AppLovin Corp",
+  "sic_desc":"Services-Computer Programming, Data Processing, Etc.",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-27",
+  "proxy_date":"2025-04-22",
+  "chars":88398,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-22) 중 특수관계자 거래"
+  ],
+  "n_502":5,
+  "n_402":0
+ },
+ {
+  "symbol":"PANW",
+  "group":"top",
+  "name":"Palo Alto Networks Inc",
+  "sic_desc":"Computer Peripheral Equipment, NEC",
+  "annual_form":"10-K",
+  "annual_date":"2025-08-29",
+  "proxy_date":"2025-11-07",
+  "chars":86301,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":7,
+  "n_402":0
+ },
+ {
+  "symbol":"VCEL",
+  "group":"top",
+  "name":"Vericel Corp",
+  "sic_desc":"Biological Products, (No Diagnostic Substances)",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-27",
+  "proxy_date":"2025-03-20",
+  "chars":44582,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-03-20) 중 특수관계자 거래"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"META",
+  "group":"top",
+  "name":"Meta Platforms, Inc.",
+  "sic_desc":"Services-Computer Programming, Data Processing, Etc.",
+  "annual_form":"10-K",
+  "annual_date":"2025-01-30",
+  "proxy_date":"2025-04-17",
+  "chars":93229,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-17) 중 특수관계자 거래"
+  ],
+  "n_502":3,
+  "n_402":0
+ },
+ {
+  "symbol":"HQY",
+  "group":"top",
+  "name":"HEALTHEQUITY, INC.",
+  "sic_desc":"Services-Business Services, NEC",
+  "annual_form":"10-K",
+  "annual_date":"2025-03-18",
+  "proxy_date":"2025-05-13",
+  "chars":94106,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-05-13) 중 특수관계자 거래"
+  ],
+  "n_502":8,
+  "n_402":0
+ },
+ {
+  "symbol":"CDNS",
+  "group":"top",
+  "name":"CADENCE DESIGN SYSTEMS INC",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-21",
+  "proxy_date":"2025-03-25",
+  "chars":92484,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"ABNB",
+  "group":"top",
+  "name":"Airbnb, Inc.",
+  "sic_desc":"Services-To Dwellings & Other Buildings",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-13",
+  "proxy_date":"2025-04-25",
+  "chars":77049,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-25) 중 특수관계자 거래"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"MANH",
+  "group":"top",
+  "name":"MANHATTAN ASSOCIATES INC",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-07",
+  "proxy_date":"2025-04-02",
+  "chars":88188,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-02) 중 특수관계자 거래"
+  ],
+  "n_502":5,
+  "n_402":0
+ },
+ {
+  "symbol":"PTC",
+  "group":"top",
+  "name":"PTC INC.",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2024-11-14",
+  "proxy_date":"2025-01-02",
+  "chars":69753,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-01-02) 중 특수관계자 거래"
+  ],
+  "n_502":11,
+  "n_402":0
+ },
+ {
+  "symbol":"QLYS",
+  "group":"top",
+  "name":"QUALYS, INC.",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-21",
+  "proxy_date":"2025-04-23",
+  "chars":87788,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"ADSK",
+  "group":"top",
+  "name":"Autodesk, Inc.",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-03-06",
+  "proxy_date":"2025-05-06",
+  "chars":98359,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-05-06) 중 특수관계자 거래"
+  ],
+  "n_502":9,
+  "n_402":0
+ },
+ {
+  "symbol":"NFLX",
+  "group":"top",
+  "name":"NETFLIX INC",
+  "sic_desc":"Services-Video Tape Rental",
+  "annual_form":"10-K",
+  "annual_date":"2025-01-27",
+  "proxy_date":"2025-04-17",
+  "chars":67172,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-17) 중 특수관계자 거래"
+  ],
+  "n_502":5,
+  "n_402":0
+ },
+ {
+  "symbol":"AMRX",
+  "group":"control",
+  "name":"Amneal Pharmaceuticals, Inc.",
+  "sic_desc":"Pharmaceutical Preparations",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-28",
+  "proxy_date":"2025-03-25",
+  "chars":95094,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-03-25) 중 특수관계자 거래"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"BLBD",
+  "group":"control",
+  "name":"Blue Bird Corp",
+  "sic_desc":"Truck & Bus Bodies",
+  "annual_form":"10-K",
+  "annual_date":"2024-11-25",
+  "proxy_date":"2025-01-27",
+  "chars":93283,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-01-27) 중 특수관계자 거래"
+  ],
+  "n_502":14,
+  "n_402":0
+ },
+ {
+  "symbol":"ALKT",
+  "group":"control",
+  "name":"ALKAMI TECHNOLOGY, INC.",
+  "sic_desc":"Services-Prepackaged Software",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-28",
+  "proxy_date":"2025-03-31",
+  "chars":92338,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-03-31) 중 특수관계자 거래"
+  ],
+  "n_502":8,
+  "n_402":0
+ },
+ {
+  "symbol":"CYRX",
+  "group":"control",
+  "name":"Cryoport, Inc.",
+  "sic_desc":"Pharmaceutical Preparations",
+  "annual_form":"10-K",
+  "annual_date":"2025-03-07",
+  "proxy_date":"2025-04-25",
+  "chars":92640,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-25) 중 특수관계자 거래"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"CWST",
+  "group":"control",
+  "name":"CASELLA WASTE SYSTEMS INC",
+  "sic_desc":"Refuse Systems",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-18",
+  "proxy_date":"2025-04-18",
+  "chars":95657,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-18) 중 특수관계자 거래"
+  ],
+  "n_502":4,
+  "n_402":0
+ },
+ {
+  "symbol":"FRPT",
+  "group":"control",
+  "name":"Freshpet, Inc.",
+  "sic_desc":"Grain Mill Products",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-20",
+  "proxy_date":"2025-04-30",
+  "chars":78278,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-30) 중 특수관계자 거래"
+  ],
+  "n_502":11,
+  "n_402":0
+ },
+ {
+  "symbol":"UCTT",
+  "group":"control",
+  "name":"Ultra Clean Holdings, Inc.",
+  "sic_desc":"Semiconductors & Related Devices",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-25",
+  "proxy_date":"2025-04-28",
+  "chars":90986,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-28) 중 특수관계자 거래"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"CASY",
+  "group":"control",
+  "name":"CASEYS GENERAL STORES INC",
+  "sic_desc":"Retail-Auto Dealers & Gasoline Stations",
+  "annual_form":"10-K",
+  "annual_date":"2025-06-23",
+  "proxy_date":"2025-07-23",
+  "chars":42011,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "위임장(DEF 14A, 2025-07-23) 중 특수관계자 거래"
+  ],
+  "n_502":7,
+  "n_402":0
+ },
+ {
+  "symbol":"PNRG",
+  "group":"control",
+  "name":"PRIMEENERGY RESOURCES CORP",
+  "sic_desc":"Crude Petroleum & Natural Gas",
+  "annual_form":"10-K",
+  "annual_date":"2025-04-15",
+  "proxy_date":"2025-04-21",
+  "chars":74100,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":0,
+  "n_402":0
+ },
+ {
+  "symbol":"VITL",
+  "group":"control",
+  "name":"Vital Farms, Inc.",
+  "sic_desc":"Food and Kindred Products",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-27",
+  "proxy_date":"2025-04-28",
+  "chars":90685,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-28) 중 특수관계자 거래"
+  ],
+  "n_502":5,
+  "n_402":0
+ },
+ {
+  "symbol":"KURA",
+  "group":"control",
+  "name":"Kura Oncology, Inc.",
+  "sic_desc":"Pharmaceutical Preparations",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-28",
+  "proxy_date":"2025-04-11",
+  "chars":94195,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-04-11) 중 특수관계자 거래"
+  ],
+  "n_502":6,
+  "n_402":0
+ },
+ {
+  "symbol":"VECO",
+  "group":"control",
+  "name":"VEECO INSTRUMENTS INC",
+  "sic_desc":"Special Industry Machinery, NEC",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-14",
+  "proxy_date":"2025-03-20",
+  "chars":82236,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-03-20) 중 특수관계자 거래"
+  ],
+  "n_502":2,
+  "n_402":0
+ },
+ {
+  "symbol":"TSCO",
+  "group":"control",
+  "name":"TRACTOR SUPPLY CO \/DE\/",
+  "sic_desc":"Retail-Building Materials, Hardware, Garden Supply",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-20",
+  "proxy_date":"2025-03-27",
+  "chars":91709,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Executive Officers",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-03-27) 중 특수관계자 거래"
+  ],
+  "n_502":3,
+  "n_402":0
+ },
+ {
+  "symbol":"REYN",
+  "group":"control",
+  "name":"Reynolds Consumer Products Inc.",
+  "sic_desc":"Plastics, Foil & Coated Paper Bags",
+  "annual_form":"10-K",
+  "annual_date":"2025-02-05",
+  "proxy_date":"2025-03-11",
+  "chars":78417,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures",
+   "위임장(DEF 14A, 2025-03-11) 중 특수관계자 거래"
+  ],
+  "n_502":7,
+  "n_402":0
+ },
+ {
+  "symbol":"PRTH",
+  "group":"control",
+  "name":"Priority Technology Holdings, Inc.",
+  "sic_desc":"Services-Business Services, NEC",
+  "annual_form":"10-K",
+  "annual_date":"2025-03-06",
+  "proxy_date":"2025-04-30",
+  "chars":83185,
+  "sections":[
+   "Item 1. Business (앞부분)",
+   "Item 1 중 Human Capital",
+   "Item 1A. Risk Factors (앞부분만)",
+   "Item 3. Legal Proceedings",
+   "Item 7. MD&A (앞부분)",
+   "Item 9A. Controls and Procedures"
+  ],
+  "n_502":1,
+  "n_402":0
+ }
+]
